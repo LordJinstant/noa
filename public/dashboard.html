@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Dashboard - NOA</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+  <div class="max-w-7xl mx-auto p-8">
+    <h1 class="text-4xl font-bold mb-2">Welcome back, <span id="studentName" class="brand-green"></span></h1>
+    <p class="text-gray-600">Your Olympiad Performance Overview</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
+      <!-- Stats -->
+      <div class="bg-white p-6 rounded-3xl">
+        <h3 class="text-gray-500">Overall Score</h3>
+        <p class="text-6xl font-bold brand-green mt-2" id="overallScore">87</p>
+        <p class="text-sm text-green-600">↑ 12% this month</p>
+      </div>
+      <div class="bg-white p-6 rounded-3xl">
+        <h3 class="text-gray-500">Assessments Taken</h3>
+        <p class="text-6xl font-bold mt-2">24</p>
+      </div>
+      <div class="bg-white p-6 rounded-3xl">
+        <h3 class="text-gray-500">Rank in Class</h3>
+        <p class="text-6xl font-bold mt-2">#3</p>
+      </div>
+    </div>
+
+    <!-- Performance Graph -->
+    <div class="bg-white p-8 rounded-3xl mt-8">
+      <h3 class="font-semibold mb-6">Performance Trend (Last 6 Assessments)</h3>
+      <canvas id="performanceChart" height="100"></canvas>
+    </div>
+
+    <div class="mt-8 text-center text-gray-500">
+      More features (Flipbooks, Past Questions, Leaderboard) coming soon...
+    </div>
+  </div>
+
+  <script>
+    // Get user from localStorage
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (user.name) document.getElementById('studentName').textContent = user.name.split(' ')[0];
+
+    // Chart.js Graph
+    const ctx = document.getElementById('performanceChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],
+        datasets: [{
+          label: 'Performance (%)',
+          data: [65, 72, 78, 81, 89, 87],
+          borderColor: '#19A975',
+          backgroundColor: 'rgba(25, 169, 117, 0.1)',
+          tension: 0.4,
+          borderWidth: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { min: 0, max: 100, grid: { color: '#f3f4f6' } }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

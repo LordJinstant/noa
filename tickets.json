@@ -1,0 +1,28 @@
+[
+  {
+    "id": 1780488164253,
+    "type": "staff_application",
+    "title": "New Staff Application",
+    "message": "Try hard has submitted a staff application.",
+    "name": "Try hard",
+    "email": "tryhard@gmail.com",
+    "phone": "09898776767",
+    "bio": "koiooi kijknjlk hhbyuhb",
+    "staffId": 17,
+    "status": "pending",
+    "time": "6/3/2026, 1:02:44 PM"
+  },
+  {
+    "id": 1780487542928,
+    "type": "staff_application",
+    "title": "New Staff Application",
+    "message": "Mary Mack has submitted a staff application.",
+    "name": "Mary Mack",
+    "email": "angellas@gmail.com",
+    "phone": "09089878767",
+    "bio": "Mastery contest",
+    "staffId": 16,
+    "status": "pending",
+    "time": "6/3/2026, 12:52:22 PM"
+  }
+]

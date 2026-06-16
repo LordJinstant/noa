@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Portal - Nigerian Olympiad Academy</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="admin-style.css">
+</head>
+<body class="bg-gray-50 text-gray-800">
+  <div class="min-h-screen flex">
+    <!-- Sidebar -->
+    <aside class="w-72 bg-white border-r shadow-sm p-6 sticky top-0 h-screen overflow-y-auto">
+      <div class="mb-10">
+        <h1 class="text-3xl font-black text-[#19A975] flex items-center gap-3">
+          <i class="fas fa-shield-halved"></i>
+          <span>NOA Admin</span>
+        </h1>
+        <p class="text-sm text-gray-500 mt-2">Manage tickets, users, admins and posts.</p>
+      </div>
+
+      <nav class="space-y-2">
+        <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 rounded-2xl transition hover:bg-green-50 hover:text-[#19A975]">
+          <i class="fas fa-home"></i>
+          <span>Dashboard</span>
+        </a>
+
+        <a onclick="toggleTickets()" class="flex items-center justify-between px-4 py-3 rounded-2xl cursor-pointer transition hover:bg-green-50 hover:text-[#19A975]">
+          <div class="flex items-center gap-3">
+            <i class="fas fa-ticket-alt"></i>
+            <span>Tickets</span>
+          </div>
+          <span id="ticketBadge" class="hidden bg-red-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full"></span>
+        </a>
+
+        <a onclick="toggleManageUsers()" class="flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer transition hover:bg-green-50 hover:text-[#19A975]">
+          <i class="fas fa-users"></i>
+          <span>Manage Users</span>
+        </a>
+
+        <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-2xl transition hover:bg-green-50 hover:text-[#19A975]">
+          <i class="fas fa-chart-line"></i>
+          <span>Analytics</span>
+        </a>
+
+        <a href="#" onclick="scrollToPostForm()" class="flex items-center gap-3 px-4 py-3 rounded-2xl transition hover:bg-green-50 hover:text-[#19A975]">
+          <i class="fas fa-newspaper"></i>
+          <span>Create Post</span>
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto">
+      <div class="max-w-7xl mx-auto p-6 lg:p-10">
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+          <div>
+            <h2 class="text-3xl lg:text-4xl font-black">Admin Dashboard</h2>
+            <p class="text-gray-500 mt-1">A single place to manage your team and platform.</p>
+          </div>
+        </div>
+
+        <!-- Summary Cards with Mini Charts -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-10">
+          <div class="bg-white rounded-3xl p-6 shadow-sm border hover:shadow-md transition">
+            <div class="flex items-center justify-between mb-4">
+              <p class="text-sm text-gray-500">Tickets</p>
+              <div class="text-2xl text-[#19A975]"><i class="fas fa-ticket-alt"></i></div>
+            </div>
+            <h3 class="text-3xl font-black mt-2 mb-3" id="ticketsCount">0</h3>
+            <canvas id="ticketsChart" height="80"></canvas>
+          </div>
+
+          <div class="bg-white rounded-3xl p-6 shadow-sm border hover:shadow-md transition">
+            <div class="flex items-center justify-between mb-4">
+              <p class="text-sm text-gray-500">Pending Users</p>
+              <div class="text-2xl text-yellow-500"><i class="fas fa-user-clock"></i></div>
+            </div>
+            <h3 class="text-3xl font-black mt-2 mb-3" id="pendingUsersCount">0</h3>
+            <canvas id="pendingUsersChart" height="80"></canvas>
+          </div>
+
+          <div class="bg-white rounded-3xl p-6 shadow-sm border hover:shadow-md transition">
+            <div class="flex items-center justify-between mb-4">
+              <p class="text-sm text-gray-500">Admins</p>
+              <div class="text-2xl text-purple-500"><i class="fas fa-user-shield"></i></div>
+            </div>
+            <h3 class="text-3xl font-black mt-2 mb-3" id="adminsCount">0</h3>
+            <canvas id="adminsChart" height="80"></canvas>
+          </div>
+
+          <div class="bg-white rounded-3xl p-6 shadow-sm border hover:shadow-md transition">
+            <div class="flex items-center justify-between mb-4">
+              <p class="text-sm text-gray-500">Total Posts</p>
+              <div class="text-2xl text-blue-500"><i class="fas fa-newspaper"></i></div>
+            </div>
+            <h3 class="text-3xl font-black mt-2 mb-3" id="postsCount">0</h3>
+            <canvas id="postsChart" height="80"></canvas>
+          </div>
+        </div>
+
+        <!-- Super Admin -->
+        <section class="bg-gradient-to-r from-[#19A975] to-emerald-500 text-white rounded-3xl p-6 shadow-lg mb-10">
+          <div class="flex items-center gap-4">
+            <div class="text-5xl">💎</div>
+            <div id="superAdminInfo">
+              <h3 class="font-bold text-2xl">Super Admin <span class="text-yellow-200">(Diamond Flag)</span></h3>
+              <p class="text-white/90">Full access • Cannot be rated • Highest authority</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Create New Admin -->
+        <section class="bg-white rounded-3xl p-8 shadow-sm border mb-10">
+          <h3 class="text-2xl font-bold mb-6 flex items-center gap-3">
+            <i class="fas fa-user-plus text-[#19A975]"></i>
+            Create New Admin
+          </h3>
+
+          <form id="createAdminForm" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <input type="text" id="admin_username" placeholder="Username" class="w-full p-4 border rounded-2xl focus:border-[#19A975] outline-none" required>
+              <input type="email" id="admin_email" placeholder="Email" class="w-full p-4 border rounded-2xl focus:border-[#19A975] outline-none" required>
+              <input type="text" id="admin_name" placeholder="Full Name" class="w-full p-4 border rounded-2xl focus:border-[#19A975] outline-none" required>
+              <input type="password" id="admin_password" placeholder="Password" class="w-full p-4 border rounded-2xl focus:border-[#19A975] outline-none" required>
+            </div>
+
+            <select id="admin_role" class="w-full p-4 border rounded-2xl focus:border-[#19A975] outline-none">
+              <option value="admin">Admin</option>
+              <option value="moderator">Moderator</option>
+            </select>
+
+            <div class="flex items-center gap-4">
+              <button type="submit" class="bg-[#19A975] hover:bg-[#158a5f] text-white px-10 py-4 rounded-2xl font-semibold transition">
+                <i class="fas fa-user-plus mr-2"></i>Create Admin
+              </button>
+              <span id="createAdminStatus" class="text-sm"></span>
+            </div>
+          </form>
+        </section>
+
+        <!-- Team Members -->
+        <section class="mb-10">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-bold text-xl">Other Admins & Staff</h3>
+            <span class="text-sm text-gray-500" id="staffCount">0 active members</span>
+          </div>
+          <div id="adminsList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
+        </section>
+
+        <!-- Create Post -->
+        <section id="createPostSection" class="bg-white rounded-3xl p-8 shadow-sm border mb-10">
+          <h3 class="text-2xl font-bold mb-6 flex items-center gap-3">
+            <i class="fas fa-newspaper text-[#19A975]"></i>
+            Create New Post / Resource
+          </h3>
+
+          <form id="postForm" class="space-y-6">
+            <input type="text" id="title" placeholder="Post Title" class="w-full p-4 border rounded-2xl focus:border-[#19A975] outline-none" required>
+            <textarea id="excerpt" placeholder="Short excerpt (shown on homepage)" rows="2" class="w-full p-4 border rounded-2xl focus:border-[#19A975] outline-none" required></textarea>
+            <textarea id="content" placeholder="Full content" rows="8" class="w-full p-4 border rounded-2xl focus:border-[#19A975] outline-none" required></textarea>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-600 mb-2">Featured Image (Optional)</label>
+              <input type="file" id="image" accept="image/*" class="w-full p-3 border rounded-2xl">
+              <p class="text-xs text-gray-500 mt-1">Recommended: 1200x630px for best display</p>
+            </div>
+
+            <div class="flex items-center gap-4">
+              <button type="submit" class="bg-[#19A975] hover:bg-[#158a5f] text-white px-10 py-4 rounded-2xl font-semibold transition">
+                <i class="fas fa-paper-plane mr-2"></i>Publish Post
+              </button>
+              <span id="postStatus" class="text-sm"></span>
+            </div>
+          </form>
+        </section>
+
+        <!-- Recent Posts Preview -->
+        <section>
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-bold text-xl">Recent Posts</h3>
+            <span class="text-sm text-gray-500" id="postsCount2">0 posts</span>
+          </div>
+          <div id="recentPostsList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Tickets Modal -->
+  <div id="ticketsModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[300]">
+    <div class="bg-white rounded-3xl w-full max-w-2xl mx-4 max-h-[85vh] overflow-hidden shadow-2xl">
+      <div class="p-6 border-b flex justify-between items-center">
+        <h3 class="text-xl font-bold">Tickets</h3>
+        <button onclick="toggleTickets()" class="text-2xl">✕</button>
+      </div>
+      <div id="ticketsContainer" class="p-6 overflow-y-auto max-h-[70vh]"></div>
+    </div>
+  </div>
+
+  <!-- Manage Users Modal -->
+  <div id="manageUsersModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[350]">
+    <div class="bg-white rounded-3xl w-full max-w-6xl mx-4 max-h-[90vh] overflow-hidden shadow-2xl">
+      <div class="p-6 border-b flex justify-between items-center">
+        <h3 class="text-2xl font-bold flex items-center gap-3">
+          <i class="fas fa-users text-[#19A975]"></i>
+          Manage Users
+        </h3>
+        <button onclick="toggleManageUsers()" class="text-2xl hover:text-red-500">✕</button>
+      </div>
+
+      <div class="p-6 overflow-y-auto max-h-[75vh]">
+        <div class="mb-4 flex gap-3">
+          <input type="text" id="userSearchInput" placeholder="Search by name or email..."
+                 class="flex-1 p-3 border rounded-2xl focus:border-[#19A975] outline-none">
+          <select id="userRoleFilter" class="p-3 border rounded-2xl focus:border-[#19A975] outline-none">
+            <option value="">All Roles</option>
+            <option value="student">Students</option>
+            <option value="staff">Staff</option>
+            <option value="staff_pending">Pending Staff</option>
+          </select>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="text-left p-4 font-semibold">Name</th>
+                <th class="text-left p-4 font-semibold">Email</th>
+                <th class="text-left p-4 font-semibold">Role</th>
+                <th class="text-left p-4 font-semibold">Grade/School</th>
+                <th class="text-left p-4 font-semibold">Status</th>
+                <th class="text-left p-4 font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody">
+              <tr>
+                <td colspan="6" class="text-center py-12 text-gray-500">Loading users...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Details Modal -->
+  <div id="userDetailModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[400]">
+    <div class="bg-white rounded-3xl p-8 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-2xl font-bold">User Details</h3>
+        <button onclick="closeUserModal()" class="text-2xl">✕</button>
+      </div>
+      <div id="userDetailContent"></div>
+    </div>
+  </div>
+
+  <!-- Edit Post Modal -->
+  <div id="editPostModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[400]">
+    <div class="bg-white rounded-3xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden shadow-2xl">
+      <div class="p-6 border-b flex justify-between items-center">
+        <h3 class="text-xl font-bold">Edit Post</h3>
+        <button onclick="closeEditModal()" class="text-2xl">✕</button>
+      </div>
+
+      <div class="p-6 overflow-y-auto max-h-[75vh]">
+        <form id="editPostForm" class="space-y-6">
+          <input type="hidden" id="edit_post_id">
+          <input type="text" id="edit_title" placeholder="Post Title" class="w-full p-4 border rounded-2xl focus:border-[#19A975] outline-none" required>
+          <textarea id="edit_excerpt" placeholder="Short excerpt" rows="2" class="w-full p-4 border rounded-2xl focus:border-[#19A975] outline-none" required></textarea>
+          <textarea id="edit_content" placeholder="Full content" rows="10" class="w-full p-4 border rounded-2xl focus:border-[#19A975] outline-none" required></textarea>
+          <div>
+            <label class="block text-sm font-medium text-gray-600 mb-2">Featured Image (Leave empty to keep current)</label>
+            <input type="file" id="edit_image" accept="image/*" class="w-full p-3 border rounded-2xl">
+          </div>
+          <div class="flex gap-3 pt-4">
+            <button type="submit" class="flex-1 bg-[#19A975] hover:bg-[#158a5f] text-white py-4 rounded-2xl font-semibold transition">Save Changes</button>
+            <button type="button" onclick="closeEditModal()" class="flex-1 border border-gray-300 hover:bg-gray-50 py-4 rounded-2xl font-semibold transition">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="admin-function.js"></script>
+</body>
+</html>

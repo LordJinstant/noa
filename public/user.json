@@ -1,0 +1,30 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "student1",
+      "password": "$2b$10$...",
+      "name": "Adebayo Oluwaseun",
+      "role": "student",
+      "school": "King's College Lagos"
+    },
+    {
+      "id": 1779414029355,
+      "username": "Jinjin28821.",
+      "password": "$2b$10$5zx3/MV6LmG8Mvu8Sa/Jg.M9VjvRd8gkxUxykleLKFPZh/WvVbE1K",
+      "name": "Lord given",
+      "school": "Not specified",
+      "role": "student",
+      "joined": "2026-05-22"
+    },
+    {
+      "id": 1779414142023,
+      "username": "Lord Jinstant",
+      "password": "$2b$10$Mm5z6mDwdKELZAwY0QtDDO8TnAjXITdOfYQMk4LipaVvT.aNhcb3u",
+      "name": "Lord given",
+      "school": "Not specified",
+      "role": "student",
+      "joined": "2026-05-22"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "admins": [
+    {
+      "id": 2,
+      "name": "Mr. Chi Okoro",
+      "role": "moderator",
+      "email": "chinedu@noa.ng",
+      "img": "https://i.pravatar.cc/150?img=2"
+    },
+    {
+      "id": 3,
+      "name": "Mrs. Fatima Yusuf",
+      "role": "staff",
+      "email": "fatima@noa.ng",
+      "img": "https://i.pravatar.cc/150?img=3"
+    }
+  ]
+}

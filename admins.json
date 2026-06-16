@@ -1,0 +1,56 @@
+{
+  "admins": [
+    {
+      "id": 1,
+      "username": "admin",
+      "password": "$BossNoNeedPin",
+      "name": "Lord Jinstant",
+      "role": "Superadmin"
+    },
+    {
+      "id": 1780069500807,
+      "username": "Bobbyboy",
+      "email": "runnerhtml@gmail.com",
+      "password": "$2b$10$Bavr4fAMOec2l9NUw.rOmuKbyZFs/UyFNyOzRWKc55JJMmqE98kje",
+      "name": "Bobby Boy",
+      "role": "moderator",
+      "img": "https://i.pravatar.cc/150?img=34"
+    },
+    {
+      "id": 1780307957322,
+      "username": "Jakob",
+      "email": "Jakk@gmail.com",
+      "password": "$2b$10$WqPnq4EdY7E0./vDxcuXtucfYAr9U0fiXgYb7vzT4BFLjbDzpjaOW",
+      "name": "Jakob Hitman",
+      "role": "moderator",
+      "img": "https://i.pravatar.cc/150?img=53"
+    },
+    {
+      "id": 1780321359205,
+      "username": "Aladin Funke",
+      "email": "funke@gmail.com",
+      "password": "$2b$10$sTcZDtfNAvf5M1125VmrD.E3yxyv2/lwGfOuQq/8IrPoOSVGrwmMG",
+      "name": "Funke Aladin",
+      "role": "staff",
+      "img": "https://i.pravatar.cc/150?img=11"
+    },
+    {
+      "id": 1780879042929,
+      "username": "Hedgeaskman",
+      "email": "Hedgeaskman@gmail.com",
+      "password": "$2b$10$L0tYT.jXAI21zpQ7MQ9Pf.CsFeOL8aFd0wOeK8BEnuHY0LboXv86O",
+      "name": "Hedge Askman",
+      "role": "moderator",
+      "createdAt": "2026-06-08T00:37:22.929Z"
+    },
+    {
+      "id": 1780919795634,
+      "username": "Happylaw",
+      "email": "Happy@gmail.com",
+      "password": "$2b$10$c4ERMEdSK1ESuXp8GBdrKOJdMqngHC629Lo8yDVO4.WNBPgsrKkzm",
+      "name": "Happy Lawrence",
+      "role": "moderator",
+      "createdAt": "2026-06-08T11:56:35.634Z"
+    }
+  ]
+}

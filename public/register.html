@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - Nigerian Olympiad Academy</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <style>
+    .brand-green { color: #19A975; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center py-12 px-4">
+
+  <div class="max-w-md w-full mx-auto bg-white p-8 rounded-3xl shadow-xl">
+    <div class="text-center mb-8">
+      <span class="text-5xl font-bold tracking-tighter brand-green">NOA</span>
+      <h1 class="text-2xl font-bold mt-3">Nigerian Olympiad Academy</h1>
+      <p class="text-gray-600 mt-2">Create your free account</p>
+    </div>
+
+    <form id="registerForm" class="space-y-6">
+      <div>
+        <label class="block text-sm font-medium mb-1 text-gray-700">Full Name</label>
+        <input type="text" id="regName" required
+               class="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:border-[#19A975]">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1 text-gray-700">Username</label>
+        <input type="text" id="regUsername" required
+               class="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:border-[#19A975]">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1 text-gray-700">School (Optional)</label>
+        <input type="text" id="regSchool"
+               class="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:border-[#19A975]">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1 text-gray-700">Password</label>
+        <input type="password" id="regPassword" required minlength="6"
+               class="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:border-[#19A975]">
+      </div>
+
+      <button type="submit"
+              class="w-full bg-[#19A975] hover:bg-[#158a5f] text-white font-semibold py-4 rounded-2xl transition text-lg">
+        Create Account
+      </button>
+    </form>
+
+    <p class="text-center mt-8 text-sm text-gray-600">
+      Already have an account? 
+      <a href="#" onclick="showLoginModal()" class="text-[#19A975] font-medium hover:underline">Login here</a>
+    </p>
+  </div>
+
+  <!-- ===================== LOGIN MODAL (Same as index.html) ===================== -->
+  <div id="loginModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[200]">
+    <div class="bg-white rounded-3xl p-8 max-w-md w-full mx-4">
+      <h2 class="text-2xl font-bold text-center mb-6">Login to NOA</h2>
+      <form id="loginForm" class="space-y-5">
+        <input type="text" id="username" placeholder="Username / Email" required 
+               class="w-full px-4 py-3 border rounded-2xl">
+        <input type="password" id="password" placeholder="Password" required 
+               class="w-full px-4 py-3 border rounded-2xl">
+        
+        <div class="flex gap-3">
+          <button type="button" onclick="login('student')" 
+                  class="flex-1 bg-[#19A975] text-white py-3 rounded-2xl font-semibold">Student Login</button>
+          <button type="button" onclick="login('admin')" 
+                  class="flex-1 border border-gray-300 py-3 rounded-2xl font-semibold hover:bg-gray-50">Admin Login</button>
+        </div>
+      </form>
+      <p class="text-center mt-6 text-sm">
+        Don't have an account? 
+        <a href="#" onclick="hideLoginModal()" class="text-[#19A975] font-medium">Register here</a>
+      </p>
+      <button onclick="hideLoginModal()" class="mt-4 w-full text-gray-500">Close</button>
+    </div>
+  </div>
+
+  <script>
+    // Register Form
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const name = document.getElementById('regName').value.trim();
+      const username = document.getElementById('regUsername').value.trim();
+      const school = document.getElementById('regSchool').value.trim();
+      const password = document.getElementById('regPassword').value;
+
+      if (!name || !username || !password) {
+        alert("Full Name, Username and Password are required!");
+        return;
+      }
+      if (password.length < 6) {
+        alert("Password must be at least 6 characters long.");
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, username, school, password })
+        });
+
+        const result = await res.json();
+
+        if (res.ok) {
+          alert(result.msg || "Account created successfully!");
+          window.location.href = 'index.html';
+        } else {
+          alert(result.msg || "Registration failed. Please try again.");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Cannot connect to server. Make sure the backend is running.");
+      }
+    });
+
+    // ===================== LOGIN MODAL FUNCTIONS =====================
+    function showLoginModal() {
+      document.getElementById('loginModal').classList.remove('hidden');
+    }
+
+    function hideLoginModal() {
+      document.getElementById('loginModal').classList.add('hidden');
+    }
+
+    async function login(type) {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+
+      if (!username || !password) {
+        alert("Please fill all fields");
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password, type })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          
+          alert(`Welcome back, ${data.user.name || username}!`);
+          
+          if (type === 'admin') {
+            window.location.href = 'admin.html';
+          } else {
+            window.location.href = 'dashboard.html';
+          }
+        } else {
+          alert(data.msg || "Login failed");
+        }
+      } catch (err) {
+        alert(`Backend not connected yet. Redirecting for demo...`);
+        if (type === 'admin') {
+          window.location.href = 'admin.html';
+        } else {
+          window.location.href = 'dashboard.html';
+        }
+      }
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('loginModal').addEventListener('click', function(e) {
+      if (e.target === this) hideLoginModal();
+    });
+
+    // Close with Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') hideLoginModal();
+    });
+  </script>
+</body>
+</html>

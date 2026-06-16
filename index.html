@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"> 
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NOA | Nigeria Olympiad Academy / WIHM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <style>
+    .brand-green { color: #19A975; }
+    .hero-bg { background: linear-gradient(90deg, #F2F5F3 0%, #FCFCFC 100%); }
+    .sidebar {
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    .nav-link {
+      transition: all 0.2s ease;
+    }
+    .nav-link:hover {
+      background-color: #f1f5f9;
+      color: #19A975;
+    }
+    .submenu {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .submenu-open {
+      max-height: 300px;
+    }
+
+    .popup-modal {
+      animation: popupFadeIn 0.4s ease forwards;
+    }
+    @keyframes popupFadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .light-green-blur {
+      background: rgba(25, 169, 117, 0.12);
+      backdrop-filter: blur(12px);
+    }
+
+    .ripple {
+      position: relative;
+      overflow: hidden;
+    }
+    .ripple::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background: rgba(255,255,255,0.4);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+      pointer-events: none;
+    }
+    .ripple:hover::after {
+      width: 300px;
+      height: 300px;
+    }
+
+    .animated-text {
+      font-size: 1.8rem;
+      line-height: 1.1;
+      font-weight: 700;
+      background: linear-gradient(90deg, #19A975, #158a5f);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  </style>
+</head>
+<body class="bg-white overflow-x-hidden">
+
+<div class="flex min-h-screen">
+
+  <!-- DESKTOP SIDEBAR -->
+  <div id="desktopSidebar"
+       class="sidebar w-72 bg-white/85 backdrop-blur-md border-r border-gray-200 flex-shrink-0 hidden lg:flex flex-col fixed h-screen overflow-y-auto z-40 translate-x-0">
+    <button onclick="toggleDesktopSidebar()"
+            class="absolute top-4 right-4 w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+
+    <div class="p-6 border-b border-gray-100">
+      <div class="flex items-center gap-3">
+        <span class="text-4xl font-bold tracking-tighter brand-green">NOA</span>
+      </div>
+      <p class="text-sm text-gray-500 mt-1">Nigeria Olympiad Academy</p>
+    </div>
+
+    <nav class="flex-1 px-3 py-6 space-y-1">
+      <a href="index.html" class="nav-link flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-700 font-medium">
+        <i class="fa-solid fa-house w-5"></i>
+        <span>Home</span>
+      </a>
+
+      <div>
+        <button onclick="toggleSubmenu(this)" class="nav-link w-full flex items-center justify-between px-4 py-3 rounded-2xl text-gray-700 font-medium">
+          <div class="flex items-center gap-3">
+            <i class="fa-solid fa-info-circle w-5"></i>
+            <span>About SIMCC</span>
+          </div>
+          <i class="fa-solid fa-chevron-down text-sm transition-transform"></i>
+        </button>
+        <div class="submenu ml-6 mt-1 space-y-1 text-sm">
+          <a href="#" onclick="showAboutPopup()" class="block px-4 py-2.5 text-gray-600 hover:text-[#19A975] rounded-xl">About SIMCC</a>
+          <a href="#" onclick="showCompetitionsPopup()" class="block px-4 py-2.5 text-gray-600 hover:text-[#19A975] rounded-xl">Competitions</a>
+          <a href="https://simcc.org/upcoming_competitions/" target="_blank" class="block px-4 py-2.5 text-gray-600 hover:text-[#19A975] rounded-xl">Schedule</a>
+        </div>
+      </div>
+
+      <div>
+        <button onclick="toggleSubmenu(this)" class="nav-link w-full flex items-center justify-between px-4 py-3 rounded-2xl text-gray-700 font-medium">
+          <div class="flex items-center gap-3">
+            <i class="fa-solid fa-book w-5"></i>
+            <span>Syllabus &amp; Sample</span>
+          </div>
+          <i class="fa-solid fa-chevron-down text-sm transition-transform"></i>
+        </button>
+        <div class="submenu ml-6 mt-1 space-y-1 text-sm">
+          <a href="https://simcc.org/contest/" target="_blank" class="block px-4 py-2.5 text-gray-600 hover:text-[#19A975] rounded-xl">Exam Syllabus</a>
+          <a href="https://simcc.org/wp-content/uploads/2025/03/2019-SASMO-G7.pdf" target="_blank" class="block px-4 py-2.5 text-gray-600 hover:text-[#19A975] rounded-xl">Exam Sample Questions</a>
+          <a href="https://smc.simcc.org/smc/2025-smc-results/" target="_blank" class="block px-4 py-2.5 text-gray-600 hover:text-[#19A975] rounded-xl">Results</a>
+        </div>
+      </div>
+
+      <div>
+        <button onclick="toggleSubmenu(this)" class="nav-link w-full flex items-center justify-between px-4 py-3 rounded-2xl text-gray-700 font-medium">
+          <div class="flex items-center gap-3">
+            <i class="fa-solid fa-award w-5"></i>
+            <span>Awards</span>
+          </div>
+          <i class="fa-solid fa-chevron-down text-sm transition-transform"></i>
+        </button>
+        <div class="submenu ml-6 mt-1 space-y-1 text-sm">
+          <a href="https://smc.simcc.org/" target="_blank" class="block px-4 py-2.5 text-gray-600 hover:text-[#19A975] rounded-xl">Awards and Certificates</a>
+          <a href="https://simcc.org/upcoming_competitions/" target="_blank" class="block px-4 py-2.5 text-gray-600 hover:text-[#19A975] rounded-xl">Global Finals</a>
+        </div>
+      </div>
+
+      <div>
+        <button onclick="toggleSubmenu(this)" class="nav-link w-full flex items-center justify-between px-4 py-3 rounded-2xl text-gray-700 font-medium">
+          <div class="flex items-center gap-3">
+            <i class="fa-solid fa-gavel w-5"></i>
+            <span>Rules</span>
+          </div>
+          <i class="fa-solid fa-chevron-down text-sm transition-transform"></i>
+        </button>
+        <div class="submenu ml-6 mt-1 space-y-1 text-sm">
+          <a href="https://www.simcconline.org/competition-instructions-for-students/" target="_blank" class="block px-4 py-2.5 text-gray-600 hover:text-[#19A975] rounded-xl">Rules and Policies</a>
+          <a href="https://sasmo.simcc.org/" target="_blank" class="block px-4 py-2.5 text-gray-600 hover:text-[#19A975] rounded-xl">Announcements</a>
+        </div>
+      </div>
+
+      <a href="contact.html" class="nav-link flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-700 font-medium">
+        <i class="fa-solid fa-envelope w-5"></i>
+        <span>Contact Us</span>
+      </a>
+    </nav>
+
+    <div class="p-6 border-t border-gray-100 mt-auto">
+      <button onclick="showLoginModal()" class="w-full py-3 text-sm font-medium border border-gray-300 rounded-2xl hover:bg-gray-50 mb-3">
+        Login
+      </button>
+      <button onclick="window.location.href='register.html'" class="w-full py-3 bg-[#19A975] text-white rounded-2xl font-semibold hover:bg-[#158a5f]">
+        Register
+      </button>
+    </div>
+
+    <div class="p-4 border-t border-gray-100">
+      <img src="action.gif" alt="Action" class="w-full rounded-2xl">
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div id="mainContent" class="flex-1 lg:ml-72">
+
+    <!-- Top Navbar -->
+    <nav class="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm shadow-sm z-50 lg:left-72">
+      <div class="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+          <button onclick="toggleMobileMenu()" class="lg:hidden text-2xl text-gray-700 mr-3">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <button onclick="toggleDesktopSidebar()" class="hidden lg:inline-flex text-2xl text-gray-700 mr-2">
+            <i class="fa-solid fa-bars-staggered"></i>
+          </button>
+          <span class="text-3xl font-bold tracking-tighter brand-green lg:hidden">NOA</span>
+          <span class="font-semibold text-lg hidden sm:block">NOA - Nigerian Olympiad Academy</span>
+        </div>
+        
+        <div class="flex items-center gap-4">
+          <button onclick="showLoginModal()" class="hidden sm:block px-6 py-2.5 font-medium border border-gray-300 rounded-2xl hover:bg-gray-50">
+            Login
+          </button>
+          <button onclick="window.location.href='register.html'" class="bg-[#19A975] text-white px-6 py-2.5 rounded-2xl font-semibold hover:bg-[#158a5f] transition text-sm">
+            Register
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero-bg pt-28 pb-20 min-h-screen flex items-center">
+      <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
+        <div class="space-y-8">
+          <h1 class="text-5xl md:text-6xl font-bold leading-tight tracking-tighter">
+            Mastery Olympiad Classes<br>
+            <span class="brand-green">With Outstanding Results</span>
+          </h1>
+          <p class="text-xl text-gray-600">
+            Empowering young mathematicians through competitions, rigorous syllabus, and global recognition.
+          </p>
+          
+          <div class="flex flex-wrap gap-4">
+            <button onclick="window.location.href='register.html'" class="bg-[#19A975] text-white px-10 py-4 rounded-3xl text-lg font-semibold hover:scale-105 transition">
+              Join Now
+            </button>
+            <button onclick="showLoginModal()" class="border border-gray-400 px-10 py-4 rounded-3xl text-lg font-medium hover:bg-gray-50">
+              Login
+            </button>
+          </div>
+        </div>
+
+        <div class="relative">
+          <div id="specialHero" class="ripple bg-white rounded-3xl shadow-2xl overflow-hidden border-8 border-gray-200 cursor-pointer min-h-[420px] flex items-center justify-center relative" onclick="cycleAnimation()">
+            <div class="absolute inset-0 bg-gradient-to-br from-emerald-900/90 to-black/90"></div>
+            <div class="relative text-center p-8 z-10">
+              <img src="simcclogo.png" alt="SIMCC Logo" class="w-20 h-20 mx-auto mb-6 opacity-90">
+              <div id="dynamicText" class="animated-text text-4xl md:text-5xl font-bold">
+                SIMCC 2026 Mathematics Olympiad
+              </div>
+              <p id="dynamicSubtext" class="mt-6 text-white/90 text-xl">Are You Ready?</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- MOBILE SIDEBAR - Now identical structure to desktop -->
+<div id="mobileOverlay" class="hidden fixed inset-0 bg-black/70 z-[100] lg:hidden" onclick="closeMobileMenu(event)">
+  <div id="mobileMenu" class="bg-white w-80 h-full overflow-y-auto p-6 shadow-2xl">
+    <div class="flex justify-between items-center mb-8">
+      <span class="text-4xl font-bold tracking-tighter brand-green">SIMCC</span>
+      <button onclick="toggleMobileMenu()" class="text-3xl">✕</button>
+    </div>
+    
+    <nav class="space-y-1">
+      <a href="index.html" class="flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-gray-100 text-gray-700">
+        <i class="fa-solid fa-house w-5"></i><span>Home</span>
+      </a>
+
+      <button onclick="toggleMobileSubmenu(this)" class="w-full flex items-center justify-between px-4 py-3 rounded-2xl hover:bg-gray-100 text-gray-700 font-medium">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-info-circle w-5"></i>
+          <span>About SIMCC</span>
+        </div>
+        <i class="fa-solid fa-chevron-down text-sm transition-transform"></i>
+      </button>
+      <div class="mobile-submenu hidden ml-6 space-y-1 text-sm">
+        <a href="#" onclick="showAboutPopup();toggleMobileMenu()" class="block px-4 py-2.5 text-gray-600 hover:text-[#19A975] rounded-xl">About SIMCC</a>
+        <a href="#" onclick="showCompetitionsPopup();toggleMobileMenu()" class="block px-4 py-2.5 text-gray-600 hover:text-[#19A975] rounded-xl">Competitions</a>
+        <a href="https://simcc.org/upcoming_competitions/" target="_blank" class="block px-4 py-2.5 text-gray-600 hover:text-[#19A975] rounded-xl">Schedule</a>
+      </div>
+
+      <button onclick="toggleMobileSubmenu(this)" class="w-full flex items-center justify-between px-4 py-3 rounded-2xl hover:bg-gray-100 text-gray-700 font-medium">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-book w-5"></i>
+          <span>Syllabus &amp; Sample</span>
+        </div>
+        <i class="fa-solid fa-chevron-down text-sm transition-transform"></i>
+      </button>
+      <div class="mobile-submenu hidden ml-6 space-y-1 text-sm">
+        <a href="https://simcc.org/contest/" target="_blank" class="block px-4 py-2.5 text-gray-600 hover:text-[#19A975] rounded-xl">Exam Syllabus</a>
+        <a href="https://simcc.org/wp-content/uploads/2025/03/2019-SASMO-G7.pdf" target="_blank" class="block px-4 py-2.5 text-gray-600 hover:text-[#19A975] rounded-xl">Exam Sample Questions</a>
+        <a href="https://smc.simcc.org/smc/2025-smc-results/" target="_blank" class="block px-4 py-2.5 text-gray-600 hover:text-[#19A975] rounded-xl">Results</a>
+      </div>
+
+      <button onclick="toggleMobileSubmenu(this)" class="w-full flex items-center justify-between px-4 py-3 rounded-2xl hover:bg-gray-100 text-gray-700 font-medium">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-award w-5"></i>
+          <span>Awards</span>
+        </div>
+        <i class="fa-solid fa-chevron-down text-sm transition-transform"></i>
+      </button>
+      <div class="mobile-submenu hidden ml-6 space-y-1 text-sm">
+        <a href="https://smc.simcc.org/" target="_blank" class="block px-4 py-2.5 text-gray-600 hover:text-[#19A975] rounded-xl">Awards and Certificates</a>
+        <a href="https://simcc.org/upcoming_competitions/" target="_blank" class="block px-4 py-2.5 text-gray-600 hover:text-[#19A975] rounded-xl">Global Finals</a>
+      </div>
+
+      <button onclick="toggleMobileSubmenu(this)" class="w-full flex items-center justify-between px-4 py-3 rounded-2xl hover:bg-gray-100 text-gray-700 font-medium">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-gavel w-5"></i>
+          <span>Rules</span>
+        </div>
+        <i class="fa-solid fa-chevron-down text-sm transition-transform"></i>
+      </button>
+      <div class="mobile-submenu hidden ml-6 space-y-1 text-sm">
+        <a href="https://www.simcconline.org/competition-instructions-for-students/" target="_blank" class="block px-4 py-2.5 text-gray-600 hover:text-[#19A975] rounded-xl">Rules and Policies</a>
+        <a href="https://sasmo.simcc.org/" target="_blank" class="block px-4 py-2.5 text-gray-600 hover:text-[#19A975] rounded-xl">Announcements</a>
+      </div>
+
+      <a href="contact.html" class="flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-gray-100 text-gray-700">
+        <i class="fa-solid fa-envelope w-5"></i><span>Contact Us</span>
+      </a>
+    </nav>
+  </div>
+</div>
+
+<!-- About Popup -->
+<div id="aboutPopup" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[200]">
+  <div class="popup-modal light-green-blur w-full max-w-2xl mx-4 rounded-3xl overflow-hidden">
+    <div class="relative p-8" style="background-image: url('behind.gif'); background-size: cover; background-position: center;">
+      <button onclick="hideAboutPopup()" class="absolute top-4 right-4 text-white text-3xl">✕</button>
+      <div class="flex justify-end mb-4"><img src="simcclogo.png" alt="SIMCC" class="w-16 h-16"></div>
+      <div id="aboutContent" class="prose text-gray-800 max-h-[60vh] overflow-y-auto"></div>
+      <div class="mt-8 flex flex-col items-center gap-4">
+        <a href="https://simcc.org/" target="_blank" class="bg-[#19A975] text-white px-10 py-4 rounded-3xl font-semibold">Visit SIMCC Website</a>
+        <div class="text-center text-sm text-gray-700">
+          <p>For Enquiry, Call: <strong>08142920376</strong> or <strong>09019145959</strong></p>
+          <p>Email: mjosiah119@gmail.com | Jinstant.jo@gmail.com</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Competitions Popup -->
+<div id="competitionsPopup" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[200]">
+  <div class="popup-modal light-green-blur w-full max-w-2xl mx-4 rounded-3xl overflow-hidden">
+    <div class="relative p-8" style="background-image: url('behind.gif'); background-size: cover;">
+      <button onclick="hideCompetitionsPopup()" class="absolute top-4 right-4 text-white text-3xl">✕</button>
+      <div class="flex justify-end mb-4"><img src="simcclogo.png" alt="SIMCC" class="w-16 h-16"></div>
+      <div id="competitionsContent" class="prose text-gray-800 max-h-[60vh] overflow-y-auto"></div>
+      <div class="mt-8 text-center">
+        <a href="https://simcc.org/" target="_blank" class="bg-[#19A975] text-white px-10 py-4 rounded-3xl font-semibold">Visit SIMCC Website</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Login Modal -->
+<div id="loginModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[200]">
+  <div class="bg-white rounded-3xl p-8 max-w-md w-full mx-4">
+    <h2 class="text-2xl font-bold text-center mb-6">Login to SIMCC</h2>
+    <form id="loginForm" class="space-y-5">
+      <input type="text" id="username" placeholder="Username / Email" required class="w-full px-4 py-3 border rounded-2xl">
+      <input type="password" id="password" placeholder="Password" required class="w-full px-4 py-3 border rounded-2xl">
+      <div class="flex gap-3">
+        <button type="button" onclick="login('student')" class="flex-1 bg-[#19A975] text-white py-3 rounded-2xl font-semibold">Student Login</button>
+        <button type="button" onclick="login('admin')" class="flex-1 border border-gray-300 py-3 rounded-2xl font-semibold hover:bg-gray-50">Admin Login</button>
+      </div>
+    </form>
+    <button onclick="hideLoginModal()" class="mt-4 w-full text-gray-500">Close</button>
+  </div>
+</div>
+
+<script>
+  let sidebarOpen = true;
+  let mobileOpen = false;
+
+  function toggleSubmenu(btn) {
+    const submenu = btn.nextElementSibling;
+    const icon = btn.querySelector('i:last-child');
+    document.querySelectorAll('.submenu').forEach(s => {
+      if (s !== submenu) s.classList.remove('submenu-open');
+    });
+    submenu.classList.toggle('submenu-open');
+    icon.classList.toggle('rotate-180');
+  }
+
+  function toggleDesktopSidebar() {
+    const sidebar = document.getElementById('desktopSidebar');
+    sidebarOpen = !sidebarOpen;
+    sidebar.classList.toggle('-translate-x-full', !sidebarOpen);
+  }
+
+  function toggleMobileMenu() {
+    mobileOpen = !mobileOpen;
+    document.getElementById('mobileOverlay').classList.toggle('hidden', !mobileOpen);
+  }
+
+  function closeMobileMenu(e) {
+    if (e.target.id === 'mobileOverlay') toggleMobileMenu();
+  }
+
+  function toggleMobileSubmenu(btn) {
+    const submenu = btn.nextElementSibling;
+    const icon = btn.querySelector('i:last-child');
+    document.querySelectorAll('.mobile-submenu').forEach(s => {
+      if (s !== submenu) s.classList.add('hidden');
+    });
+    submenu.classList.toggle('hidden');
+    if (icon) icon.classList.toggle('rotate-180');
+  }
+
+  function showLoginModal() {
+    document.getElementById('loginModal').classList.remove('hidden');
+  }
+
+  function hideLoginModal() {
+    document.getElementById('loginModal').classList.add('hidden');
+  }
+
+  async function showAboutPopup() {
+    const el = document.getElementById('aboutContent');
+    try {
+      const res = await fetch('about.txt');
+      el.innerHTML = await res.text();
+    } catch(e) { el.innerHTML = "<p>Could not load content.</p>"; }
+    document.getElementById('aboutPopup').classList.remove('hidden');
+  }
+
+  function hideAboutPopup() {
+    document.getElementById('aboutPopup').classList.add('hidden');
+  }
+
+  async function showCompetitionsPopup() {
+    const el = document.getElementById('competitionsContent');
+    try {
+      const res = await fetch('competitions.txt');
+      el.innerHTML = await res.text();
+    } catch(e) { el.innerHTML = "<p>Could not load content.</p>"; }
+    document.getElementById('competitionsPopup').classList.remove('hidden');
+  }
+
+  function hideCompetitionsPopup() {
+    document.getElementById('competitionsPopup').classList.add('hidden');
+  }
+
+  let animationIndex = 0;
+  const animations = [
+    { style: "text-5xl", text: "SIMCC 2026 Mathematics Olympiad" },
+    { style: "text-4xl scale-110", text: "Are You Ready to Compete?" },
+    { style: "text-5xl", text: "Global Stage Awaits" },
+    { style: "text-4xl", text: "Master Mathematics" },
+    { style: "text-5xl", text: "Join The Elite" }
+  ];
+
+  function cycleAnimation() {
+    animationIndex = (animationIndex + 1) % animations.length;
+    const textEl = document.getElementById('dynamicText');
+    textEl.className = `animated-text ${animations[animationIndex].style}`;
+    textEl.textContent = animations[animationIndex].text;
+  }
+
+  async function login(type) {
+    // ... your login logic ...
+    alert(`Demo ${type} login - redirecting`);
+    window.location.href = type === 'admin' ? 'admin.html' : 'dashboard.html';
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      hideLoginModal();
+      hideAboutPopup();
+      hideCompetitionsPopup();
+      if (!document.getElementById('mobileOverlay').classList.contains('hidden')) toggleMobileMenu();
+    }
+  });
+</script>
+
+<!-- FOOTER (unchanged) -->
+<style>
+@media (max-width: 768px){
+  .footer-container {
+    width: 118%;              /* span full width */
+    display: flex;            /* flexbox for alignment */
+    justify-content: center;  /* center horizontally */
+    padding: 0 2rem;          /* side spacing */
+    background-color: #111827; /* matches bg-gray-900 */
+  } 
+}  
+
+</style>
+
+<!-- FOOTER CONTAINER -->
+<div class="footer-container w-full bg-gray-900">
+  <!-- FOOTER -->
+  <footer class="text-white pt-16 pb-8 w-full">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 text-center lg:text-left justify-items-center lg:justify-items-start">
+
+        <!-- Column 1: Brand -->
+        <div class="w-full">
+          <div class="flex flex-col items-center lg:items-start gap-3 mb-4">
+            <span class="text-5xl font-bold tracking-tighter text-[#19A975]">SIMCC</span>
+          </div>
+          <p class="text-gray-400 leading-relaxed">
+            International Mathematics Competition<br>
+            Empowering the next generation of mathematical excellence.
+          </p>
+          <nav aria-label="Social media" class="flex justify-center lg:justify-start gap-4 mt-6">
+            <a href="#" aria-label="Facebook" class="text-gray-400 hover:text-white transition"><i class="fa-brands fa-facebook-f text-xl"></i></a>
+            <a href="#" aria-label="Twitter" class="text-gray-400 hover:text-white transition"><i class="fa-brands fa-twitter text-xl"></i></a>
+            <a href="#" aria-label="Instagram" class="text-gray-400 hover:text-white transition"><i class="fa-brands fa-instagram text-xl"></i></a>
+            <a href="#" aria-label="LinkedIn" class="text-gray-400 hover:text-white transition"><i class="fa-brands fa-linkedin-in text-xl"></i></a>
+            <a href="#" aria-label="YouTube" class="text-gray-400 hover:text-white transition"><i class="fa-brands fa-youtube text-xl"></i></a>
+          </nav>
+        </div>
+
+        <!-- Column 2: Quick Links -->
+        <div class="w-full">
+          <h2 class="text-lg font-semibold mb-5 text-white">Quick Links</h2>
+          <ul class="space-y-3 text-gray-400">
+            <li><a href="about.html" class="hover:text-white transition">About SIMCC</a></li>
+            <li><a href="competition.html" class="hover:text-white transition">Competitions</a></li>
+            <li><a href="schedule.html" class="hover:text-white transition">Schedule</a></li>
+            <li><a href="syllabus.html" class="hover:text-white transition">Exam Syllabus</a></li>
+            <li><a href="results.html" class="hover:text-white transition">Results</a></li>
+          </ul>
+        </div>
+
+        <!-- Column 3: Resources -->
+        <div class="w-full">
+          <h2 class="text-lg font-semibold mb-5 text-white">Resources</h2>
+          <ul class="space-y-3 text-gray-400">
+            <li><a href="questions.html" class="hover:text-white transition">Sample Questions</a></li>
+            <li><a href="awards.html" class="hover:text-white transition">Awards & Certificates</a></li>
+            <li><a href="global.html" class="hover:text-white transition">Global Finals</a></li>
+            <li><a href="rules.html" class="hover:text-white transition">Rules & Policies</a></li>
+            <li><a href="announcements.html" class="hover:text-white transition">Announcements</a></li>
+          </ul>
+        </div>
+
+        <!-- Column 4: Contact -->
+        <div class="w-full">
+          <h2 class="text-lg font-semibold mb-5 text-white">Get In Touch</h2>
+          <ul class="space-y-3 text-gray-400">
+            <li class="flex justify-center lg:justify-start items-center gap-3">
+              <i class="fa-solid fa-envelope"></i>
+              <a href="mailto:info@simcc.org" class="hover:text-white transition">info@simcc.org</a>
+            </li>
+            <li class="flex justify-center lg:justify-start items-center gap-3">
+              <i class="fa-solid fa-phone"></i>
+              <a href="tel:+2348142920376" class="hover:text-white transition">+234 814 292 0376</a>
+            </li>
+            <li class="flex justify-center lg:justify-start items-center gap-3">
+              <i class="fa-solid fa-location-dot"></i>
+              <span>Port Harcourt, Nigeria</span>
+            </li>
+          </ul>
+
+          <!-- Newsletter -->
+          <div class="mt-8">
+            <label for="newsletter" class="sr-only">Email address</label>
+            <p class="text-sm font-medium mb-3">Stay Updated</p>
+            <form class="flex flex-col sm:flex-row justify-center lg:justify-start">
+              <input id="newsletter" type="email" placeholder="Your email" 
+                     class="bg-gray-800 border border-gray-700 rounded-t-2xl sm:rounded-l-2xl sm:rounded-t-none px-4 py-3 text-sm flex-1 focus:outline-none focus:border-[#19A975]" required>
+              <button type="submit" class="bg-[#19A975] hover:bg-[#158a5f] px-6 py-3 rounded-b-2xl sm:rounded-r-2xl sm:rounded-b-none font-medium transition">
+                Join
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Bar -->
+      <div class="border-t border-gray-800 mt-16 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 text-center">
+        <p>© 2026 SIMCC - International Mathematics Competition. All Rights Reserved.</p>
+        <nav aria-label="Legal" class="flex gap-6 mt-4 md:mt-0 justify-center">
+          <a href="#" class="hover:text-gray-300 transition">Privacy Policy</a>
+          <a href="#" class="hover:text-gray-300 transition">Terms of Service</a>
+        </nav>
+      </div>
+    </div>
+  </footer>
+</div>
+
+
+<div class="footer-container w-full bg-gray-900">
+  <footer class="text-white pt-16 pb-8 w-full">
+    <!-- Your existing footer content -->
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 text-center lg:text-left justify-items-center lg:justify-items-start">
+        <!-- ... (your original footer code remains unchanged) ... -->
+      </div>
+    </div>
+  </footer>
+</div>
+
+</body>
+</html>

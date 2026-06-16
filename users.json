@@ -1,0 +1,27 @@
+{
+  "admins": [],
+  "users": [
+    {
+      "id": 17,
+      "username": "tryhard@gmail.com",
+      "email": "tryhard@gmail.com",
+      "name": "Try hard",
+      "phone": "09898776767",
+      "bio": "koiooi kijknjlk hhbyuhb",
+      "role": "staff_pending",
+      "joined": "2026-06-03",
+      "avatar": "/uploads/1780488164132-NOA.jpeg"
+    },
+    {
+      "id": 16,
+      "username": "angellas@gmail.com",
+      "email": "angellas@gmail.com",
+      "name": "Mary Mack",
+      "phone": "09089878767",
+      "bio": "Mastery contest",
+      "role": "staff_pending",
+      "joined": "2026-06-03",
+      "avatar": "/uploads/1780487542814-NOA.jpeg"
+    }
+  ]
+}
