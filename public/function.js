@@ -1036,39 +1036,24 @@ closeBtn.addEventListener('click', (e) => {
 
 
 
+
 const wrapper = document.getElementById('videoWrapper');
-const preview = document.getElementById('previewVideo');
-const fullVideo = document.getElementById('fullVideo');
+const video = document.getElementById('mainVideo');
 const overlay = document.getElementById('overlay');
 
-let isFullPlaying = false;
-
-// Auto-play short preview
-preview.addEventListener('loadedmetadata', () => {
-  preview.play().catch(() => {});
-});
-
-// Click to switch to full video
 wrapper.addEventListener('click', () => {
-  if (!isFullPlaying) {
-    // Hide preview, show full video
-    preview.style.display = 'none';
-    fullVideo.style.display = 'block';
-    overlay.style.display = 'none';
-
-    fullVideo.play().catch(() => {});
-    isFullPlaying = true;
+  if (video.paused) {
+    video.play().catch(e => console.log("Play error:", e));
+    overlay.style.opacity = '0';
+    setTimeout(() => overlay.style.display = 'none', 600);
   } else {
-    fullVideo.pause();
-    isFullPlaying = false;
+    video.pause();
   }
 });
 
-// Optional: Return to preview when full video ends
-fullVideo.addEventListener('ended', () => {
-  fullVideo.style.display = 'none';
-  preview.style.display = 'block';
-  overlay.style.display = 'flex';
-  preview.play().catch(() => {});
-  isFullPlaying = false;
+// Auto muted preview
+video.addEventListener('loadedmetadata', () => {
+  video.muted = true;
+  video.loop = true;
+  video.play().catch(() => {});
 });

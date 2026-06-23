@@ -516,24 +516,14 @@ The most recent SIMCC examinations in Singapore underscored the organization’s
 <div class="video-card pretty-card">
   <div class="video-wrapper ripple" id="videoWrapper">
     
-    <!-- Preview Video (auto-plays muted & looped) -->
-    <video id="previewVideo" 
+    <video id="mainVideo" 
            class="video-element"
-           poster="page-preview.jpg"   <!-- Optional: use your PDF preview or a video thumbnail -->
-           muted 
-           loop 
-           playsinline 
+           poster="page-preview.png" 
+           controls 
+           playsinline
            preload="metadata">
       <source src="videos/vid1.mp4" type="video/mp4">
-    </video>
-
-    <!-- Full Video -->
-    <video id="fullVideo" 
-           class="video-element full-video"
-           controls
-           playsinline
-           style="display: none;">
-      <source src="videos/vid1.mp4" type="video/mp4">
+      Your browser does not support the video tag.
     </video>
 
     <div class="video-overlay" id="overlay">
@@ -543,8 +533,8 @@ The most recent SIMCC examinations in Singapore underscored the organization’s
         </svg>
       </div>
       <div class="video-info">
-        <h3 class="brand-green">Watch the Full Experience</h3>
-        <p>8 minutes • Tap to play with sound</p>
+        <h3 class="brand-green">Watch the Full Video</h3>
+        <p>8 minutes • Click to play with sound</p>
       </div>
     </div>
   </div>
