@@ -28,6 +28,21 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+const admins = [];
+let i = 1;
+
+while (process.env[`SUPER_ADMIN_${i}_USERNAME`]) {
+  admins.push({
+    username: process.env[`SUPER_ADMIN_${i}_USERNAME`],
+    email: process.env[`SUPER_ADMIN_${i}_EMAIL`],
+    name: process.env[`SUPER_ADMIN_${i}_NAME`],
+    password: process.env[`SUPER_ADMIN_${i}_PASSWORD`],
+  });
+  i++;
+}
+
+console.log(admins);
+
 // Multer for image uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'public/uploads/'),
@@ -198,11 +213,23 @@ app.post('/api/login', async (req, res) => {
   try {
     if (type === 'admin') {
       // SUPER ADMIN FROM.ENV - CHECK FIRST
-      const superAdminUsername = process.env.SUPER_ADMIN_USERNAME;
-      const superAdminPassword = process.env.SUPER_ADMIN_PASSWORD;
+      const superAdmins = [];
+let i = 1;
 
-      if (username === superAdminUsername && superAdminPassword) {
-        const match = await bcrypt.compare(password, superAdminPassword);
+while (process.env[`SUPER_ADMIN_${i}_USERNAME`]) {
+  superAdmins.push({
+    username: process.env[`SUPER_ADMIN_${i}_USERNAME`],
+    email: process.env[`SUPER_ADMIN_${i}_EMAIL`],
+    name: process.env[`SUPER_ADMIN_${i}_NAME`],
+    password: process.env[`SUPER_ADMIN_${i}_PASSWORD`],
+  });
+  i++;
+}
+
+const admin = superAdmins.find(a => a.username === username);
+
+      if (admin) {
+        const match = await bcrypt.compare(password, admin.password);
         if (!match) {
           return res.status(401).json({ msg: "Invalid credentials" });
         }
@@ -210,7 +237,7 @@ app.post('/api/login', async (req, res) => {
         const token = jwt.sign(
           {
             id: 1,
-            username: superAdminUsername,
+            username: admin.username,
             role: "super_admin",
             type: 'admin'
           },
@@ -222,8 +249,8 @@ app.post('/api/login', async (req, res) => {
           token,
           user: {
             id: 1,
-            name: process.env.SUPER_ADMIN_NAME || "Super Admin",
-            username: superAdminUsername,
+            name: admin.name || "Super Admin",
+            username: admin.username,
             role: "super_admin",
             type: 'admin'
           }

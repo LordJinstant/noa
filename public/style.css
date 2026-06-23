@@ -70,8 +70,7 @@
 
 /* Base Style */
 .animated-text {
-  font-size: 2.8rem;
-  line-height: 1.1;
+  font-size: clamp(1.8rem, 5vw, 2.8rem);   /* Responsive but capped */  line-height: 1.1;
   font-weight: 700;
   background: linear-gradient(90deg, #19A975, #158a5f);
   -webkit-background-clip: text;
@@ -731,4 +730,110 @@
 .full-content {
   margin-top: 15px;
   line-height: 1.6;
+}
+
+
+.pdf-teaser {
+  max-width: 780px;
+  margin: 40px auto;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.35s ease;
+}
+
+.pretty-card {
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+}
+
+.pdf-preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 11;
+  overflow: hidden;
+}
+
+.pdf-thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.6s ease;
+}
+
+.pdf-teaser:hover .pdf-thumb {
+  transform: scale(1.04);
+}
+
+.pdf-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(15,23,42,0.1), rgba(15,23,42,0.85));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: white;
+  transition: opacity 0.3s ease;
+}
+
+.pdf-expanded {
+  display: none;
+  position: relative;
+  width: 100%;
+  height: 0;
+  background: #fff;
+}
+
+.pdf-teaser.open .pdf-preview {
+  display: none;
+}
+
+.pdf-teaser.open .pdf-expanded {
+  display: block;
+  height: 80vh;
+}
+
+.close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  background: rgba(29, 34, 43, 0.9);
+  border: none;
+  color: white;
+  font-size: 1.4rem;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 10px;
+}
+
+
+.video-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 420px;
+  background: #111827;
+  overflow: hidden;
+}
+
+.video-element {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.full-video {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+}
+
+@media (max-width: 768px) {
+  .video-wrapper { max-height: 280px; }
 }

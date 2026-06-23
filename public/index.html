@@ -6,7 +6,9 @@
   <title>NOA | Nigeria Olympiad Academy / WIHM</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
-  
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+
   <!-- Custom CSS -->
   <link rel="stylesheet" href="style.css">
 </head>
@@ -405,10 +407,35 @@ We strive to create a community where every child has the opportunity to learn, 
   </div>
 </div>
 
+<div id="pdfTeaser" class="pdf-teaser pretty-card">
+  <div class="pdf-preview ripple">
+    <img src="page-preview.png" alt="PDF Preview" class="pdf-thumb">
+    <div class="pdf-overlay">
+      <div class="play-button pdf-button">
+        <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
+          <polygon points="8 5 19 12 8 19 8 5"></polygon>
+        </svg>
+      </div>
+      <div class="pdf-info">
+        <h3 class="brand-green">Read the Full Guide</h3>
+        <p>page.pdf • Designer Edition • Scroll to explore</p>
+      </div>
+    </div>
+  </div>
 
+  <div class="pdf-expanded">
+    <button id="closePdf" class="close-btn">✕</button>
+    <iframe
+      id="pdfFrame"
+      src=""
+      width="100%"
+      height="100%"
+      style="border: none;"
+    ></iframe>
+  </div>
+</div>
 
-
-
+page-preview.png
 
 
 
@@ -486,6 +513,43 @@ The most recent SIMCC examinations in Singapore underscored the organization’s
   </div>
 </div>
 
+<div class="video-card pretty-card">
+  <div class="video-wrapper ripple" id="videoWrapper">
+    
+    <!-- Preview Video (auto-plays muted & looped) -->
+    <video id="previewVideo" 
+           class="video-element"
+           poster="page-preview.jpg"   <!-- Optional: use your PDF preview or a video thumbnail -->
+           muted 
+           loop 
+           playsinline 
+           preload="metadata">
+      <source src="videos/vid1.mp4" type="video/mp4">
+    </video>
+
+    <!-- Full Video -->
+    <video id="fullVideo" 
+           class="video-element full-video"
+           controls
+           playsinline
+           style="display: none;">
+      <source src="videos/vid1.mp4" type="video/mp4">
+    </video>
+
+    <div class="video-overlay" id="overlay">
+      <div class="play-button">
+        <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5">
+          <polygon points="8 5 19 12 8 19 8 5"></polygon>
+        </svg>
+      </div>
+      <div class="video-info">
+        <h3 class="brand-green">Watch the Full Experience</h3>
+        <p>8 minutes • Tap to play with sound</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Posts Section -->
 <section class="py-20 bg-gray-50">
   <div class="max-w-7xl mx-auto px-6">
@@ -531,10 +595,10 @@ The most recent SIMCC examinations in Singapore underscored the organization’s
           <h2 class="text-lg font-semibold mb-5 text-white">Quick Links</h2>
           <ul class="space-y-3 text-gray-400">
             <li><a href="https://simcc.org/" class="hover:text-white transition">About SIMCC</a></li>
-            <li><a href="competition.html" class="hover:text-white transition">Competitions</a></li>
-            <li><a href="schedule.html" class="hover:text-white transition">Schedule</a></li>
-            <li><a href="syllabus.html" class="hover:text-white transition">Exam Syllabus</a></li>
-            <li><a href="results.html" class="hover:text-white transition">Results</a></li>
+            <li><a href="https://simcc.org/upcoming_competitions/" class="hover:text-white transition">Competitions</a></li>
+            <li><a href="https://simcc.org/upcoming_competitions/" class="hover:text-white transition">Schedule</a></li>
+            <li><a href="https://simcc.org/contest/" class="hover:text-white transition">Exam Syllabus</a></li>
+            <li><a href="https://smc.simcc.org/smc/2025-smc-results/" class="hover:text-white transition">Results</a></li>
           </ul>
         </div>
 
@@ -542,11 +606,11 @@ The most recent SIMCC examinations in Singapore underscored the organization’s
         <div class="w-full">
           <h2 class="text-lg font-semibold mb-5 text-white">Resources</h2>
           <ul class="space-y-3 text-gray-400">
-            <li><a href="questions.html" class="hover:text-white transition">Sample Questions</a></li>
-            <li><a href="awards.html" class="hover:text-white transition">Awards & Certificates</a></li>
-            <li><a href="global.html" class="hover:text-white transition">Global Finals</a></li>
-            <li><a href="rules.html" class="hover:text-white transition">Rules & Policies</a></li>
-            <li><a href="announcements.html" class="hover:text-white transition">Announcements</a></li>
+            <li><a href="https://simcc.org/wp-content/uploads/2025/03/2019-SASMO-G7.pdf" class="hover:text-white transition">Sample Questions</a></li>
+            <li><a href="https://smc.simcc.org/" class="hover:text-white transition">Awards & Certificates</a></li>
+            <li><a href="https://simcc.org/upcoming_competitions/" class="hover:text-white transition">Global Finals</a></li>
+            <li><a href="https://www.simcconline.org/competition-instructions-for-students/" class="hover:text-white transition">Rules & Policies</a></li>
+            <li><a href="https://sasmo.simcc.org/" class="hover:text-white transition">Announcements</a></li>
           </ul>
         </div>
 

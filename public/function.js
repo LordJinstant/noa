@@ -1015,3 +1015,60 @@ document.addEventListener("DOMContentLoaded", () => {
 document.addEventListener('DOMContentLoaded', () => {
   loadPosts();
 });
+
+
+const teaser = document.getElementById('pdfTeaser');
+const closeBtn = document.getElementById('closePdf');
+const pdfFrame = document.getElementById('pdfFrame');
+
+const pdfUrl = 'page.pdf';
+
+teaser.addEventListener('click', () => {
+  teaser.classList.add('open');
+  pdfFrame.src = `${pdfUrl}#page=1&zoom=FitH`;
+});
+
+closeBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  teaser.classList.remove('open');
+  pdfFrame.src = '';
+});
+
+
+
+const wrapper = document.getElementById('videoWrapper');
+const preview = document.getElementById('previewVideo');
+const fullVideo = document.getElementById('fullVideo');
+const overlay = document.getElementById('overlay');
+
+let isFullPlaying = false;
+
+// Auto-play short preview
+preview.addEventListener('loadedmetadata', () => {
+  preview.play().catch(() => {});
+});
+
+// Click to switch to full video
+wrapper.addEventListener('click', () => {
+  if (!isFullPlaying) {
+    // Hide preview, show full video
+    preview.style.display = 'none';
+    fullVideo.style.display = 'block';
+    overlay.style.display = 'none';
+
+    fullVideo.play().catch(() => {});
+    isFullPlaying = true;
+  } else {
+    fullVideo.pause();
+    isFullPlaying = false;
+  }
+});
+
+// Optional: Return to preview when full video ends
+fullVideo.addEventListener('ended', () => {
+  fullVideo.style.display = 'none';
+  preview.style.display = 'block';
+  overlay.style.display = 'flex';
+  preview.play().catch(() => {});
+  isFullPlaying = false;
+});
