@@ -146,6 +146,7 @@
   position: relative;
   width: 50%;
   height: 50%;
+  font-size: clamp(2rem, 4vw, 3.5rem);
   overflow: hidden;
 }
 
