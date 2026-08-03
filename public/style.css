@@ -644,62 +644,315 @@
   max-width: 32rem;
 }
 
+/* ============ BASE ============ */
+
+/* ============ BACKGROUND REFLECTION ============ */
+.gallery-app {
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  z-index: 1;
+}
+
+/* The blurred ambient background that changes with each image */
+.gallery-app::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(100px) brightness(0.2) saturate(2);
+  opacity: 0.55;
+  transition: background-image 1.2s ease-in-out;
+  z-index: -2;
+  pointer-events: none;
+}
+
+/* Subtle radial glow overlay */
+.gallery-app::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 30%, rgba(79,140,255,0.06) 0%, transparent 55%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ============ HERO ============ */
+.hero {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 28px;
+  margin-bottom: 40px;
+  align-items: center;
+}
+
+/* ============ MAIN DISPLAY IMAGE ============ */
+.hero-image {
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.05),
+    0 0 0 5px rgba(79,140,255,0.12),
+    0 35px 90px rgba(0,0,0,0.55);
+  transition: box-shadow 0.4s ease;
+}
+
+.hero-image:hover {
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.08),
+    0 0 0 6px rgba(79,140,255,0.2),
+    0 45px 110px rgba(0,0,0,0.65);
+}
+
+.hero-image img {
+  width: 100%;
+  height: 520px;
+  object-fit: cover;
+  display: block;
+  transition: opacity 0.4s ease, transform 8s ease;
+}
+
+/* Ken Burns slow zoom effect */
+.hero-image.ken-burns img {
+  animation: kenBurns 8s ease-in-out infinite alternate;
+}
+
+@keyframes kenBurns {
+  0%   { transform: scale(1) translate(0, 0); }
+  100% { transform: scale(1.1) translate(-1.5%, -1%); }
+}
+
+/* Slide progress bar at bottom of main image */
+.slide-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #4f8cff, #a8caff);
+  width: 0%;
+  z-index: 10;
+  border-radius: 0 0 0 24px;
+}
+
+/* Image counter badge */
+.gallery-counter {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(12px);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.1);
+  z-index: 10;
+  letter-spacing: 0.5px;
+}
+
+/* ============ REFLECTION UNDER MAIN IMAGE ============ */
+.hero-image-reflection {
+  position: relative;
+  height: 110px;
+  margin-top: 4px;
+  overflow: hidden;
+  border-radius: 0 0 24px 24px;
+  opacity: 0.28;
+  pointer-events: none;
+}
+
+.hero-image-reflection img {
+  width: 100%;
+  height: 520px;
+  object-fit: cover;
+  display: block;
+  transform: scaleY(-1) translateY(calc(-100% + 110px));
+  filter: blur(5px) brightness(0.45);
+  transition: opacity 0.4s ease;
+}
+
+/* Fade the reflection smoothly into the page background */
+.hero-image-reflection::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(10,11,16,0.2) 0%,
+    rgba(10,11,16,0.7) 50%,
+    rgba(10,11,16,1) 100%
+  );
+}
+
+/* ============ HERO TEXT ============ */
+.hero-text {
+  padding: 28px;
+  background: rgba(22, 24, 36, 0.65);
+  backdrop-filter: blur(24px);
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,0.05);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+}
+
+.hero-text h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 18px;
+  background: linear-gradient(135deg, #ffffff 0%, #b8d0ff 50%, #4f8cff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-text p {
+  font-size: 1.05rem;
+  color: #8a93a8;
+  line-height: 1.65;
+}
+
+/* ============ THUMB GRID ============ */
 .thumb-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 16px;
 }
 
 .thumb {
+  position: relative;
   border: none;
   background: transparent;
   padding: 0;
   cursor: pointer;
   border-radius: 16px;
   overflow: hidden;
-  position: relative;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
   outline: none;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.3s ease;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+/* Animated gradient border on hover */
+.thumb::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 2px;
+  background: linear-gradient(135deg, rgba(79,140,255,0), rgba(79,140,255,0));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  transition: background 0.3s ease;
+  pointer-events: none;
+  z-index: 2;
 }
 
 .thumb img {
   width: 100%;
-  height: 120px;
+  height: 130px;
   object-fit: cover;
   display: block;
+  transition: transform 0.4s ease, filter 0.3s ease;
+  filter: brightness(0.82);
 }
 
-.thumb:hover,
-.thumb:focus-visible {
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+.thumb:hover {
+  transform: translateY(-6px) scale(1.03);
+  box-shadow: 0 18px 45px rgba(0,0,0,0.45);
 }
 
+.thumb:hover img {
+  transform: scale(1.12);
+  filter: brightness(1);
+}
+
+.thumb:hover::before {
+  background: linear-gradient(135deg, rgba(79,140,255,0.7), rgba(160,200,255,0.4));
+}
+
+/* Active thumbnail state */
 .thumb.active {
-  box-shadow: 0 0 0 3px var(--accent);
+  transform: translateY(-4px) scale(1.02);
+  box-shadow:
+    0 0 0 3px #4f8cff,
+    0 12px 36px rgba(79,140,255,0.25);
 }
 
-@media (max-width: 800px) {
+.thumb.active::before {
+  background: linear-gradient(135deg, #4f8cff, #8ab4ff);
+}
+
+.thumb.active img {
+  filter: brightness(1.05);
+}
+
+/* Active dot indicator */
+.thumb::after {
+  content: '';
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%) scale(0);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4f8cff;
+  box-shadow: 0 0 12px #4f8cff;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 3;
+}
+
+.thumb.active::after {
+  transform: translateX(-50%) scale(1);
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 900px) {
   .hero {
     grid-template-columns: 1fr;
   }
-
   .hero-image img {
-    height: 380px;
+    height: 400px;
+  }
+  .hero-image-reflection img {
+    height: 400px;
+  }
+  .hero-text h1 {
+    font-size: 1.9rem;
   }
 }
 
-@media (max-width: 500px) {
-  body {
+@media (max-width: 600px) {
+  .gallery-app {
     padding: 14px;
   }
-
   .hero-image img {
-    height: 280px;
+    height: 300px;
   }
-
+  .hero-image-reflection {
+    height: 80px;
+  }
+  .hero-image-reflection img {
+    height: 300px;
+    transform: scaleY(-1) translateY(calc(-100% + 80px));
+  }
+  .thumb-grid {
+    gap: 10px;
+  }
   .thumb img {
     height: 95px;
+  }
+  .hero-text {
+    padding: 20px;
+  }
+  .hero-text h1 {
+    font-size: 1.4rem;
   }
 }
 
@@ -810,6 +1063,24 @@
   cursor: pointer;
   padding: 8px 12px;
   border-radius: 10px;
+}
+
+@keyframes pulseBar {
+  0%, 100% { height: 20%; }
+  50% { height: 90%; }
+}
+
+.animate-pulse-bar {
+  animation: pulseBar 1.5s infinite ease-in-out;
+  border-radius: 4px;
+}
+
+.delay-100 { animation-delay: 0.2s; }
+.delay-200 { animation-delay: 0.4s; }
+.delay-300 { animation-delay: 0.6s; }
+
+#chartLine, #chartFill {
+  transition: d 0.8s ease-in-out;
 }
 
 

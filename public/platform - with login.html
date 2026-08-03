@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Nexus Platform – Staff & Students</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-accent: #38bdf8;
+            --danger-color: #ef4444;
+            --bg-color: #020617;
+            --bg-elevated: rgba(15, 23, 42, 0.85);
+            --border-color: rgba(148, 163, 184, 0.35);
+            --text-main: #e5e7eb;
+            --text-muted: #9ca3af;
+            --hover-bg: rgba(15, 23, 42, 0.9);
+            --active-bg: rgba(30, 64, 175, 0.2);
+            --glow: 0 0 25px rgba(56, 189, 248, 0.35);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background:
+                radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 55%),
+                radial-gradient(circle at bottom right, rgba(37, 99, 235, 0.25), transparent 55%),
+                #020617;
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            backdrop-filter: blur(18px);
+            background: linear-gradient(
+                90deg,
+                rgba(15, 23, 42, 0.92),
+                rgba(15, 23, 42, 0.75)
+            );
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .header-logo {
+            width: 34px;
+            height: 34px;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top, rgba(56, 189, 248, 0.4), rgba(15, 23, 42, 0.95));
+            box-shadow: var(--glow);
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #e5e7eb;
+        }
+
+        header h1 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        header p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.8rem;
+        }
+
+        .status-pill {
+            padding: 0.35rem 0.75rem;
+            border-radius: 999px;
+            border: 1px solid rgba(56, 189, 248, 0.5);
+            color: var(--primary-accent);
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #22c55e;
+            box-shadow: 0 0 8px rgba(34, 197, 94, 0.7);
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 1.1fr 1.1fr 1.3fr;
+            flex: 1;
+            overflow: hidden;
+            gap: 12px;
+            padding: 12px 16px 16px;
+        }
+
+        .panel {
+            backdrop-filter: blur(22px);
+            background: var(--bg-elevated);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.75);
+        }
+
+        .panel-header {
+            padding: 0.9rem 1rem;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .panel-header-top {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+        }
+
+        .panel-header h2 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-muted);
+        }
+
+        .panel-header span {
+            font-size: 0.7rem;
+            color: var(--primary-accent);
+        }
+
+        .search-input-wrapper {
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.45rem 0.75rem 0.45rem 2rem;
+            border: 1px solid rgba(148, 163, 184, 0.45);
+            border-radius: 999px;
+            font-size: 0.8rem;
+            outline: none;
+            background: rgba(15, 23, 42, 0.9);
+            color: var(--text-main);
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+        }
+
+        .search-input::placeholder {
+            color: rgba(148, 163, 184, 0.7);
+        }
+
+        .search-input:focus {
+            border-color: rgba(56, 189, 248, 0.85);
+            box-shadow: var(--glow);
+            background: rgba(15, 23, 42, 0.95);
+        }
+
+        .search-icon {
+            position: absolute;
+            top: 50%;
+            left: 0.65rem;
+            transform: translateY(-50%);
+            font-size: 0.9rem;
+            color: rgba(148, 163, 184, 0.8);
+        }
+
+        .scrollable-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .list-item {
+            padding: 0.7rem 0.9rem;
+            border-bottom: 1px solid rgba(31, 41, 55, 0.7);
+            cursor: pointer;
+            transition: background 0.15s, transform 0.1s, border-left 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .list-item:hover {
+            background-color: var(--hover-bg);
+            transform: translateX(2px);
+        }
+
+        .list-item.active {
+            background-color: var(--active-bg);
+            border-left: 3px solid var(--primary-accent);
+        }
+
+        .item-main {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .item-title {
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .item-subtitle {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-top: 0.08rem;
+        }
+
+        .item-meta {
+            font-size: 0.7rem;
+            color: rgba(148, 163, 184, 0.9);
+        }
+
+        .item-rating-inline {
+            display: flex;
+            align-items: center;
+            gap: 0.2rem;
+            font-size: 0.9rem;
+        }
+
+        .item-rating-inline span.star {
+            color: #facc15;
+        }
+
+        .details-content {
+            padding: 1.2rem 1.4rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .details-placeholder {
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 3rem;
+            font-size: 0.9rem;
+        }
+
+        .profile-card {
+            display: flex;
+            flex-direction: column;
+            gap: 1.15rem;
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+            padding-bottom: 1.1rem;
+        }
+
+        .profile-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 18px;
+            background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.55), rgba(15, 23, 42, 0.95));
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: #e5e7eb;
+            font-size: 1.2rem;
+            box-shadow: var(--glow);
+        }
+
+        .profile-name h3 {
+            font-size: 1.05rem;
+            color: var(--text-main);
+        }
+
+        .profile-name p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .profile-meta-line {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.35rem;
+        }
+
+        .profile-rating-block {
+            margin-top: 0.35rem;
+        }
+
+        .rating-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.12em;
+            margin-bottom: 0.25rem;
+        }
+
+        .rating-stars {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.18rem;
+            font-size: 1.05rem;
+            cursor: pointer;
+        }
+
+        .rating-stars .star {
+            color: rgba(148, 163, 184, 0.75);
+            transition: color 0.1s, transform 0.1s;
+        }
+
+        .rating-stars .star.filled {
+            color: #facc15;
+        }
+
+        .rating-stars .star:hover {
+            transform: translateY(-1px) scale(1.05);
+        }
+
+        .rating-summary {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .profile-fields {
+            display: flex;
+            flex-direction: column;
+            gap: 0.7rem;
+            margin-top: 0.25rem;
+        }
+
+        .field-group label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: 600;
+            letter-spacing: 0.08em;
+        }
+
+        .field-group p {
+            font-size: 0.88rem;
+            color: var(--text-main);
+            margin-top: 0.12rem;
+        }
+
+        .section-divider {
+            margin-top: 1rem;
+            border-top: 1px dashed rgba(148, 163, 184, 0.35);
+            padding-top: 0.85rem;
+        }
+
+        .profile-footer-hint {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Scrollbar styling */
+        .scrollable-list::-webkit-scrollbar,
+        .details-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .scrollable-list::-webkit-scrollbar-track,
+        .details-content::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.7);
+        }
+
+        .scrollable-list::-webkit-scrollbar-thumb,
+        .details-content::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.6);
+            border-radius: 999px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-container {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .panel:nth-child(3) {
+                grid-column: 1 / span 2;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+
+            .panel:nth-child(3) {
+                grid-column: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-left">
+            <div class="header-logo">SN</div>
+            <div>
+                <h1>School Nexus Platform</h1>
+                <p>Unified directory for staff, students & live peer ratings.</p>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="status-pill">
+                <span class="status-dot"></span>
+                <span>Realtime rating enabled</span>
+            </div>
+            <span>Academic Year: 2026 / 2027</span>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- Column 1: Staff List -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-header-top">
+                    <h2>Staff Directory</h2>
+                    <span>Tap to view & rate</span>
+                </div>
+                <div class="search-input-wrapper">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="staffSearch" class="search-input" placeholder="Search staff by name, role or department..." onkeyup="filterList('staff')">
+                </div>
+            </div>
+            <div class="scrollable-list" id="staffList">
+                <!-- Populated via JS -->
+            </div>
+        </div>
+
+        <!-- Column 2: Students List -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-header-top">
+                    <h2>Students List</h2>
+                    <span>Directory view</span>
+                </div>
+                <div class="search-input-wrapper">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="studentSearch" class="search-input" placeholder="Search students by name or grade..." onkeyup="filterList('student')">
+                </div>
+            </div>
+            <div class="scrollable-list" id="studentList">
+                <!-- Populated via JS -->
+            </div>
+        </div>
+
+        <!-- Column 3: Detailed View -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-header-top">
+                    <h2>Detailed Profile</h2>
+                    <span>Identity • Contact • Rating</span>
+                </div>
+            </div>
+            <div class="details-content" id="detailsPanel">
+                <div class="details-placeholder">
+                    Select a staff member or student from the lists to view their full profile.<br><br>
+                    Staff profiles are rateable by students. Click on the stars to adjust your rating.
+                </div>
+            </div>
+        </div>
+    </div>
+
+   <script>
+    const directoryData = {
+        staff: [],
+        students: []
+    };
+
+    const staffRatings = {};
+
+    function escapeHtml(str = '') {
+        return String(str).replace(/[&<>"']/g, match => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[match]));
+    }
+
+    function ensureLoginModal() {
+        if (document.getElementById('loginModal')) return;
+
+        const modal = document.createElement('div');
+        modal.id = 'loginModal';
+        modal.style.cssText = `
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.75);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 20px;
+        `;
+
+        modal.innerHTML = `
+            <div style="width:min(100%, 420px); background:#0f172a; color:#e5e7eb; border:1px solid rgba(148,163,184,.25); border-radius:24px; padding:28px; box-shadow:0 20px 60px rgba(0,0,0,.45);">
+                <div style="text-align:center; margin-bottom:20px;">
+                    <h2 style="font-size:1.35rem; margin-bottom:8px;">Welcome to the Platform</h2>
+                    <p style="color:#94a3b8; font-size:.92rem;">Input your login details to continue</p>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-bottom:16px;">
+                    <button type="button" class="login-tab active" data-login-type="student" style="flex:1; padding:12px; border-radius:14px; border:1px solid #334155; background:#19A975; color:#fff; font-weight:600; cursor:pointer;">Student Login</button>
+                    <button type="button" class="login-tab" data-login-type="staff" style="flex:1; padding:12px; border-radius:14px; border:1px solid #334155; background:#1e293b; color:#e5e7eb; font-weight:600; cursor:pointer;">Staff Login</button>
+                </div>
+
+                <form id="loginForm">
+                    <input type="hidden" id="loginType" value="student">
+
+                    <div style="margin-bottom:14px;">
+                        <label style="display:block; margin-bottom:6px; font-size:.85rem; color:#cbd5e1;">Username or Email</label>
+                        <input id="loginUsername" type="text" required style="width:100%; padding:12px 14px; border-radius:14px; border:1px solid #334155; background:#020617; color:#e5e7eb; outline:none;">
+                    </div>
+
+                    <div style="margin-bottom:14px;">
+                        <label style="display:block; margin-bottom:6px; font-size:.85rem; color:#cbd5e1;">Password</label>
+                        <input id="loginPassword" type="password" required style="width:100%; padding:12px 14px; border-radius:14px; border:1px solid #334155; background:#020617; color:#e5e7eb; outline:none;">
+                    </div>
+
+                    <button type="submit" style="width:100%; padding:13px; border:none; border-radius:14px; background:linear-gradient(135deg,#19A975,#38bdf8); color:#fff; font-weight:700; cursor:pointer;">
+                        Login
+                    </button>
+
+                    <p id="loginError" style="margin-top:12px; color:#fca5a5; font-size:.85rem; min-height:18px;"></p>
+                    <p style="margin-top:10px; color:#94a3b8; font-size:.8rem; text-align:center;">
+                        Students and staff can sign in with their registered credentials.
+                    </p>
+                </form>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        const tabs = modal.querySelectorAll('.login-tab');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => {
+                    t.classList.remove('active');
+                    t.style.background = '#1e293b';
+                    t.style.color = '#e5e7eb';
+                });
+                tab.classList.add('active');
+                tab.style.background = '#19A975';
+                tab.style.color = '#fff';
+                document.getElementById('loginType').value = tab.dataset.loginType;
+            });
+        });
+
+        modal.querySelector('#loginForm').addEventListener('submit', handleLogin);
+    }
+
+    async function handleLogin(e) {
+        e.preventDefault();
+
+        const loginError = document.getElementById('loginError');
+        const username = document.getElementById('loginUsername').value.trim();
+        const password = document.getElementById('loginPassword').value.trim();
+        const type = document.getElementById('loginType').value;
+
+        loginError.textContent = '';
+
+        try {
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password, type })
+            });
+
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                loginError.textContent = data.msg || 'Login failed';
+                return;
+            }
+
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user || {}));
+
+            document.getElementById('loginModal')?.remove();
+            await loadDirectoryData();
+        } catch (err) {
+            console.error(err);
+            loginError.textContent = 'Connection error';
+        }
+    }
+
+    async function loadDirectoryData() {
+        const token = localStorage.getItem('token');
+
+        if (!token) {
+            ensureLoginModal();
+            document.getElementById('staffList').innerHTML = `<div class="details-placeholder">Please login to view the directory.</div>`;
+            document.getElementById('studentList').innerHTML = `<div class="details-placeholder">Please login to view the directory.</div>`;
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/users', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.msg || 'Failed to load users');
+            }
+
+            const users = await res.json();
+
+            directoryData.staff = users
+                .filter(user => ['staff', 'staff_pending'].includes(user.role))
+                .map(user => ({
+                    id: user.id,
+                    name: user.name || user.username || 'Unnamed Staff',
+                    role: user.role === 'staff_pending' ? 'Pending Staff' : 'Staff Member',
+                    email: user.email || '',
+                    phone: user.phone || user.school || '',
+                    office: user.office || 'Not specified',
+                    department: user.department || user.school || 'General',
+                    rating: Number(staffRatings[user.id] || 1),
+                    ratingCount: Number(user.ratingCount || 0)
+                }));
+
+            directoryData.students = users
+                .filter(user => user.role === 'student')
+                .map(user => ({
+                    id: user.id,
+                    name: user.name || user.username || 'Unnamed Student',
+                    grade: user.grade || 'Student',
+                    email: user.email || '',
+                    guardian: user.guardian || 'N/A',
+                    idNumber: user.studentId || user.idNumber || `STD-${user.id}`,
+                    major: user.major || user.school || 'General'
+                }));
+
+            renderList('staff', directoryData.staff);
+            renderList('student', directoryData.students);
+
+            if (directoryData.staff.length > 0 && !document.querySelector('.list-item.active')) {
+                selectItem('staff', directoryData.staff[0]);
+            } else {
+                document.getElementById('detailsPanel').innerHTML = `
+                    <div class="details-placeholder">Select a staff member or student from the lists to view full details.</div>
+                `;
+            }
+        } catch (err) {
+            console.error('Directory load error:', err);
+            document.getElementById('staffList').innerHTML = `<div class="details-placeholder">Could not load staff list.</div>`;
+            document.getElementById('studentList').innerHTML = `<div class="details-placeholder">Could not load students list.</div>`;
+        }
+    }
+
+    function renderList(type, data) {
+        const container = document.getElementById(`${type}List`);
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        data.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'list-item';
+            div.id = `item-${item.id}`;
+            div.onclick = () => selectItem(type, item);
+
+            let rightSide = '';
+            if (type === 'staff') {
+                const ratingValue = Math.max(1, Math.min(5, Math.round(item.rating || 1)));
+                rightSide = `
+                    <div class="item-rating-inline" aria-label="Staff rating ${ratingValue} out of 5">
+                        ${renderStars(ratingValue)}
+                    </div>
+                `;
+            }
+
+            div.innerHTML = `
+                <div class="item-main">
+                    <div class="item-title">${escapeHtml(item.name)}</div>
+                    <div class="item-subtitle">${escapeHtml(item.role || (item.grade + ' Student'))}</div>
+                    <div class="item-meta">${escapeHtml(type === 'staff' ? item.department : item.major)}</div>
+                </div>
+                ${rightSide}
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function selectItem(type, item) {
+        document.querySelectorAll('.list-item').forEach(el => el.classList.remove('active'));
+
+        const clickedEl = document.getElementById(`item-${item.id}`);
+        if (clickedEl) clickedEl.classList.add('active');
+
+        const detailsPanel = document.getElementById('detailsPanel');
+        if (!detailsPanel) return;
+
+        const initials = (item.name || '')
+            .split(' ')
+            .filter(Boolean)
+            .map(n => n[0])
+            .join('')
+            .slice(0, 2)
+            .toUpperCase();
+
+        if (type === 'staff') {
+            const ratingValue = Math.max(1, Math.min(5, Math.round(item.rating || 1)));
+            const ratingCount = Number(item.ratingCount || 0);
+
+            detailsPanel.innerHTML = `
+                <div class="profile-card">
+                    <div class="profile-header">
+                        <div class="profile-avatar">${initials}</div>
+                        <div class="profile-name">
+                            <h3>${escapeHtml(item.name)}</h3>
+                            <p>${escapeHtml(item.role)}</p>
+                            <div class="profile-meta-line">
+                                Department: ${escapeHtml(item.department)} • Office: ${escapeHtml(item.office)}
+                            </div>
+
+                            <div class="profile-rating-block">
+                                <div class="rating-label">Student rating</div>
+                                <div class="rating-stars" data-staff-id="${item.id}">
+                                    ${renderStarButtons(item.id, ratingValue)}
+                                </div>
+                                <div class="rating-summary">
+                                    Current score: ${ratingValue} / 5 • Rated ${ratingCount} time${ratingCount === 1 ? '' : 's'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="profile-fields">
+                        <div class="field-group">
+                            <label>Email Address</label>
+                            <p>${escapeHtml(item.email || 'N/A')}</p>
+                        </div>
+                        <div class="field-group">
+                            <label>Phone Number</label>
+                            <p>${escapeHtml(item.phone || 'N/A')}</p>
+                        </div>
+                    </div>
+
+                    <div class="section-divider">
+                        <p class="profile-footer-hint">
+                            Students can rate staff from 1 to 5 stars. Every staff member starts at one star, and the rating grows as more ratings are submitted.
+                        </p>
+                    </div>
+                </div>
+            `;
+
+            attachRatingHandlers(item.id);
+        } else {
+            detailsPanel.innerHTML = `
+                <div class="profile-card">
+                    <div class="profile-header">
+                        <div class="profile-avatar">${initials}</div>
+                        <div class="profile-name">
+                            <h3>${escapeHtml(item.name)}</h3>
+                            <p>${escapeHtml(item.grade)} Student</p>
+                            <div class="profile-meta-line">
+                                Major: ${escapeHtml(item.major)} • Student ID: ${escapeHtml(item.idNumber)}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="profile-fields">
+                        <div class="field-group">
+                            <label>Guardian / Parent</label>
+                            <p>${escapeHtml(item.guardian || 'N/A')}</p>
+                        </div>
+                        <div class="field-group">
+                            <label>Email Address</label>
+                            <p>${escapeHtml(item.email || 'N/A')}</p>
+                        </div>
+                    </div>
+
+                    <div class="section-divider">
+                        <p class="profile-footer-hint">
+                            Student profiles are read-only in this view.
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    function renderStars(value) {
+        return [1, 2, 3, 4, 5].map(i => {
+            const filled = i <= value ? 'filled' : '';
+            return `<span class="star ${filled}" data-star="${i}">&#9733;</span>`;
+        }).join('');
+    }
+
+    function renderStarButtons(staffId, value) {
+        return [1, 2, 3, 4, 5].map(i => `
+            <span class="star ${i <= value ? 'filled' : ''}" data-star="${i}" data-staff-id="${staffId}">
+                &#9733;
+            </span>
+        `).join('');
+    }
+
+    function attachRatingHandlers(staffId) {
+        const starsContainer = document.querySelector(`.rating-stars[data-staff-id="${staffId}"]`);
+        if (!starsContainer) return;
+
+        const stars = starsContainer.querySelectorAll('.star');
+        stars.forEach(star => {
+            star.addEventListener('click', () => {
+                const selectedRating = parseInt(star.dataset.star, 10);
+                updateStaffRating(staffId, selectedRating);
+            });
+        });
+    }
+
+    function updateStaffRating(staffId, newRating) {
+        const staff = directoryData.staff.find(s => String(s.id) === String(staffId));
+        if (!staff) return;
+
+        staffRatings[staffId] = Math.max(1, Math.min(5, newRating));
+        staff.rating = staffRatings[staffId];
+        staff.ratingCount = (staff.ratingCount || 0) + 1;
+
+        renderList('staff', directoryData.staff);
+        selectItem('staff', staff);
+    }
+
+    function filterList(type) {
+        const input = document.getElementById(`${type}Search`);
+        const query = (input?.value || '').toLowerCase();
+
+        const filteredData = directoryData[type].filter(item =>
+            item.name.toLowerCase().includes(query) ||
+            (item.role && item.role.toLowerCase().includes(query)) ||
+            (item.grade && item.grade.toLowerCase().includes(query)) ||
+            (item.department && item.department.toLowerCase().includes(query)) ||
+            (item.major && item.major.toLowerCase().includes(query))
+        );
+
+        renderList(type, filteredData);
+    }
+
+    window.addEventListener('DOMContentLoaded', loadDirectoryData);
+</script>
+</body>
+</html>

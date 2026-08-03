@@ -41,44 +41,27 @@ function createOrUpdateDoughnut(id, value, color) {
   const data = {
     labels: ['Primary', 'Other'],
     datasets: [{
-      data: [safeValue, Math.max(0, safeValue ? 100 - safeValue : 0)], 
+      data: [safeValue, Math.max(safeValue - 1, 0)],
       backgroundColor: [color, '#e5e7eb'],
       borderWidth: 0
     }]
   };
 
-  // If chart already exists, destroy it before recreating
   if (charts[id]) {
-    charts[id].destroy();
+    charts[id].data = data;
+    charts[id].update();
+  } else {
+    charts[id] = new Chart(ctx, {
+      type: 'doughnut',
+      data,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        cutout: '70%'
+      }
+    });
   }
-
-  charts[id] = new Chart(ctx, {
-    type: 'doughnut',
-    data,
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      cutout: '70%'
-    }
-  });
-}
-
-function updateRing(id, percent) {
-  const ring = document.getElementById(id);
-  if (!ring) return;
-
-  // Clamp percent between 0–100
-  const safePercent = Math.max(0, Math.min(100, percent));
-  ring.setAttribute('stroke-dasharray', `${safePercent},100`);
-}
-
-
-function updateMiniCharts(stats = {}) {
-  createOrUpdateDoughnut('ticketsChart', stats.tickets || 0, '#19A975');
-  createOrUpdateDoughnut('pendingUsersChart', stats.pendingUsers || 0, '#f59e0b');
-  createOrUpdateDoughnut('adminsChart', stats.admins || 0, '#a855f7');
-  createOrUpdateDoughnut('postsChart', stats.posts || 0, '#3b82f6');
 }
 
 
@@ -87,84 +70,70 @@ function updateMiniCharts(stats = {}) {
 let dashboardLoaded = false;
 
 async function loadDashboard() {
-  console.log("loadDashboard called"); // debug
-  if (dashboardLoaded) return;
+  if (dashboardLoaded) return;   // Prevent multiple calls
   dashboardLoaded = true;
 
   const token = localStorage.getItem('token');
-  if (!token) {
-    console.log("No token found");
-    return;
-  }
+  if (!token) return;
 
   try {
     const res = await fetch('/api/dashboard-stats', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    if (!res.ok) {
-      console.log("Stats fetch failed", res.status);
-      return;
-    }
+    if (!res.ok) return;
 
     const stats = await res.json();
 
-function updateMiniChart(values = []) {
-  const maxVal = Math.max(...values, 1);
-  const points = values.map((v, i) => {
-    const x = (i / (values.length - 1)) * 100;
-    const y = 40 - (v / maxVal) * 30; // scale vertically
-    return `${x},${y}`;
-  }).join(' L');
-
-  document.getElementById('chartLine').setAttribute('d', `M${points}`);
-  document.getElementById('chartFill').setAttribute('d', `M${points} L100,40 L0,40 Z`);
-}
-
-function animateMiniChart(values = []) {
-  const maxVal = Math.max(...values, 1);
-  const targetPoints = values.map((v, i) => {
-    const x = (i / (values.length - 1)) * 100;
-    const y = 40 - (v / maxVal) * 30;
-    return { x, y };
-  });
-
-  const line = document.getElementById('chartLine');
-  const fill = document.getElementById('chartFill');
-
-  // Get current path points (fallback to target if none)
-  const currentPath = line.getAttribute('d') || `M0,40`;
-  // For simplicity, just replace with target smoothly
-  const pointsStr = targetPoints.map(p => `${p.x},${p.y}`).join(' L');
-
-  line.setAttribute('d', `M${pointsStr}`);
-  fill.setAttribute('d', `M${pointsStr} L100,40 L0,40 Z`);
-}
-
-document.getElementById('ticketsCount').textContent = stats.tickets || 0;
-updateRing('ticketsRing', stats.tickets || 0); updateMiniChart([stats.tickets]);
-
-document.getElementById('pendingUsersCount').textContent = stats.pendingUsers || 0;
-updateRing('pendingUsersRing', stats.pendingUsers || 0); updateMiniChart([stats.pendingUsers]);
-
-document.getElementById('adminsCount').textContent = stats.admins || 0;
-updateRing('adminsRing', stats.admins || 0); updateMiniChart([stats.admins]); 
-
-document.getElementById('postsCount').textContent = stats.posts || 0;
-updateRing('postsRing', stats.posts || 0); updateMiniChart([stats.posts]);
-
-animateMiniChart([stats.tickets, stats.pendingUsers, stats.admins, stats.posts]);
-
-    // document.getElementById('ticketsCount').textContent = stats.tickets || 0;
-    // document.getElementById('pendingUsersCount').textContent = stats.pendingUsers || 0;
-    // document.getElementById('adminsCount').textContent = stats.admins || 0;
-    // document.getElementById('postsCount').textContent = stats.posts || 0;
-    // document.getElementById('postsCount2').textContent = `${stats.posts || 0} posts`;
+    // Update text counters
+    document.getElementById('ticketsCount').textContent = stats.tickets || 0;
+    document.getElementById('pendingUsersCount').textContent = stats.pendingUsers || 0;
+    document.getElementById('adminsCount').textContent = stats.admins || 0;
+    document.getElementById('postsCount').textContent = stats.posts || 0;
+    document.getElementById('postsCount2').textContent = `${stats.posts || 0} posts`;
 
     updateMiniCharts(stats);
   } catch (err) {
-    console.error('Dashboard load error:', err);
+    console.error('Error loading dashboard stats', err);
   }
+}
+
+// ===================== CHARTS (Fixed - Destroy old ones) =====================
+function createOrUpdateDoughnut(id, value, color) {
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+
+  // Destroy previous chart to prevent duplication
+  if (charts[id]) {
+    charts[id].destroy();
+  }
+
+  const safeValue = Math.max(Number(value) || 0, 0);
+
+  charts[id] = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels: ['Value', 'Rest'],
+      datasets: [{
+        data: [safeValue, Math.max(100 - safeValue, 0)],
+        backgroundColor: [color, '#e5e7eb'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '70%',
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+function updateMiniCharts(stats = {}) {
+  createOrUpdateDoughnut('ticketsChart', stats.tickets || 0, '#19A975');
+  createOrUpdateDoughnut('pendingUsersChart', stats.pendingUsers || 0, '#f59e0b');
+  createOrUpdateDoughnut('adminsChart', stats.admins || 0, '#a855f7');
+  createOrUpdateDoughnut('postsChart', stats.posts || 0, '#3b82f6');
 }
 
 // ===================== ADMINS =====================

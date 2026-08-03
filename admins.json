@@ -8,15 +8,6 @@
       "role": "Superadmin"
     },
     {
-      "id": 1780069500807,
-      "username": "Bobbyboy",
-      "email": "runnerhtml@gmail.com",
-      "password": "$2b$10$Bavr4fAMOec2l9NUw.rOmuKbyZFs/UyFNyOzRWKc55JJMmqE98kje",
-      "name": "Bobby Boy",
-      "role": "moderator",
-      "img": "https://i.pravatar.cc/150?img=34"
-    },
-    {
       "id": 1780307957322,
       "username": "Jakob",
       "email": "Jakk@gmail.com",
@@ -24,15 +15,6 @@
       "name": "Jakob Hitman",
       "role": "moderator",
       "img": "https://i.pravatar.cc/150?img=53"
-    },
-    {
-      "id": 1780321359205,
-      "username": "Aladin Funke",
-      "email": "funke@gmail.com",
-      "password": "$2b$10$sTcZDtfNAvf5M1125VmrD.E3yxyv2/lwGfOuQq/8IrPoOSVGrwmMG",
-      "name": "Funke Aladin",
-      "role": "staff",
-      "img": "https://i.pravatar.cc/150?img=11"
     },
     {
       "id": 1780879042929,
@@ -51,6 +33,24 @@
       "name": "Happy Lawrence",
       "role": "moderator",
       "createdAt": "2026-06-08T11:56:35.634Z"
+    },
+    {
+      "id": 1784892700977,
+      "username": "Uriel Okafor",
+      "email": "urielo@gmail.com",
+      "password": "$2b$10$HbIfDuqUy5Rvk8CwZyJc9.Lw/2qV/1zvkt1hQf8nc1.eRRaQnB2ha",
+      "name": "uriel28",
+      "role": "moderator",
+      "createdAt": "2026-07-24T11:31:40.977Z"
+    },
+    {
+      "id": 1785764229559,
+      "username": "My Cal",
+      "email": "michathae@gmail.com",
+      "password": "$2b$10$zMbLmzNyAubgsC.qzNHk6uR8cgYnOhDyRjvxYaTTniy.jU.QnBLBC",
+      "name": "Micheal Cathae",
+      "role": "admin",
+      "createdAt": "2026-08-03T13:37:09.559Z"
     }
   ]
 }

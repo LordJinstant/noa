@@ -7,23 +7,13 @@ let usersCache = [];
 let editingPostId = null;
 
 // ===================== UTILITY FUNCTIONS =====================
-// function escapeHtml(str = '') {
-//   return String(str)
-//    .replaceAll('&', '&amp;')
-//    .replaceAll('<', '&lt;')
-//    .replaceAll('>', '&gt;')
-//    .replaceAll('"', '&quot;')
-//    .replaceAll("'", '&#39;');
-// }
-
-
-// ===================== ADMIN DASHBOARD JS =====================
-
-// Utility
 function escapeHtml(str = '') {
-  return String(str).replace(/[&<>"']/g, match => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[match]));
+  return String(str)
+   .replaceAll('&', '&amp;')
+   .replaceAll('<', '&lt;')
+   .replaceAll('>', '&gt;')
+   .replaceAll('"', '&quot;')
+   .replaceAll("'", '&#39;');
 }
 
 function scrollToPostForm() {
@@ -41,38 +31,28 @@ function createOrUpdateDoughnut(id, value, color) {
   const data = {
     labels: ['Primary', 'Other'],
     datasets: [{
-      data: [safeValue, Math.max(0, safeValue ? 100 - safeValue : 0)], 
+      data: [safeValue, Math.max(safeValue - 1, 0)],
       backgroundColor: [color, '#e5e7eb'],
       borderWidth: 0
     }]
   };
 
-  // If chart already exists, destroy it before recreating
   if (charts[id]) {
-    charts[id].destroy();
+    charts[id].data = data;
+    charts[id].update();
+  } else {
+    charts[id] = new Chart(ctx, {
+      type: 'doughnut',
+      data,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        cutout: '70%'
+      }
+    });
   }
-
-  charts[id] = new Chart(ctx, {
-    type: 'doughnut',
-    data,
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      cutout: '70%'
-    }
-  });
 }
-
-function updateRing(id, percent) {
-  const ring = document.getElementById(id);
-  if (!ring) return;
-
-  // Clamp percent between 0–100
-  const safePercent = Math.max(0, Math.min(100, percent));
-  ring.setAttribute('stroke-dasharray', `${safePercent},100`);
-}
-
 
 function updateMiniCharts(stats = {}) {
   createOrUpdateDoughnut('ticketsChart', stats.tickets || 0, '#19A975');
@@ -81,89 +61,32 @@ function updateMiniCharts(stats = {}) {
   createOrUpdateDoughnut('postsChart', stats.posts || 0, '#3b82f6');
 }
 
-
 // ===================== DASHBOARD STATS =====================
-// ===================== DASHBOARD STATS (Fixed) =====================
-let dashboardLoaded = false;
-
 async function loadDashboard() {
-  console.log("loadDashboard called"); // debug
-  if (dashboardLoaded) return;
-  dashboardLoaded = true;
-
-  const token = localStorage.getItem('token');
-  if (!token) {
-    console.log("No token found");
-    return;
-  }
-
   try {
-    const res = await fetch('/api/dashboard-stats', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    const token = localStorage.getItem('token');
+    const headers = token? { 'Authorization': `Bearer ${token}` } : {};
 
-    if (!res.ok) {
-      console.log("Stats fetch failed", res.status);
-      return;
-    }
+    const res = await fetch('/api/dashboard-stats', { headers });
+    if (!res.ok) return;
 
     const stats = await res.json();
 
-function updateMiniChart(values = []) {
-  const maxVal = Math.max(...values, 1);
-  const points = values.map((v, i) => {
-    const x = (i / (values.length - 1)) * 100;
-    const y = 40 - (v / maxVal) * 30; // scale vertically
-    return `${x},${y}`;
-  }).join(' L');
+    const ticketsCount = document.getElementById('ticketsCount');
+    const pendingUsersCount = document.getElementById('pendingUsersCount');
+    const adminsCount = document.getElementById('adminsCount');
+    const postsCount = document.getElementById('postsCount');
+    const postsCount2 = document.getElementById('postsCount2');
 
-  document.getElementById('chartLine').setAttribute('d', `M${points}`);
-  document.getElementById('chartFill').setAttribute('d', `M${points} L100,40 L0,40 Z`);
-}
-
-function animateMiniChart(values = []) {
-  const maxVal = Math.max(...values, 1);
-  const targetPoints = values.map((v, i) => {
-    const x = (i / (values.length - 1)) * 100;
-    const y = 40 - (v / maxVal) * 30;
-    return { x, y };
-  });
-
-  const line = document.getElementById('chartLine');
-  const fill = document.getElementById('chartFill');
-
-  // Get current path points (fallback to target if none)
-  const currentPath = line.getAttribute('d') || `M0,40`;
-  // For simplicity, just replace with target smoothly
-  const pointsStr = targetPoints.map(p => `${p.x},${p.y}`).join(' L');
-
-  line.setAttribute('d', `M${pointsStr}`);
-  fill.setAttribute('d', `M${pointsStr} L100,40 L0,40 Z`);
-}
-
-document.getElementById('ticketsCount').textContent = stats.tickets || 0;
-updateRing('ticketsRing', stats.tickets || 0); updateMiniChart([stats.tickets]);
-
-document.getElementById('pendingUsersCount').textContent = stats.pendingUsers || 0;
-updateRing('pendingUsersRing', stats.pendingUsers || 0); updateMiniChart([stats.pendingUsers]);
-
-document.getElementById('adminsCount').textContent = stats.admins || 0;
-updateRing('adminsRing', stats.admins || 0); updateMiniChart([stats.admins]); 
-
-document.getElementById('postsCount').textContent = stats.posts || 0;
-updateRing('postsRing', stats.posts || 0); updateMiniChart([stats.posts]);
-
-animateMiniChart([stats.tickets, stats.pendingUsers, stats.admins, stats.posts]);
-
-    // document.getElementById('ticketsCount').textContent = stats.tickets || 0;
-    // document.getElementById('pendingUsersCount').textContent = stats.pendingUsers || 0;
-    // document.getElementById('adminsCount').textContent = stats.admins || 0;
-    // document.getElementById('postsCount').textContent = stats.posts || 0;
-    // document.getElementById('postsCount2').textContent = `${stats.posts || 0} posts`;
+    if (ticketsCount) ticketsCount.textContent = stats.tickets || 0;
+    if (pendingUsersCount) pendingUsersCount.textContent = stats.pendingUsers || 0;
+    if (adminsCount) adminsCount.textContent = stats.admins || 0;
+    if (postsCount) postsCount.textContent = stats.posts || 0;
+    if (postsCount2) postsCount2.textContent = `${stats.posts || 0} posts`;
 
     updateMiniCharts(stats);
   } catch (err) {
-    console.error('Dashboard load error:', err);
+    console.error('Error loading dashboard stats', err);
   }
 }
 
@@ -267,33 +190,24 @@ document.getElementById('createAdminForm')?.addEventListener('submit', async (e)
 });
 
 async function deleteAdmin(id) {
-  if (!confirm('Delete this admin/staff? This cannot be undone.')) return;
+  if (!confirm('Delete this admin? This cannot be undone.')) return;
 
   const token = localStorage.getItem('token');
-  if (!token) {
-    alert("Please login as super admin");
-    return;
-  }
-
   try {
     const res = await fetch(`/api/admins/${id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    const data = await res.json();
-
     if (res.ok) {
-      alert("✅ Deleted successfully!");
-      renderAdmins();      // Refresh list
-      loadDashboard();     // Refresh stats
-      loadUsersTable();    // If users modal is open
+      renderAdmins();
+      loadDashboard();
     } else {
-      alert(data.msg || "Failed to delete");
+      const data = await res.json();
+      alert(data.msg || 'Failed to delete admin');
     }
   } catch (err) {
-    console.error(err);
-    alert("Connection error. Make sure you are logged in as super admin.");
+    alert('Connection error');
   }
 }
 
@@ -487,34 +401,20 @@ function renderTickets() {
     return;
   }
 
-  container.innerHTML = tickets.map(ticket => `
-    <div class="p-5 border rounded-2xl mb-4 bg-white shadow-sm">
-      <div class="flex justify-between items-start mb-3">
+  container.innerHTML = tickets.map((ticket, index) => `
+    <div class="ticket-card ${ticket.status === 'resolved'? 'opacity-75' : ''} p-4 border rounded-2xl mb-3">
+      <div class="flex justify-between items-start">
         <div class="flex-1">
-          <h4 class="font-semibold text-lg">${escapeHtml(ticket.title)}</h4>
-          <p class="text-sm text-gray-600 mt-1">${escapeHtml(ticket.message)}</p>
-          ${ticket.name ? `<p class="text-xs text-gray-500 mt-2"><strong>Applicant:</strong> ${escapeHtml(ticket.name)}</p>` : ''}
-          ${ticket.email ? `<p class="text-xs text-gray-500">Email: ${escapeHtml(ticket.email)}</p>` : ''}
+          <h4 class="font-semibold text-lg">${escapeHtml(ticket.title || 'Untitled Ticket')}</h4>
+          <p class="text-gray-600 mt-1">${escapeHtml(ticket.message || '')}</p>
+          ${ticket.name? `<p class="text-sm text-gray-500 mt-2">Name: <strong>${escapeHtml(ticket.name)}</strong></p>` : ''}
+          ${ticket.email? `<p class="text-sm text-gray-500">Email: <strong>${escapeHtml(ticket.email)}</strong></p>` : ''}
+          <p class="text-xs text-gray-400 mt-3">${escapeHtml(ticket.time || '')}</p>
         </div>
-        <span class="px-4 py-1 text-xs font-medium rounded-2xl whitespace-nowrap ${
-          ticket.status === 'approved' ? 'bg-green-100 text-green-700' : 
-          ticket.status === 'rejected' ? 'bg-red-100 text-red-700' : 
-          'bg-yellow-100 text-yellow-700'
-        }">
-          ${ticket.status || 'pending'}
+        <span class="px-4 py-1.5 text-xs font-medium rounded-2xl ${ticket.status === 'resolved'? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">
+          ${ticket.status === 'resolved'? '✓ Resolved' : 'Pending'}
         </span>
       </div>
-
-      <!-- Approve Button - Only show for pending staff applications -->
-      ${ticket.status === 'pending' && ticket.type === 'staff_application' ? `
-        <button onclick="approveTicket(${ticket.id})" 
-                class="w-full mt-4 bg-[#19A975] hover:bg-[#158a5f] text-white py-3 rounded-2xl font-semibold transition flex items-center justify-center gap-2">
-          <i class="fas fa-check"></i>
-          Approve Staff Application
-        </button>
-      ` : ''}
-
-      <p class="text-xs text-gray-400 mt-4">${escapeHtml(ticket.time || '')}</p>
     </div>
   `).join('');
 }
@@ -550,38 +450,6 @@ function loadTickets() {
    .catch(err => {
       console.error('Error loading tickets:', err);
     });
-}
-
-// ===================== APPROVE TICKET =====================
-async function approveTicket(ticketId) {
-  if (!confirm("Approve this staff application?")) return;
-
-  const token = localStorage.getItem('token');
-  if (!token) {
-    alert("Please login as admin");
-    return;
-  }
-
-  try {
-    const res = await fetch(`/api/tickets/${ticketId}/approve`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-
-    const data = await res.json();
-
-    if (res.ok) {
-      alert("✅ Staff approved successfully!");
-      loadTickets();        // Refresh tickets
-      loadUsersTable();     // Refresh users list
-      loadDashboard();      // Refresh stats
-    } else {
-      alert(data.msg || "Failed to approve");
-    }
-  } catch (err) {
-    console.error(err);
-    alert("Connection error");
-  }
 }
 
 // ===================== POSTS =====================
@@ -691,7 +559,7 @@ async function loadPostsPreview() {
   try {
     const res = await fetch('/api/posts');
     const posts = await res.json();
-    const latest = Array.isArray(posts)? posts.slice(0, 7) : [];
+    const latest = Array.isArray(posts)? posts.slice(0, 3) : [];
 
     if (!latest.length) {
       container.innerHTML = `<p class="text-gray-500 col-span-full">No posts yet.</p>`;

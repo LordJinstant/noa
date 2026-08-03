@@ -63,44 +63,114 @@
           </div>
         </div>
 
-        <!-- Summary Cards with Mini Charts -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-10">
-          <div class="bg-white rounded-3xl p-6 shadow-sm border hover:shadow-md transition">
-            <div class="flex items-center justify-between mb-4">
-              <p class="text-sm text-gray-500">Tickets</p>
-              <div class="text-2xl text-[#19A975]"><i class="fas fa-ticket-alt"></i></div>
-            </div>
-            <h3 class="text-3xl font-black mt-2 mb-3" id="ticketsCount">0</h3>
-            <canvas id="ticketsChart" height="80"></canvas>
-          </div>
+       <!-- Summary Cards with Progress Rings -->
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-10">
+  <!-- Tickets -->
+  <div class="bg-white rounded-3xl p-6 shadow-sm border hover:shadow-md transition">
+    <div class="flex items-center justify-between mb-4">
+      <p class="text-sm text-gray-500">Tickets</p>
+      <div class="text-2xl text-[#19A975]"><i class="fas fa-ticket-alt"></i></div>
+    </div>
+    <h3 class="text-3xl font-black mt-2 mb-3" id="ticketsCount">0</h3>
+    <div class="relative w-20 h-20">
+      <svg class="w-full h-full" viewBox="0 0 36 36">
+        <path class="text-gray-200" stroke="currentColor" stroke-width="4" fill="none"
+              d="M18 2.0845
+                 a 15.9155 15.9155 0 0 1 0 31.831
+                 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+        <path id="ticketsRing" class="text-[#19A975]" stroke="currentColor" stroke-width="4" fill="none"
+              stroke-dasharray="0,100"
+              d="M18 2.0845
+                 a 15.9155 15.9155 0 0 1 0 31.831
+                 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+      </svg>
+    </div>
+  </div>
 
-          <div class="bg-white rounded-3xl p-6 shadow-sm border hover:shadow-md transition">
-            <div class="flex items-center justify-between mb-4">
-              <p class="text-sm text-gray-500">Pending Users</p>
-              <div class="text-2xl text-yellow-500"><i class="fas fa-user-clock"></i></div>
-            </div>
-            <h3 class="text-3xl font-black mt-2 mb-3" id="pendingUsersCount">0</h3>
-            <canvas id="pendingUsersChart" height="80"></canvas>
-          </div>
+  <!-- Pending Users -->
+  <div class="bg-white rounded-3xl p-6 shadow-sm border hover:shadow-md transition">
+    <div class="flex items-center justify-between mb-4">
+      <p class="text-sm text-gray-500">Pending Users</p>
+      <div class="text-2xl text-yellow-500"><i class="fas fa-user-clock"></i></div>
+    </div>
+    <h3 class="text-3xl font-black mt-2 mb-3" id="pendingUsersCount">0</h3>
+    <div class="relative w-20 h-20">
+      <svg class="w-full h-full" viewBox="0 0 36 36">
+        <path class="text-gray-200" stroke="currentColor" stroke-width="4" fill="none"
+              d="M18 2.0845
+                 a 15.9155 15.9155 0 0 1 0 31.831
+                 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+        <path id="pendingUsersRing" class="text-yellow-500" stroke="currentColor" stroke-width="4" fill="none"
+              stroke-dasharray="0,100"
+              d="M18 2.0845
+                 a 15.9155 15.9155 0 0 1 0 31.831
+                 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+      </svg>
+    </div>
+  </div>
 
-          <div class="bg-white rounded-3xl p-6 shadow-sm border hover:shadow-md transition">
-            <div class="flex items-center justify-between mb-4">
-              <p class="text-sm text-gray-500">Admins</p>
-              <div class="text-2xl text-purple-500"><i class="fas fa-user-shield"></i></div>
-            </div>
-            <h3 class="text-3xl font-black mt-2 mb-3" id="adminsCount">0</h3>
-            <canvas id="adminsChart" height="80"></canvas>
-          </div>
+  <!-- Admins -->
+  <div class="bg-white rounded-3xl p-6 shadow-sm border hover:shadow-md transition">
+    <div class="flex items-center justify-between mb-4">
+      <p class="text-sm text-gray-500">Admins</p>
+      <div class="text-2xl text-purple-500"><i class="fas fa-user-shield"></i></div>
+    </div>
+    <h3 class="text-3xl font-black mt-2 mb-3" id="adminsCount">0</h3>
+    <div class="relative w-20 h-20">
+      <svg class="w-full h-full" viewBox="0 0 36 36">
+        <path class="text-gray-200" stroke="currentColor" stroke-width="4" fill="none"
+              d="M18 2.0845
+                 a 15.9155 15.9155 0 0 1 0 31.831
+                 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+        <path id="adminsRing" class="text-purple-500" stroke="currentColor" stroke-width="4" fill="none"
+              stroke-dasharray="0,100"
+              d="M18 2.0845
+                 a 15.9155 15.9155 0 0 1 0 31.831
+                 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+      </svg>
+    </div>
+  </div>
 
-          <div class="bg-white rounded-3xl p-6 shadow-sm border hover:shadow-md transition">
-            <div class="flex items-center justify-between mb-4">
-              <p class="text-sm text-gray-500">Total Posts</p>
-              <div class="text-2xl text-blue-500"><i class="fas fa-newspaper"></i></div>
-            </div>
-            <h3 class="text-3xl font-black mt-2 mb-3" id="postsCount">0</h3>
-            <canvas id="postsChart" height="80"></canvas>
-          </div>
-        </div>
+  <!-- Total Posts -->
+  <div class="bg-white rounded-3xl p-6 shadow-sm border hover:shadow-md transition">
+    <div class="flex items-center justify-between mb-4">
+      <p class="text-sm text-gray-500">Total Posts</p>
+      <div class="text-2xl text-blue-500"><i class="fas fa-newspaper"></i></div>
+    </div>
+    <h3 class="text-3xl font-black mt-2 mb-3" id="postsCount">0</h3>
+    <div class="relative w-20 h-20">
+      <svg class="w-full h-full" viewBox="0 0 36 36">
+        <path class="text-gray-200" stroke="currentColor" stroke-width="4" fill="none"
+              d="M18 2.0845
+                 a 15.9155 15.9155 0 0 1 0 31.831
+                 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+        <path id="postsRing" class="text-blue-500" stroke="currentColor" stroke-width="4" fill="none"
+              stroke-dasharray="0,100"
+              d="M18 2.0845
+                 a 15.9155 15.9155 0 0 1 0 31.831
+                 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- Mini Line Chart -->
+<div class="relative w-full h-20 mt-4">
+  <svg id="miniChart" viewBox="0 0 100 40" preserveAspectRatio="none" class="w-full h-full opacity-80">
+    <!-- Background -->
+    <rect width="100" height="40" fill="transparent" />
+    <!-- Filled area -->
+    <path id="chartFill" d="M0,40 L0,30 L20,32 L40,28 L60,25 L80,22 L100,20 L100,40 Z"
+          fill="#19A975" opacity="0.4"></path>
+    <!-- Line -->
+    <path id="chartLine" d="M0,30 L20,32 L40,28 L60,25 L80,22 L100,20"
+          stroke="#19A975" stroke-width="2" fill="none"></path>
+    <!-- Axis labels -->
+    <text x="0" y="38" font-size="4" fill="#9CA3AF">0</text>
+    <text x="50" y="38" font-size="4" fill="#9CA3AF">50</text>
+    <text x="95" y="38" font-size="4" fill="#9CA3AF">100</text>
+  </svg>
+</div>
 
         <!-- Super Admin -->
         <section class="bg-gradient-to-r from-[#19A975] to-emerald-500 text-white rounded-3xl p-6 shadow-lg mb-10">

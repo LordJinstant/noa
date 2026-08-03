@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOA Platform • Directory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #00f5ff;
+            --accent: #ff00aa;
+            --dark: #0a0a0a;
+            --card: #111111;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0033 100%);
+            color: #e0e0e0;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .futuristic-card {
+            background: rgba(17, 17, 17, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 245, 255, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 245, 255, 0.1);
+        }
+
+        .star {
+            color: #ffd700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .star:hover {
+            transform: scale(1.3);
+            color: #ffea00;
+        }
+
+        .rated .star {
+            color: #ffd700;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="max-w-7xl mx-auto p-6">
+        <header class="flex justify-between items-center mb-10">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-gradient-to-br from-cyan-400 to-purple-600 rounded-2xl flex items-center justify-center text-2xl font-bold">NOA</div>
+                <div>
+                    <h1 class="text-4xl font-bold tracking-tighter">PLATFORM</h1>
+                    <p class="text-cyan-400 text-sm">Nigeria Olympiad Academy • 2026</p>
+                </div>
+            </div>
+            <div class="text-sm text-gray-400">Directory • Staff & Students</div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Staff Panel -->
+            <div class="futuristic-card rounded-3xl p-6">
+                <h2 class="text-2xl font-semibold mb-6 flex items-center gap-3">
+                    <i class="fas fa-users"></i> Staff Directory
+                </h2>
+                <input type="text" id="staffSearch" placeholder="Search staff..." 
+                       class="w-full bg-black/50 border border-cyan-500/30 rounded-2xl px-5 py-4 focus:outline-none focus:border-cyan-400 mb-6">
+                <div id="staffList" class="space-y-4 max-h-[70vh] overflow-y-auto pr-2"></div>
+            </div>
+
+            <!-- Students Panel -->
+            <div class="futuristic-card rounded-3xl p-6">
+                <h2 class="text-2xl font-semibold mb-6 flex items-center gap-3">
+                    <i class="fas fa-user-graduate"></i> Students
+                </h2>
+                <input type="text" id="studentSearch" placeholder="Search students..." 
+                       class="w-full bg-black/50 border border-purple-500/30 rounded-2xl px-5 py-4 focus:outline-none focus:border-purple-400 mb-6">
+                <div id="studentList" class="space-y-4 max-h-[70vh] overflow-y-auto pr-2"></div>
+            </div>
+
+            <!-- Profile Details -->
+            <div class="futuristic-card rounded-3xl p-8" id="detailsPanel">
+                <div class="text-center py-20 text-gray-500">
+                    <i class="fas fa-user-circle text-7xl mb-6 opacity-30"></i>
+                    <p class="text-xl">Select a profile to view details</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const directoryData = {
+            staff: [
+                { id: 's1', name: 'Dr. Evelyn Reed', role: 'Principal', email: 'evelyn.reed@noa.ng', phone: '+234 814 292 0376', department: 'Administration', rating: 4.8, totalRatings: 23 },
+                { id: 's2', name: 'Prof. Marcus Vance', role: 'Head of Mathematics', email: 'marcus.vance@noa.ng', phone: '+234 703 456 7890', department: 'Mathematics', rating: 4.2, totalRatings: 15 },
+                { id: 's3', name: 'Mrs. Sarah Jenkins', role: 'Senior Librarian', email: 'sarah.jenkins@noa.ng', phone: '+234 809 112 3344', department: 'Library', rating: 3.9, totalRatings: 8 }
+            ],
+            students: [
+                { id: 'st1', name: 'Dany Dewns', grade: 'Grade 10', email: 'dany.dewns@student.noa.ng', guardian: 'Mr. & Mrs. Dewns', idNumber: 'STD-2026-001' },
+                { id: 'st2', name: 'Canrce Braoe', grade: 'Grade 9', email: 'canrce.braoe@student.noa.ng', guardian: 'Alice Braoe', idNumber: 'STD-2026-002' }
+            ]
+        };
+
+        // Render Lists
+        function renderList(type, data) {
+            const container = document.getElementById(`${type}List`);
+            container.innerHTML = '';
+
+            data.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'futuristic-card p-5 rounded-2xl cursor-pointer hover:border-cyan-400 transition-all';
+                div.onclick = () => showDetails(type, item);
+
+                let html = `
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-cyan-400 to-purple-600 rounded-2xl flex items-center justify-center text-white font-bold">
+                            ${item.name.split(' ').map(n => n[0]).join('')}
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-semibold">${item.name}</div>
+                            <div class="text-sm text-gray-400">${item.role || item.grade}</div>
+                `;
+
+                if (type === 'staff') {
+                    html += `
+                        <div class="flex items-center gap-1 mt-2">
+                            ${Array(5).fill(0).map((_, i) => `
+                                <i class="fas fa-star text-yellow-400 ${i < Math.floor(item.rating) ? 'text-yellow-400' : 'text-gray-600'}"></i>
+                            `).join('')}
+                            <span class="text-xs text-gray-400 ml-2">(${item.rating})</span>
+                        </div>
+                    `;
+                }
+
+                html += `</div></div>`;
+                div.innerHTML = html;
+                container.appendChild(div);
+            });
+        }
+
+        function showDetails(type, item) {
+            const panel = document.getElementById('detailsPanel');
+            let html = '';
+
+            if (type === 'staff') {
+                html = `
+                    <div class="text-center">
+                        <div class="w-24 h-24 mx-auto bg-gradient-to-br from-cyan-400 to-purple-600 rounded-3xl flex items-center justify-center text-5xl text-white mb-6">
+                            ${item.name.split(' ').map(n => n[0]).join('')}
+                        </div>
+                        <h2 class="text-3xl font-bold">${item.name}</h2>
+                        <p class="text-cyan-400">${item.role}</p>
+                    </div>
+
+                    <div class="mt-10 space-y-6">
+                        <div>
+                            <div class="text-xs uppercase tracking-widest text-gray-400 mb-1">Department</div>
+                            <div class="text-xl">${item.department}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs uppercase tracking-widest text-gray-400 mb-1">Contact</div>
+                            <div class="space-y-2">
+                                <div>${item.email}</div>
+                                <div>${item.phone}</div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-xs uppercase tracking-widest text-gray-400 mb-2">Student Rating</div>
+                            <div class="flex items-center gap-2 text-4xl">
+                                ${Array(5).fill(0).map((_, i) => `
+                                    <i onclick="rateStaff('${item.id}', ${i+1})" class="fas fa-star cursor-pointer hover:text-yellow-300 transition ${i < Math.floor(item.rating) ? 'text-yellow-400' : 'text-gray-600'}"></i>
+                                `).join('')}
+                            </div>
+                            <p class="text-sm text-gray-400 mt-2">${item.totalRatings} students rated</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Student details
+                html = `<div class="text-center py-20"><p class="text-2xl">Student Profile Coming Soon</p></div>`;
+            }
+
+            panel.innerHTML = html;
+        }
+
+        function rateStaff(staffId, stars) {
+            const staff = directoryData.staff.find(s => s.id === staffId);
+            if (staff) {
+                staff.rating = ((staff.rating * staff.totalRatings) + stars) / (staff.totalRatings + 1);
+                staff.totalRatings++;
+                alert(`Thank you! You rated ${stars} stars.`);
+                renderList('staff', directoryData.staff); // refresh
+            }
+        }
+
+        // Search
+        function setupSearch() {
+            document.getElementById('staffSearch').addEventListener('input', (e) => {
+                const q = e.target.value.toLowerCase();
+                const filtered = directoryData.staff.filter(s => s.name.toLowerCase().includes(q));
+                renderList('staff', filtered);
+            });
+        }
+
+        // Init
+        window.addEventListener('DOMContentLoaded', () => {
+            renderList('staff', directoryData.staff);
+            renderList('student', directoryData.students);
+            setupSearch();
+        });
+    </script>
+</body>
+</html>
