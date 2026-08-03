@@ -80,22 +80,6 @@ usersDb.exec(`
   );
 `);
 
-usersDb.exec(`
-  CREATE TABLE IF NOT EXISTS staff_ratings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    staff_id INTEGER NOT NULL,
-    student_id INTEGER,
-    student_name TEXT,
-    rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
-    created_at TEXT DEFAULT (datetime('now')),
-    UNIQUE(staff_id, student_id)
-  );
-`);
-
-// In-memory live class rooms: code -> { host, title, createdAt, sharedFile }
-const liveClasses = new Map();
-
-
 
 const readJson = (file) => {
   try {
@@ -870,109 +854,6 @@ app.get('/api/performance-summary', (req, res) => {
     return res.status(401).json({ msg: 'Invalid token' });
   }
 });
-
-
-// ===================== STAFF RATINGS =====================
-app.get('/api/staff-ratings/:staffId', (req, res) => {
-  try {
-    const rows = usersDb.prepare(`
-      SELECT rating, COUNT(*) as count FROM staff_ratings WHERE staff_id = ? GROUP BY rating
-    `).all(req.params.staffId);
-    const all = usersDb.prepare(`SELECT AVG(rating) as avg, COUNT(*) as total FROM staff_ratings WHERE staff_id = ?`).get(req.params.staffId);
-    return res.json({ avg: all?.avg ? Math.round(all.avg * 10) / 10 : 0, total: all?.total || 0, breakdown: rows });
-  } catch (err) {
-    return res.status(500).json({ msg: err.message });
-  }
-});
-
-app.post('/api/staff-ratings', (req, res) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ msg: 'Login required to rate staff' });
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const { staff_id, rating } = req.body;
-    const r = parseInt(rating, 10);
-    if (!staff_id || !r || r < 1 || r > 5) return res.status(400).json({ msg: 'staff_id and rating 1-5 required' });
-
-    usersDb.prepare(`
-      INSERT INTO staff_ratings (staff_id, student_id, student_name, rating)
-      VALUES (?, ?, ?, ?)
-      ON CONFLICT(staff_id, student_id) DO UPDATE SET rating = excluded.rating, created_at = datetime('now')
-    `).run(staff_id, decoded.id || null, decoded.username || decoded.name || 'Student', r);
-
-    const all = usersDb.prepare(`SELECT AVG(rating) as avg, COUNT(*) as total FROM staff_ratings WHERE staff_id = ?`).get(staff_id);
-    return res.json({ msg: 'Rating saved', avg: Math.round((all.avg || 0) * 10) / 10, total: all.total });
-  } catch (err) {
-    return res.status(401).json({ msg: 'Invalid token or error: ' + err.message });
-  }
-});
-
-// ===================== LIVE CLASS ROOMS =====================
-app.post('/api/classes/start', (req, res) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  let host = 'Host';
-  if (token) {
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET);
-      host = decoded.username || decoded.name || 'Host';
-    } catch (e) {}
-  }
-  const code = (req.body.code || '').trim().toUpperCase() || ('NOA-' + Math.random().toString(36).slice(2, 8).toUpperCase());
-  if (liveClasses.has(code)) {
-    return res.status(409).json({ msg: 'Class code already in use. Choose another.' });
-  }
-  liveClasses.set(code, {
-    host,
-    title: req.body.title || 'Olympiad Class',
-    createdAt: new Date().toISOString(),
-    participants: [],
-    sharedFile: null
-  });
-  return res.json({ msg: 'Class started', code, host });
-});
-
-app.get('/api/classes/:code', (req, res) => {
-  const room = liveClasses.get(req.params.code.toUpperCase());
-  if (!room) return res.status(404).json({ msg: 'Class not found or has ended' });
-  return res.json({ code: req.params.code.toUpperCase(), ...room });
-});
-
-app.post('/api/classes/:code/join', (req, res) => {
-  const code = req.params.code.toUpperCase();
-  const room = liveClasses.get(code);
-  if (!room) return res.status(404).json({ msg: 'Class not found. Check the code with your host.' });
-  const name = (req.body.name || 'Participant').trim();
-  if (!room.participants.includes(name)) room.participants.push(name);
-  return res.json({ msg: 'Joined', code, host: room.host, title: room.title, participants: room.participants });
-});
-
-app.post('/api/classes/:code/share', (req, res) => {
-  const code = req.params.code.toUpperCase();
-  const room = liveClasses.get(code);
-  if (!room) return res.status(404).json({ msg: 'Class not found' });
-  room.sharedFile = req.body.file || null; // { name, url or dataUrl }
-  return res.json({ msg: 'File shared', sharedFile: room.sharedFile });
-});
-
-app.delete('/api/classes/:code', (req, res) => {
-  liveClasses.delete(req.params.code.toUpperCase());
-  return res.json({ msg: 'Class ended' });
-});
-
-app.get('/api/top-assessments', (req, res) => {
-  try {
-    const rows = usersDb.prepare(`
-      SELECT student_name, subject, percentage, score, supposed_score, assessed_at, grade
-      FROM assessments
-      ORDER BY percentage DESC, assessed_at DESC
-      LIMIT 15
-    `).all();
-    return res.json(rows);
-  } catch (err) {
-    return res.status(500).json({ msg: err.message });
-  }
-});
-
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);

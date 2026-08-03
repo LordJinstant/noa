@@ -154,51 +154,28 @@
 
         <!-- START CLASS -->
         <section id="section-startClass" class="hidden space-y-6 fade-in">
-          <div id="liveClassShell" class="bg-slate-900 rounded-3xl overflow-hidden shadow-2xl">
+          <div class="bg-slate-900 rounded-3xl overflow-hidden shadow-2xl">
             <div class="px-6 py-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-700">
-              <div class="flex items-center gap-3 flex-wrap">
+              <div class="flex items-center gap-3">
                 <div class="w-3 h-3 rounded-full bg-red-500 animate-pulse"></div>
                 <span class="text-white font-semibold">Live Classroom</span>
-                <span id="classCodeBadge" class="hidden text-xs font-mono px-2.5 py-1 rounded-lg bg-brand/20 text-emerald-300 border border-emerald-500/30"></span>
-                <span id="classStatus" class="text-xs text-slate-400">Set a class code to start</span>
+                <span id="classStatus" class="text-xs text-slate-400">Waiting for participants…</span>
               </div>
-              <div class="flex items-center gap-2 flex-wrap">
-                <button id="btnToggleCam" onclick="toggleCamera()" class="px-3 py-2 rounded-xl bg-slate-700 text-white text-sm hover:bg-slate-600"><i class="fas fa-video mr-1"></i>Cam</button>
-                <button id="btnToggleMic" onclick="toggleMic()" class="px-3 py-2 rounded-xl bg-slate-700 text-white text-sm hover:bg-slate-600"><i class="fas fa-microphone mr-1"></i>Mic</button>
-                <button onclick="triggerShareFile()" class="px-3 py-2 rounded-xl bg-slate-700 text-white text-sm hover:bg-slate-600"><i class="fas fa-file-upload mr-1"></i>Share File</button>
-                <button onclick="toggleClassFullscreen()" class="px-3 py-2 rounded-xl bg-slate-700 text-white text-sm hover:bg-slate-600" title="Expand to full screen"><i class="fas fa-expand mr-1"></i>Expand</button>
-                <button onclick="endClass()" class="px-3 py-2 rounded-xl bg-red-600 text-white text-sm hover:bg-red-500"><i class="fas fa-phone-slash mr-1"></i>End</button>
+              <div class="flex items-center gap-2">
+                <button id="btnToggleCam" onclick="toggleCamera()" class="px-4 py-2 rounded-xl bg-slate-700 text-white text-sm hover:bg-slate-600"><i class="fas fa-video mr-2"></i>Camera On</button>
+                <button id="btnToggleMic" onclick="toggleMic()" class="px-4 py-2 rounded-xl bg-slate-700 text-white text-sm hover:bg-slate-600"><i class="fas fa-microphone mr-2"></i>Mic On</button>
+                <button onclick="endClass()" class="px-4 py-2 rounded-xl bg-red-600 text-white text-sm hover:bg-red-500"><i class="fas fa-phone-slash mr-2"></i>End Class</button>
               </div>
             </div>
-            <input type="file" id="shareFileInput" class="hidden" onchange="onShareFileSelected(event)">
             <div class="grid grid-cols-1 xl:grid-cols-3 gap-0">
               <div class="xl:col-span-2 p-4 space-y-3">
                 <div class="relative aspect-video bg-black rounded-2xl overflow-hidden">
                   <video id="localVideo" autoplay muted playsinline class="w-full h-full object-cover"></video>
-                  <div id="waitingOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 text-white p-6">
-                    <div id="codeSetupPanel" class="w-full max-w-sm text-center">
-                      <i class="fas fa-key text-3xl text-brand mb-3"></i>
-                      <p class="font-semibold text-lg mb-1">Start your class</p>
-                      <p class="text-sm text-slate-400 mb-4">Create a class code. Students use the same code under Join Class.</p>
-                      <input id="hostClassCode" type="text" placeholder="e.g. NOA-MATH-01" class="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-600 text-center font-mono text-lg mb-3 focus:outline-none focus:ring-2 focus:ring-brand">
-                      <input id="hostClassTitle" type="text" placeholder="Class title (optional)" class="w-full px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-600 text-center text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-brand">
-                      <button onclick="startClassWithCode()" class="w-full py-3 rounded-xl bg-brand font-semibold hover:opacity-90">Start Class &amp; Open Camera</button>
-                      <button onclick="generateClassCode()" class="mt-2 text-xs text-slate-400 hover:text-white">Generate random code</button>
-                    </div>
-                    <div id="waitingAfterStart" class="hidden text-center">
-                      <div class="w-16 h-16 rounded-full border-4 border-brand border-t-transparent animate-spin mb-4 mx-auto"></div>
-                      <p class="font-semibold text-lg waiting-pulse">Waiting for others to join…</p>
-                      <p class="text-sm text-slate-400 mt-2">Share code <span id="shareCodeHint" class="font-mono text-emerald-300"></span> with students</p>
-                      <button onclick="dismissWaiting()" class="mt-6 px-5 py-2 rounded-xl bg-slate-700 text-sm">Continue teaching</button>
-                    </div>
-                  </div>
-                  <!-- Shared file overlay sits on host cam area -->
-                  <div id="sharedFilePanel" class="hidden absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-4 z-10">
-                    <button onclick="closeSharedFile()" class="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/10 text-white hover:bg-white/20"><i class="fas fa-times"></i></button>
-                    <p class="text-white text-sm mb-3"><i class="fas fa-file mr-2"></i><span id="sharedFileName">Shared file</span></p>
-                    <iframe id="sharedFileFrame" class="w-full flex-1 rounded-xl bg-white min-h-[200px]"></iframe>
-                    <img id="sharedFileImg" class="hidden max-h-full max-w-full object-contain rounded-xl" alt="Shared">
-                    <a id="sharedFileLink" href="#" target="_blank" class="mt-3 text-brand text-sm underline">Open / download</a>
+                  <div id="waitingOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/80 text-white">
+                    <div class="w-20 h-20 rounded-full border-4 border-brand border-t-transparent animate-spin mb-4"></div>
+                    <p class="font-semibold text-lg waiting-pulse">Waiting for others to join…</p>
+                    <p class="text-sm text-slate-400 mt-2">Share the class link or wait for students</p>
+                    <button onclick="dismissWaiting()" class="mt-6 px-5 py-2 rounded-xl bg-brand text-sm font-medium">Continue Alone (Demo)</button>
                   </div>
                   <div class="absolute bottom-3 left-3 px-3 py-1 rounded-lg bg-black/60 text-white text-xs">You (Host)</div>
                 </div>
@@ -231,10 +208,8 @@
               </div>
             </div>
           </div>
-          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm text-slate-600">
-            <p class="font-semibold text-slate-800 mb-1"><i class="fas fa-link mr-2 text-brand"></i>How live class linking works</p>
-            <p>Host creates a <strong>class code</strong> when starting. Students enter that same code under <strong>Join Class</strong>. Everyone lands in the same room identity.</p>
-            <p class="mt-2 text-xs text-slate-500">Your camera and whiteboard run on each device. Seeing other people&rsquo;s live video at the same time needs a WebRTC connection (extra server setup). Room codes, file share, and participant list already work.</p>
+          <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">
+            <i class="fas fa-info-circle mr-2"></i><strong>Demo mode:</strong> Camera + whiteboard work locally. Multi-user real-time needs WebRTC signaling — UI is ready for that extension.
           </div>
         </section>
 
@@ -418,34 +393,12 @@ async function loadPerformance(period) {
     document.getElementById('assessCount').textContent = data.length || '—';
     document.getElementById('classRank').textContent = data.length ? '#' + Math.max(1, Math.ceil(Math.random()*12)) : '#—';
     const tbody = document.getElementById('recentAssessBody');
-    const role = (user.role || 'student').toLowerCase();
-    const isStaffView = role.includes('admin') || role.includes('staff') || role === 'super_admin';
-
-    if (isStaffView) {
-      // Staff / admin: show top student scores
-      try {
-        const topRes = await fetch('/api/top-assessments');
-        const top = topRes.ok ? await topRes.json() : [];
-        if (top.length) {
-          tbody.innerHTML = top.slice(0, 10).map(d =>
-            '<tr class="border-b border-slate-50"><td class="py-3 font-medium">' + (d.student_name || '—') + '</td><td class="py-3">' + (d.subject || '—') + '</td><td class="py-3">' + (d.score ?? '—') + '/' + (d.supposed_score ?? '—') + '</td><td class="py-3"><span class="font-bold brand-green">' + d.percentage + '%</span></td><td class="py-3 text-slate-500">' + (d.assessed_at || '—') + '</td></tr>'
-          ).join('');
-          // Adjust header labels for staff view
-          const thead = tbody.closest('table').querySelector('thead tr');
-          if (thead) thead.innerHTML = '<th class="pb-3 font-medium">Student</th><th class="pb-3 font-medium">Subject</th><th class="pb-3 font-medium">Score</th><th class="pb-3 font-medium">%</th><th class="pb-3 font-medium">Date</th>';
-        } else {
-          tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400">No assessment scores yet</td></tr>';
-        }
-      } catch (e) {
-        tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400">Could not load top scores</td></tr>';
-      }
-    } else if (data.length) {
-      // Student: only their own subject scores
-      tbody.innerHTML = data.slice().reverse().slice(0, 8).map(d =>
-        '<tr class="border-b border-slate-50"><td class="py-3 font-medium">' + (d.subject || '—') + '</td><td class="py-3">' + (d.score ?? '—') + '</td><td class="py-3">' + (d.supposed_score ?? '—') + '</td><td class="py-3"><span class="font-bold brand-green">' + d.percentage + '%</span></td><td class="py-3 text-slate-500">' + (d.assessed_at || '—') + '</td></tr>'
+    if (data.length) {
+      tbody.innerHTML = data.slice().reverse().slice(0,8).map(d =>
+        '<tr class="border-b border-slate-50"><td class="py-3 font-medium">'+(d.subject||'—')+'</td><td class="py-3">'+(d.score??'—')+'</td><td class="py-3">'+(d.supposed_score??'—')+'</td><td class="py-3"><span class="font-bold brand-green">'+d.percentage+'%</span></td><td class="py-3 text-slate-500">'+(d.assessed_at||'—')+'</td></tr>'
       ).join('');
     } else {
-      tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400">No assessments in this period for you yet</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400">No assessments in this period</td></tr>';
     }
     const ctx = document.getElementById('performanceChart').getContext('2d');
     if (performanceChart) performanceChart.destroy();
@@ -483,46 +436,14 @@ async function loadDirectory() {
   try {
     const res = await fetch('/api/public-directory');
     const data = await res.json();
-    const staff = data.staff || [];
-    const students = data.students || [];
+    const staff = data.staff || []; const students = data.students || [];
     document.getElementById('staffCount').textContent = staff.length;
     document.getElementById('studentCount').textContent = students.length;
-
-    const renderStars = (staffId, avg) => {
-      let html = '<div class="flex items-center gap-0.5 mt-1" data-rate-staff="' + staffId + '">';
-      for (let i = 1; i <= 5; i++) {
-        const filled = i <= Math.round(avg || 0);
-        html += '<button type="button" onclick="rateStaff(' + staffId + ',' + i + ')" class="text-sm leading-none ' + (filled ? 'text-amber-400' : 'text-slate-300') + ' hover:text-amber-400" title="Rate ' + i + ' star' + (i>1?'s':'') + '"><i class="fas fa-star"></i></button>';
-      }
-      html += '<span class="text-[10px] text-slate-400 ml-1" id="ratingLabel-' + staffId + '">' + (avg ? avg.toFixed(1) : 'Rate') + '</span></div>';
-      return html;
-    };
-
-    const renderPerson = (p, type) => {
-      const avg = p.ratingAvg || 0;
-      return '<div class="flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 transition student-row" data-name="' + (p.name||'').toLowerCase() + '" data-email="' + (p.email||'').toLowerCase() + '">' +
-        '<div class="w-11 h-11 rounded-full overflow-hidden bg-slate-200 flex-shrink-0">' +
-          (p.avatar ? '<img src="' + p.avatar + '" class="w-full h-full object-cover">' : '<div class="w-full h-full flex items-center justify-center font-bold text-slate-500">' + (p.name||'?').charAt(0) + '</div>') +
-        '</div>' +
-        '<div class="min-w-0 flex-1">' +
-          '<p class="font-semibold text-sm truncate">' + (p.name || 'Unnamed') + '</p>' +
-          '<p class="text-xs text-slate-500 truncate">' + (type==='staff' ? (p.department||p.office||'Staff') : (p.major||p.grade||'Student')) + '</p>' +
-          (type === 'staff' ? renderStars(p.id, avg) : '') +
-        '</div>' +
-        '<span class="text-xs px-2 py-0.5 rounded-full ' + (type==='staff'?'bg-blue-50 text-blue-600':'bg-green-50 text-green-700') + '">' + type + '</span></div>';
-    };
-
-    // Fetch ratings for staff in parallel
-    await Promise.all(staff.map(async (s) => {
-      try {
-        const rr = await fetch('/api/staff-ratings/' + s.id);
-        if (rr.ok) {
-          const rd = await rr.json();
-          s.ratingAvg = rd.avg || 0;
-        }
-      } catch (e) {}
-    }));
-
+    const renderPerson = (p, type) =>
+      '<div class="flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 transition student-row" data-name="'+(p.name||'').toLowerCase()+'" data-email="'+(p.email||'').toLowerCase()+'">'+
+      '<div class="w-11 h-11 rounded-full overflow-hidden bg-slate-200 flex-shrink-0">'+(p.avatar ? '<img src="'+p.avatar+'" class="w-full h-full object-cover">' : '<div class="w-full h-full flex items-center justify-center font-bold text-slate-500">'+(p.name||'?').charAt(0)+'</div>')+'</div>'+
+      '<div class="min-w-0 flex-1"><p class="font-semibold text-sm truncate">'+(p.name||'Unnamed')+'</p><p class="text-xs text-slate-500 truncate">'+(type==='staff'?(p.department||p.office||'Staff'):(p.major||p.grade||'Student'))+'</p></div>'+
+      '<span class="text-xs px-2 py-0.5 rounded-full '+(type==='staff'?'bg-blue-50 text-blue-600':'bg-green-50 text-green-700')+'">'+type+'</span></div>';
     document.getElementById('staffList').innerHTML = staff.length ? staff.map(s => renderPerson(s,'staff')).join('') : '<p class="text-slate-400 text-sm py-6 text-center">No approved staff yet</p>';
     document.getElementById('studentList').innerHTML = students.length ? students.map(s => renderPerson(s,'student')).join('') : '<p class="text-slate-400 text-sm py-6 text-center">No registered students yet</p>';
     document.getElementById('dirSearch').oninput = (e) => {
@@ -533,31 +454,6 @@ async function loadDirectory() {
     };
   } catch (err) {
     document.getElementById('staffList').innerHTML = '<p class="text-red-400 text-sm">Could not load directory</p>';
-  }
-}
-
-async function rateStaff(staffId, rating) {
-  if (!token) { alert('Please log in as a student to rate staff'); return; }
-  try {
-    const res = await fetch('/api/staff-ratings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-      body: JSON.stringify({ staff_id: staffId, rating })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.msg || 'Failed');
-    const label = document.getElementById('ratingLabel-' + staffId);
-    if (label) label.textContent = (data.avg || rating).toFixed ? (data.avg || rating).toFixed(1) : data.avg;
-    // Refresh stars visually
-    const wrap = document.querySelector('[data-rate-staff="' + staffId + '"]');
-    if (wrap) {
-      const avg = data.avg || rating;
-      wrap.querySelectorAll('button').forEach((btn, idx) => {
-        btn.className = 'text-sm leading-none ' + ((idx + 1) <= Math.round(avg) ? 'text-amber-400' : 'text-slate-300') + ' hover:text-amber-400';
-      });
-    }
-  } catch (err) {
-    alert(err.message);
   }
 }
 
@@ -648,13 +544,8 @@ async function postAssessments(items) {
   }
 }
 function downloadCsvTemplate() {
-  const csv = [
-    'NAMES,GRADES,SUBJECTS,SCORE,SUPPOSED SCORE',
-    'Adebayo Oluwaseun,Grade 10 / Secondary 4,Mathematics,85,100',
-    'Fatima Yusuf,Grade 9 / Secondary 3,Physics,72,80',
-    'Chinedu Okoro,Grade 11 / Junior College 1,Chemistry,90,100'
-  ].join(String.fromCharCode(10));
-  const blob = new Blob([csv], { type: 'text/csv' });
+  const csv = 'NAMES,GRADES,SUBJECTS,SCORE,SUPPOSED SCORE\\nAdebayo Oluwaseun,Grade 10 / Secondary 4,Mathematics,85,100\\nFatima Yusuf,Grade 9 / Secondary 3,Physics,72,80\\nChinedu Okoro,Grade 11 / Junior College 1,Chemistry,90,100\\n';
+  const blob = new Blob([csv.replace(/\\\\n/g, '\\n')], { type: 'text/csv' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'NOA_Assessment_Template.csv';
@@ -665,7 +556,7 @@ function handleCsvUpload(e) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = async (ev) => {
-    const lines = ev.target.result.split(/\r?\n/).filter(l => l.trim());
+    const lines = ev.target.result.split(/\\r?\\n/).filter(l => l.trim());
     if (lines.length < 2) { alert('CSV appears empty'); return; }
     const headers = lines[0].split(',').map(h => h.trim().toUpperCase());
     const nameIdx = headers.findIndex(h => h.includes('NAME'));
@@ -696,7 +587,17 @@ function handleCsvUpload(e) {
   reader.readAsText(file);
 }
 
-
+async function initClassroom() {
+  const video = document.getElementById('localVideo');
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    video.srcObject = mediaStream;
+    document.getElementById('classStatus').textContent = 'Camera ready · Waiting for participants';
+  } catch (err) {
+    document.getElementById('classStatus').textContent = 'Camera unavailable — whiteboard still works';
+  }
+  initWhiteboard();
+}
 function dismissWaiting() {
   document.getElementById('waitingOverlay').style.display = 'none';
   document.getElementById('classStatus').textContent = 'Class in progress (solo demo)';
@@ -722,13 +623,6 @@ function endClass() {
   document.getElementById('localVideo').srcObject = null;
   document.getElementById('waitingOverlay').style.display = 'flex';
   document.getElementById('classStatus').textContent = 'Class ended';
-  document.getElementById('classCodeBadge')?.classList.add('hidden');
-  document.getElementById('sharedFilePanel')?.classList.add('hidden');
-  if (activeClassCode) {
-    fetch('/api/classes/' + activeClassCode, { method: 'DELETE' }).catch(() => {});
-    activeClassCode = null;
-  }
-  if (document.fullscreenElement) document.exitFullscreen?.();
   showSection('overview');
 }
 function initWhiteboard() {
@@ -781,143 +675,16 @@ function clearBoard() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 function joinClass() {
-  const code = (document.getElementById('joinCode').value || '').trim().toUpperCase();
+  const code = document.getElementById('joinCode').value.trim();
   if (!code) { alert('Please enter a class code'); return; }
-  const name = (user.name || user.username || 'Participant');
-  fetch('/api/classes/' + encodeURIComponent(code) + '/join', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name })
-  }).then(async (res) => {
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.msg || 'Class not found');
-    activeClassCode = code;
-    showSection('startClass');
-    setTimeout(async () => {
-      document.getElementById('codeSetupPanel')?.classList.add('hidden');
-      document.getElementById('waitingAfterStart')?.classList.add('hidden');
-      document.getElementById('waitingOverlay').style.display = 'none';
-      const badge = document.getElementById('classCodeBadge');
-      if (badge) { badge.textContent = 'Code: ' + code; badge.classList.remove('hidden'); }
-      document.getElementById('classStatus').textContent = 'Joined · Host: ' + (data.host || '—') + ' · ' + (data.title || '');
-      await initClassroomMedia();
-    }, 300);
-  }).catch((err) => alert(err.message));
+  alert('Joining class "'+code+'"…\\nYou will appear in the host\\'s waiting room.');
+  showSection('startClass');
+  setTimeout(() => {
+    document.getElementById('classStatus').textContent = 'Joined as participant · Code: ' + code;
+    dismissWaiting();
+  }, 800);
 }
-
-let activeClassCode = null;
-
-function generateClassCode() {
-  const code = 'NOA-' + Math.random().toString(36).slice(2, 8).toUpperCase();
-  document.getElementById('hostClassCode').value = code;
-}
-
-async function startClassWithCode() {
-  let code = (document.getElementById('hostClassCode').value || '').trim().toUpperCase();
-  const title = (document.getElementById('hostClassTitle').value || 'Olympiad Class').trim();
-  if (!code) {
-    generateClassCode();
-    code = document.getElementById('hostClassCode').value;
-  }
-  try {
-    const res = await fetch('/api/classes/start', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
-      body: JSON.stringify({ code, title })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.msg || 'Could not start class');
-    activeClassCode = data.code;
-    const badge = document.getElementById('classCodeBadge');
-    badge.textContent = 'Code: ' + data.code;
-    badge.classList.remove('hidden');
-    document.getElementById('classStatus').textContent = 'Live · ' + (title || 'Class');
-    document.getElementById('codeSetupPanel').classList.add('hidden');
-    document.getElementById('waitingAfterStart').classList.remove('hidden');
-    document.getElementById('shareCodeHint').textContent = data.code;
-    await initClassroomMedia();
-  } catch (err) {
-    alert(err.message);
-  }
-}
-
-async function initClassroomMedia() {
-  const video = document.getElementById('localVideo');
-  try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    video.srcObject = mediaStream;
-  } catch (err) {
-    document.getElementById('classStatus').textContent = 'Camera unavailable — whiteboard still works';
-  }
-  initWhiteboard();
-}
-
-// Keep old name working
-async function initClassroom() {
-  // Reset overlay for new session
-  document.getElementById('codeSetupPanel')?.classList.remove('hidden');
-  document.getElementById('waitingAfterStart')?.classList.add('hidden');
-  document.getElementById('sharedFilePanel')?.classList.add('hidden');
-  if (!activeClassCode) {
-    document.getElementById('classStatus').textContent = 'Set a class code to start';
-  }
-  // Whiteboard can init early
-  setTimeout(() => { try { initWhiteboard(); } catch(e) {} }, 100);
-}
-
-function triggerShareFile() {
-  if (!activeClassCode) {
-    alert('Start the class with a code first, then share a file.');
-    return;
-  }
-  document.getElementById('shareFileInput').click();
-}
-
-function onShareFileSelected(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const url = URL.createObjectURL(file);
-  document.getElementById('sharedFileName').textContent = file.name;
-  document.getElementById('sharedFileLink').href = url;
-  document.getElementById('sharedFileLink').download = file.name;
-  const img = document.getElementById('sharedFileImg');
-  const frame = document.getElementById('sharedFileFrame');
-  if (file.type.startsWith('image/')) {
-    img.src = url;
-    img.classList.remove('hidden');
-    frame.classList.add('hidden');
-  } else {
-    frame.src = url;
-    frame.classList.remove('hidden');
-    img.classList.add('hidden');
-  }
-  document.getElementById('sharedFilePanel').classList.remove('hidden');
-  // Notify room
-  fetch('/api/classes/' + activeClassCode + '/share', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ file: { name: file.name, type: file.type } })
-  }).catch(() => {});
-  e.target.value = '';
-}
-
-function closeSharedFile() {
-  document.getElementById('sharedFilePanel').classList.add('hidden');
-  document.getElementById('sharedFileFrame').src = '';
-  document.getElementById('sharedFileImg').src = '';
-}
-
-function toggleClassFullscreen() {
-  const shell = document.getElementById('liveClassShell');
-  if (!shell) return;
-  if (!document.fullscreenElement) {
-    shell.requestFullscreen?.() || shell.webkitRequestFullscreen?.();
-  } else {
-    document.exitFullscreen?.() || document.webkitExitFullscreen?.();
-  }
-}
-
-
 document.addEventListener('DOMContentLoaded', () => { loadPerformance('week'); });
 </script>
 </body>
+</html>
