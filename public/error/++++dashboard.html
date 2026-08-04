@@ -46,8 +46,8 @@
       <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
         <button onclick="showSection('overview')" class="sidebar-link active w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition" data-section="overview"><i class="fas fa-chart-pie w-5"></i><span class="font-medium">Overview</span></button>
         <button onclick="showSection('platform')" class="sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition" data-section="platform"><i class="fas fa-users w-5"></i><span class="font-medium">Platform</span></button>
-        <div id="hostClassNav">
-          <button id="hostClassBtn" onclick="toggleHostSub()" class="sidebar-link w-full flex items-center justify-between px-4 py-3 rounded-xl text-left transition">
+        <div>
+          <button onclick="toggleHostSub()" class="sidebar-link w-full flex items-center justify-between px-4 py-3 rounded-xl text-left transition">
             <div class="flex items-center gap-3"><i class="fas fa-chalkboard-teacher w-5"></i><span class="font-medium">Host Class</span></div>
             <i id="hostChevron" class="fas fa-chevron-down text-xs transition-transform"></i>
           </button>
@@ -357,33 +357,16 @@
 <script>
 const token = localStorage.getItem('token');
 const user = JSON.parse(localStorage.getItem('user') || '{}');
-
-// Host Class only for approved staff + env super admins (and admin role)
-function canHostClass() {
-  const role = String(user.role || 'student').toLowerCase();
-  return role === 'super_admin' || role === 'admin' || role === 'staff';
-}
-
 document.getElementById('welcomeName').textContent = (user.name || 'Champion').split(' ')[0];
 document.getElementById('sideName').textContent = user.name || 'Student';
 document.getElementById('sideRole').textContent = (user.role || 'student').replace('_', ' ');
 document.getElementById('avatarCircle').textContent = (user.name || 'S').charAt(0).toUpperCase();
-
-(function applyHostPermissions() {
-  const nav = document.getElementById('hostClassNav');
-  if (!nav) return;
-  nav.style.display = canHostClass() ? '' : 'none';
-})();
 
 let performanceChart = null, currentPeriod = 'week', allStudents = [], currentModalStudent = null;
 let mediaStream = null, camOn = true, micOn = true;
 let drawing = false, tool = 'pen', color = '#ffffff', lastX = 0, lastY = 0;
 
 function showSection(id) {
-  if ((id === 'startClass' || id === 'assessments') && !canHostClass()) {
-    alert('Host Class is only available to approved staff and platform administrators.');
-    id = 'overview';
-  }
   document.querySelectorAll('[id^="section-"]').forEach(s => s.classList.add('hidden'));
   const el = document.getElementById('section-' + id);
   if (el) { el.classList.remove('hidden'); el.classList.add('fade-in'); }
@@ -406,10 +389,6 @@ function showSection(id) {
   if (id === 'overview') loadPerformance(currentPeriod);
 }
 function toggleHostSub() {
-  if (!canHostClass()) {
-    alert('Host Class is only available to approved staff and platform administrators.');
-    return;
-  }
   document.getElementById('hostSubmenu').classList.toggle('open');
   document.getElementById('hostChevron').classList.toggle('rotate-180');
 }
@@ -1080,7 +1059,6 @@ function generateClassCode() {
 }
 
 async function startClassWithCode() {
-  if (!canHostClass()) { alert('Only approved staff and administrators can start a class.'); return; }
   let code = (document.getElementById('hostClassCode').value || '').trim().toUpperCase();
   const title = (document.getElementById('hostClassTitle').value || 'Olympiad Class').trim();
   if (!code) {

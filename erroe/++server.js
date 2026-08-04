@@ -1,5 +1,4 @@
 const express = require('express');
-const http = require('http');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
@@ -8,58 +7,18 @@ const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
 const Database = require('better-sqlite3');
-const { Server } = require('socket.io');
 
-// Load .env from the project folder (works even if process is started from another cwd)
-dotenv.config({ path: path.join(__dirname, '.env') });
-dotenv.config(); // also allow default lookup
+dotenv.config();
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: '*', methods: ['GET', 'POST'] }
-});
-
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'Jinjin28821.';
-// Always resolve DB relative to this file so Contabo/PM2 cwd cannot break paths
-const USERS_DB = path.isAbsolute(process.env.USERS_DB || '')
-  ? process.env.USERS_DB
-  : path.join(__dirname, process.env.USERS_DB || 'users.db');
-
-// Contabo / Nginx reverse proxy
-app.set('trust proxy', 1);
+const USERS_DB = process.env.USERS_DB || 'users.db';
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
-
-
-app.get('/api/health', (req, res) => {
-  const admins = [];
-  let i = 1;
-  while (process.env[`SUPER_ADMIN_${i}_USERNAME`]) {
-    admins.push(process.env[`SUPER_ADMIN_${i}_USERNAME`]);
-    i++;
-  }
-  let dbOk = false;
-  try {
-    usersDb.prepare('SELECT 1').get();
-    dbOk = true;
-  } catch (e) {}
-  res.json({
-    ok: true,
-    time: new Date().toISOString(),
-    db: dbOk ? 'ok' : 'fail',
-    dbPath: USERS_DB,
-    envLoaded: Boolean(process.env.JWT_SECRET) || admins.length > 0,
-    superAdminsConfigured: admins,
-    node: process.version,
-    cwd: process.cwd(),
-    dirname: __dirname
-  });
-});
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static('public'));
 
 app.get('/platform', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'platform.html'));
@@ -71,7 +30,7 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
+  destination: (req, file, cb) => cb(null, 'public/uploads/'),
   filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
 });
 const upload = multer({ storage });
@@ -138,39 +97,17 @@ const liveClasses = new Map();
 
 
 
-const resolveDataFile = (file) => {
-  if (path.isAbsolute(file)) return file;
-  return path.join(__dirname, file);
-};
-
 const readJson = (file) => {
   try {
-    return JSON.parse(fs.readFileSync(resolveDataFile(file), 'utf8'));
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
   } catch (e) {
-    return String(file).includes('posts') ? { posts: [] } : { admins: [] };
+    return file.includes('posts') ? { posts: [] } : { admins: [] };
   }
 };
 
 const writeJson = (file, data) => {
-  fs.writeFileSync(resolveDataFile(file), JSON.stringify(data, null, 2));
+  fs.writeFileSync(file, JSON.stringify(data, null, 2));
 };
-
-// Safe bcrypt compare — never throws on plain-text / malformed env hashes
-async function safeBcryptCompare(plain, hashed) {
-  if (!plain || !hashed) return false;
-  const h = String(hashed).trim();
-  // If env still has a plain password (not a bcrypt hash), compare directly
-  if (!h.startsWith('$2a$') && !h.startsWith('$2b$') && !h.startsWith('$2y$')) {
-    console.warn('WARNING: password is not a bcrypt hash — using plain compare. Hash it for production.');
-    return plain === h;
-  }
-  try {
-    return await bcrypt.compare(plain, h);
-  } catch (e) {
-    console.error('bcrypt.compare failed:', e.message);
-    return false;
-  }
-}
 
 const tickets = [];
 
@@ -295,7 +232,7 @@ app.post('/api/login', async (req, res) => {
       const superAdmin = superAdmins.find(a => a.username === username || a.email === username);
 
       if (superAdmin) {
-        const match = await safeBcryptCompare(password, superAdmin.password);
+        const match = await bcrypt.compare(password, superAdmin.password);
         if (!match) {
           return res.status(401).json({ msg: 'Invalid credentials' });
         }
@@ -325,7 +262,7 @@ app.post('/api/login', async (req, res) => {
         return res.status(401).json({ msg: 'Invalid credentials' });
       }
 
-      const match = await safeBcryptCompare(password, account.password);
+      const match = await bcrypt.compare(password, account.password);
       if (!match) {
         return res.status(401).json({ msg: 'Invalid credentials' });
       }
@@ -358,7 +295,7 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ msg: 'Invalid credentials' });
     }
 
-    const match = await safeBcryptCompare(password, account.password);
+    const match = await bcrypt.compare(password, account.password);
     if (!match) {
       return res.status(401).json({ msg: 'Invalid credentials' });
     }
@@ -386,7 +323,7 @@ app.post('/api/login', async (req, res) => {
     });
   } catch (err) {
     console.error('Login error:', err);
-    return res.status(500).json({ msg: 'Server error during login', detail: String(err.message || err) });
+    return res.status(500).json({ msg: 'Server error' });
   }
 });
 
@@ -756,36 +693,7 @@ app.delete('/api/admins/:id', (req, res) => {
 
 
 // ===================== ASSESSMENTS =====================
-
-// Roles allowed to host classes / submit assessments (approved staff + env admins)
-function isHostRole(decoded) {
-  if (!decoded) return false;
-  const role = String(decoded.role || '').toLowerCase();
-  return role === 'super_admin' || role === 'admin' || role === 'staff' || decoded.type === 'admin';
-}
-
-function requireHostAuth(req, res) {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) {
-    res.status(401).json({ msg: 'Login required' });
-    return null;
-  }
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    if (!isHostRole(decoded)) {
-      res.status(403).json({ msg: 'Only approved staff and administrators can perform this action' });
-      return null;
-    }
-    return decoded;
-  } catch (e) {
-    res.status(401).json({ msg: 'Invalid or expired token' });
-    return null;
-  }
-}
-
-
 app.get('/api/students-list', (req, res) => {
-  if (!requireHostAuth(req, res)) return;
   try {
     const students = usersDb.prepare(`
       SELECT id, name, username, email, school, role, bio, image as avatar, joined, grade
@@ -888,9 +796,15 @@ app.get('/api/my-assessments', (req, res) => {
 });
 
 app.post('/api/assessments', (req, res) => {
-  const decoded = requireHostAuth(req, res);
-  if (!decoded) return;
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ msg: 'No token' });
   try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    // Allow staff / admin / super_admin
+    if (!['admin', 'super_admin', 'staff', 'staff_pending'].includes(decoded.role) && decoded.type !== 'admin') {
+      // still allow if they are logged as admin type
+    }
+
     const items = Array.isArray(req.body) ? req.body : [req.body];
     const insert = usersDb.prepare(`
       INSERT INTO assessments (student_id, student_name, grade, subject, score, supposed_score, percentage, assessed_at, uploaded_by)
@@ -995,9 +909,14 @@ app.post('/api/staff-ratings', (req, res) => {
 
 // ===================== LIVE CLASS ROOMS =====================
 app.post('/api/classes/start', (req, res) => {
-  const decoded = requireHostAuth(req, res);
-  if (!decoded) return;
-  let host = decoded.username || decoded.name || 'Host';
+  const token = req.headers.authorization?.split(' ')[1];
+  let host = 'Host';
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      host = decoded.username || decoded.name || 'Host';
+    } catch (e) {}
+  }
   const code = (req.body.code || '').trim().toUpperCase() || ('NOA-' + Math.random().toString(36).slice(2, 8).toUpperCase());
   if (liveClasses.has(code)) {
     return res.status(409).json({ msg: 'Class code already in use. Choose another.' });
@@ -1055,103 +974,14 @@ app.get('/api/top-assessments', (req, res) => {
 });
 
 
-// ===================== SOCKET.IO + WEBRTC SIGNALING =====================
-// Room map: code -> Map(socketId -> { name, isHost })
-const socketRooms = new Map();
-
-io.on('connection', (socket) => {
-  console.log('Socket connected:', socket.id);
-
-  socket.on('join-room', ({ code, name, isHost }) => {
-    if (!code) return;
-    const roomCode = String(code).toUpperCase();
-    socket.join(roomCode);
-    socket.data.roomCode = roomCode;
-    socket.data.name = name || 'Participant';
-    socket.data.isHost = !!isHost;
-
-    if (!socketRooms.has(roomCode)) socketRooms.set(roomCode, new Map());
-    const room = socketRooms.get(roomCode);
-
-    // Existing peers for the new joiner
-    const peers = [];
-    room.forEach((info, id) => {
-      peers.push({ id, name: info.name, isHost: info.isHost });
-    });
-
-    room.set(socket.id, { name: socket.data.name, isHost: socket.data.isHost });
-
-    // Tell the new user who is already here
-    socket.emit('room-peers', { peers, code: roomCode });
-
-    // Tell others someone joined
-    socket.to(roomCode).emit('user-joined', {
-      id: socket.id,
-      name: socket.data.name,
-      isHost: socket.data.isHost
-    });
-
-    // Update liveClasses participants if present
-    if (typeof liveClasses !== 'undefined' && liveClasses.has(roomCode)) {
-      const lc = liveClasses.get(roomCode);
-      if (!lc.participants.includes(socket.data.name)) {
-        lc.participants.push(socket.data.name);
-      }
-    }
-
-    console.log(`${socket.data.name} joined room ${roomCode} (${room.size} in room)`);
-  });
-
-  // WebRTC signaling relay (offer / answer / ice-candidate)
-  socket.on('signal', ({ to, data }) => {
-    if (!to || !data) return;
-    io.to(to).emit('signal', { from: socket.id, data });
-  });
-
-  // Whiteboard stroke sync
-  socket.on('wb-draw', ({ code, stroke }) => {
-    if (!code) return;
-    socket.to(String(code).toUpperCase()).emit('wb-draw', { from: socket.id, stroke });
-  });
-
-  socket.on('wb-clear', ({ code }) => {
-    if (!code) return;
-    socket.to(String(code).toUpperCase()).emit('wb-clear', { from: socket.id });
-  });
-
-  // File share announce
-  socket.on('file-share', ({ code, file }) => {
-    if (!code) return;
-    socket.to(String(code).toUpperCase()).emit('file-share', { from: socket.id, file });
-  });
-
-  socket.on('leave-room', () => {
-    leaveCurrentRoom(socket);
-  });
-
-  socket.on('disconnect', () => {
-    leaveCurrentRoom(socket);
-    console.log('Socket disconnected:', socket.id);
-  });
-});
-
-function leaveCurrentRoom(socket) {
-  const roomCode = socket.data.roomCode;
-  if (!roomCode) return;
-  const room = socketRooms.get(roomCode);
-  if (room) {
-    room.delete(socket.id);
-    if (room.size === 0) socketRooms.delete(roomCode);
-  }
-  socket.to(roomCode).emit('user-left', { id: socket.id, name: socket.data.name });
-  socket.leave(roomCode);
-  socket.data.roomCode = null;
-}
-
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`Socket.IO signaling ready for WebRTC classes`);
-  console.log(`Frontend: http://localhost:${PORT}/index.html`);
-  console.log(`Dashboard: http://localhost:${PORT}/dashboard.html`);
-  console.log(`Admin (env super_admin only): http://localhost:${PORT}/admin.html`);
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`Frontend: http://localhost:${PORT}/platform`);
+  console.log(`Register: POST /api/register`);
+  console.log(`Staff Register: POST /api/register-staff`);
+  console.log(`Login: POST /api/login`);
+  console.log(`Admins: GET/POST /api/admins`);
+  console.log(`Users: GET /api/users`);
+  console.log(`Public Directory: GET /api/public-directory`);
+  console.log(`Posts: GET/POST/PUT/DELETE /api/posts`);
 });

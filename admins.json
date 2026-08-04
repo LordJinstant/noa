@@ -51,6 +51,15 @@
       "name": "Micheal Cathae",
       "role": "admin",
       "createdAt": "2026-08-03T13:37:09.559Z"
+    },
+    {
+      "id": 1785838921028,
+      "username": "james",
+      "email": "jameso@gmail.com",
+      "password": "$2b$10$sLexEFcclRCHM6pXUTFFTeCjCymh001g/Fx7RjrPYEM.0gP1jMIYO",
+      "name": "Okonta james",
+      "role": "admin",
+      "createdAt": "2026-08-04T10:22:01.028Z"
     }
   ]
 }

@@ -6,7 +6,6 @@
   <title>Student Dashboard · NOA</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
   <style>
     :root { --brand: #19A975; --brand-dark: #158a5f; }
@@ -46,8 +45,8 @@
       <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
         <button onclick="showSection('overview')" class="sidebar-link active w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition" data-section="overview"><i class="fas fa-chart-pie w-5"></i><span class="font-medium">Overview</span></button>
         <button onclick="showSection('platform')" class="sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition" data-section="platform"><i class="fas fa-users w-5"></i><span class="font-medium">Platform</span></button>
-        <div id="hostClassNav">
-          <button id="hostClassBtn" onclick="toggleHostSub()" class="sidebar-link w-full flex items-center justify-between px-4 py-3 rounded-xl text-left transition">
+        <div>
+          <button onclick="toggleHostSub()" class="sidebar-link w-full flex items-center justify-between px-4 py-3 rounded-xl text-left transition">
             <div class="flex items-center gap-3"><i class="fas fa-chalkboard-teacher w-5"></i><span class="font-medium">Host Class</span></div>
             <i id="hostChevron" class="fas fa-chevron-down text-xs transition-transform"></i>
           </button>
@@ -203,19 +202,11 @@
                   </div>
                   <div class="absolute bottom-3 left-3 px-3 py-1 rounded-lg bg-black/60 text-white text-xs">You (Host)</div>
                 </div>
-                <div id="remoteVideos" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <div class="peer-slot aspect-video bg-slate-800 rounded-xl flex items-center justify-center text-slate-500 text-xs overflow-hidden relative" data-empty="1">
-                    <div class="placeholder text-center"><i class="fas fa-user text-2xl mb-1"></i><br>Waiting…</div>
-                  </div>
-                  <div class="peer-slot aspect-video bg-slate-800 rounded-xl flex items-center justify-center text-slate-500 text-xs overflow-hidden relative" data-empty="1">
-                    <div class="placeholder text-center"><i class="fas fa-user text-2xl mb-1"></i><br>Waiting…</div>
-                  </div>
-                  <div class="peer-slot aspect-video bg-slate-800 rounded-xl flex items-center justify-center text-slate-500 text-xs overflow-hidden relative" data-empty="1">
-                    <div class="placeholder text-center"><i class="fas fa-user text-2xl mb-1"></i><br>Waiting…</div>
-                  </div>
-                  <div class="peer-slot aspect-video bg-slate-800 rounded-xl flex items-center justify-center text-slate-500 text-xs overflow-hidden relative" data-empty="1">
-                    <div class="placeholder text-center"><i class="fas fa-user text-2xl mb-1"></i><br>Waiting…</div>
-                  </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div class="aspect-video bg-slate-800 rounded-xl flex items-center justify-center text-slate-500 text-xs"><div class="text-center"><i class="fas fa-user text-2xl mb-1"></i><br>Slot 1</div></div>
+                  <div class="aspect-video bg-slate-800 rounded-xl flex items-center justify-center text-slate-500 text-xs"><div class="text-center"><i class="fas fa-user text-2xl mb-1"></i><br>Slot 2</div></div>
+                  <div class="aspect-video bg-slate-800 rounded-xl flex items-center justify-center text-slate-500 text-xs"><div class="text-center"><i class="fas fa-user text-2xl mb-1"></i><br>Slot 3</div></div>
+                  <div class="aspect-video bg-slate-800 rounded-xl flex items-center justify-center text-slate-500 text-xs"><div class="text-center"><i class="fas fa-user text-2xl mb-1"></i><br>Slot 4</div></div>
                 </div>
               </div>
               <div class="bg-slate-800 p-4 flex flex-col border-l border-slate-700">
@@ -240,10 +231,10 @@
               </div>
             </div>
           </div>
-          <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-sm text-emerald-900">
-            <p class="font-semibold mb-1"><i class="fas fa-broadcast-tower mr-2 text-brand"></i>Live class is connected (Socket.IO + WebRTC)</p>
-            <p>Host creates a <strong>class code</strong>. Students enter it under <strong>Join Class</strong>. Cameras connect peer-to-peer; whiteboard strokes and shared files sync in the room.</p>
-            <p class="mt-2 text-xs text-emerald-800/80">Use HTTPS or localhost for camera access. For users behind strict firewalls you may later add a TURN server.</p>
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm text-slate-600">
+            <p class="font-semibold text-slate-800 mb-1"><i class="fas fa-link mr-2 text-brand"></i>How live class linking works</p>
+            <p>Host creates a <strong>class code</strong> when starting. Students enter that same code under <strong>Join Class</strong>. Everyone lands in the same room identity.</p>
+            <p class="mt-2 text-xs text-slate-500">Your camera and whiteboard run on each device. Seeing other people&rsquo;s live video at the same time needs a WebRTC connection (extra server setup). Room codes, file share, and participant list already work.</p>
           </div>
         </section>
 
@@ -357,33 +348,16 @@
 <script>
 const token = localStorage.getItem('token');
 const user = JSON.parse(localStorage.getItem('user') || '{}');
-
-// Host Class only for approved staff + env super admins (and admin role)
-function canHostClass() {
-  const role = String(user.role || 'student').toLowerCase();
-  return role === 'super_admin' || role === 'admin' || role === 'staff';
-}
-
 document.getElementById('welcomeName').textContent = (user.name || 'Champion').split(' ')[0];
 document.getElementById('sideName').textContent = user.name || 'Student';
 document.getElementById('sideRole').textContent = (user.role || 'student').replace('_', ' ');
 document.getElementById('avatarCircle').textContent = (user.name || 'S').charAt(0).toUpperCase();
-
-(function applyHostPermissions() {
-  const nav = document.getElementById('hostClassNav');
-  if (!nav) return;
-  nav.style.display = canHostClass() ? '' : 'none';
-})();
 
 let performanceChart = null, currentPeriod = 'week', allStudents = [], currentModalStudent = null;
 let mediaStream = null, camOn = true, micOn = true;
 let drawing = false, tool = 'pen', color = '#ffffff', lastX = 0, lastY = 0;
 
 function showSection(id) {
-  if ((id === 'startClass' || id === 'assessments') && !canHostClass()) {
-    alert('Host Class is only available to approved staff and platform administrators.');
-    id = 'overview';
-  }
   document.querySelectorAll('[id^="section-"]').forEach(s => s.classList.add('hidden'));
   const el = document.getElementById('section-' + id);
   if (el) { el.classList.remove('hidden'); el.classList.add('fade-in'); }
@@ -406,10 +380,6 @@ function showSection(id) {
   if (id === 'overview') loadPerformance(currentPeriod);
 }
 function toggleHostSub() {
-  if (!canHostClass()) {
-    alert('Host Class is only available to approved staff and platform administrators.');
-    return;
-  }
   document.getElementById('hostSubmenu').classList.toggle('open');
   document.getElementById('hostChevron').classList.toggle('rotate-180');
 }
@@ -727,21 +697,16 @@ function handleCsvUpload(e) {
 }
 
 
-
-
-
 function dismissWaiting() {
-  const ov = document.getElementById('waitingOverlay');
-  if (ov) ov.style.display = 'none';
-  document.getElementById('classStatus').textContent = 'Class in progress';
+  document.getElementById('waitingOverlay').style.display = 'none';
+  document.getElementById('classStatus').textContent = 'Class in progress (solo demo)';
 }
 function toggleCamera() {
   if (!mediaStream) return;
   const track = mediaStream.getVideoTracks()[0];
   if (track) {
     camOn = !camOn; track.enabled = camOn;
-    document.getElementById('btnToggleCam').innerHTML = camOn
-      ? '<i class="fas fa-video mr-1"></i>Cam' : '<i class="fas fa-video-slash mr-1"></i>Cam Off';
+    document.getElementById('btnToggleCam').innerHTML = camOn ? '<i class="fas fa-video mr-2"></i>Camera On' : '<i class="fas fa-video-slash mr-2"></i>Camera Off';
   }
 }
 function toggleMic() {
@@ -749,71 +714,29 @@ function toggleMic() {
   const track = mediaStream.getAudioTracks()[0];
   if (track) {
     micOn = !micOn; track.enabled = micOn;
-    document.getElementById('btnToggleMic').innerHTML = micOn
-      ? '<i class="fas fa-microphone mr-1"></i>Mic' : '<i class="fas fa-microphone-slash mr-1"></i>Mic Off';
+    document.getElementById('btnToggleMic').innerHTML = micOn ? '<i class="fas fa-microphone mr-2"></i>Mic On' : '<i class="fas fa-microphone-slash mr-2"></i>Mic Off';
   }
 }
-function triggerShareFile() {
-  if (!activeClassCode) { alert('Start or join a class first, then share a file.'); return; }
-  document.getElementById('shareFileInput').click();
-}
-function onShareFileSelected(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const url = URL.createObjectURL(file);
-  document.getElementById('sharedFileName').textContent = file.name;
-  document.getElementById('sharedFileLink').href = url;
-  document.getElementById('sharedFileLink').download = file.name;
-  const img = document.getElementById('sharedFileImg');
-  const frame = document.getElementById('sharedFileFrame');
-  if (file.type.startsWith('image/')) {
-    img.src = url; img.classList.remove('hidden'); frame.classList.add('hidden');
-  } else {
-    frame.src = url; frame.classList.remove('hidden'); img.classList.add('hidden');
+function endClass() {
+  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+  document.getElementById('localVideo').srcObject = null;
+  document.getElementById('waitingOverlay').style.display = 'flex';
+  document.getElementById('classStatus').textContent = 'Class ended';
+  document.getElementById('classCodeBadge')?.classList.add('hidden');
+  document.getElementById('sharedFilePanel')?.classList.add('hidden');
+  if (activeClassCode) {
+    fetch('/api/classes/' + activeClassCode, { method: 'DELETE' }).catch(() => {});
+    activeClassCode = null;
   }
-  document.getElementById('sharedFilePanel').classList.remove('hidden');
-  fetch('/api/classes/' + activeClassCode + '/share', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ file: { name: file.name, type: file.type } })
-  }).catch(() => {});
-  if (socket && file.size < 1500000) {
-    const reader = new FileReader();
-    reader.onload = () => {
-      socket.emit('file-share', {
-        code: activeClassCode,
-        file: { name: file.name, type: file.type, dataUrl: reader.result }
-      });
-    };
-    reader.readAsDataURL(file);
-  }
-  e.target.value = '';
-}
-function closeSharedFile() {
-  document.getElementById('sharedFilePanel').classList.add('hidden');
-  document.getElementById('sharedFileFrame').src = '';
-  document.getElementById('sharedFileImg').src = '';
-}
-function toggleClassFullscreen() {
-  const shell = document.getElementById('liveClassShell');
-  if (!shell) return;
-  if (!document.fullscreenElement) {
-    shell.requestFullscreen?.() || shell.webkitRequestFullscreen?.();
-  } else {
-    document.exitFullscreen?.() || document.webkitExitFullscreen?.();
-  }
+  if (document.fullscreenElement) document.exitFullscreen?.();
+  showSection('overview');
 }
 function initWhiteboard() {
   const canvas = document.getElementById('whiteboardCanvas');
-  if (!canvas) return;
-  if (canvas.dataset.ready === '1') return;
-  canvas.dataset.ready = '1';
   const ctx = canvas.getContext('2d');
   const resize = () => {
-    const parent = canvas.parentElement;
-    if (!parent) return;
-    const rect = parent.getBoundingClientRect();
-    canvas.width = Math.max(200, rect.width - 8);
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width - 8;
     canvas.height = Math.max(280, rect.height - 80);
     ctx.fillStyle = '#020617';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -827,320 +750,36 @@ function initWhiteboard() {
   };
   const start = (e) => { drawing = true; const p = getPos(e); lastX = p.x; lastY = p.y; };
   const move = (e) => {
-    if (!drawing) return;
-    e.preventDefault();
+    if (!drawing) return; e.preventDefault();
     const p = getPos(e);
-    const strokeColor = tool === 'eraser' ? '#020617' : color;
-    const strokeWidth = tool === 'eraser' ? 24 : 3;
-    ctx.beginPath();
-    ctx.moveTo(lastX, lastY);
-    ctx.lineTo(p.x, p.y);
-    ctx.strokeStyle = strokeColor;
-    ctx.lineWidth = strokeWidth;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-    if (socket && activeClassCode) {
-      socket.emit('wb-draw', {
-        code: activeClassCode,
-        stroke: { x0: lastX, y0: lastY, x1: p.x, y1: p.y, color: strokeColor, width: strokeWidth }
-      });
-    }
+    ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y);
+    ctx.strokeStyle = tool === 'eraser' ? '#020617' : color;
+    ctx.lineWidth = tool === 'eraser' ? 24 : 3; ctx.lineCap = 'round'; ctx.stroke();
     lastX = p.x; lastY = p.y;
   };
   const stop = () => { drawing = false; };
-  canvas.onmousedown = start;
-  canvas.onmousemove = move;
-  canvas.onmouseup = stop;
-  canvas.onmouseleave = stop;
-  canvas.ontouchstart = start;
-  canvas.ontouchmove = move;
-  canvas.ontouchend = stop;
-  document.querySelectorAll('.tool-btn').forEach((b) => {
+  canvas.onmousedown = start; canvas.onmousemove = move; canvas.onmouseup = stop; canvas.onmouseleave = stop;
+  canvas.ontouchstart = start; canvas.ontouchmove = move; canvas.ontouchend = stop;
+  document.querySelectorAll('.tool-btn').forEach(b => {
     b.onclick = () => {
-      document.querySelectorAll('.tool-btn').forEach((x) => x.classList.remove('active'));
-      b.classList.add('active');
-      tool = b.dataset.tool;
+      document.querySelectorAll('.tool-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active'); tool = b.dataset.tool;
     };
   });
-  document.querySelectorAll('.color-btn').forEach((b) => {
+  document.querySelectorAll('.color-btn').forEach(b => {
     b.onclick = () => {
-      color = b.dataset.color;
-      tool = 'pen';
-      document.querySelectorAll('.tool-btn').forEach((x) => x.classList.remove('active'));
-      const pen = document.querySelector('[data-tool="pen"]');
-      if (pen) pen.classList.add('active');
+      color = b.dataset.color; tool = 'pen';
+      document.querySelectorAll('.tool-btn').forEach(x => x.classList.remove('active'));
+      document.querySelector('[data-tool="pen"]').classList.add('active');
     };
   });
 }
 function clearBoard() {
   const canvas = document.getElementById('whiteboardCanvas');
-  if (!canvas) return;
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#020617';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  if (socket && activeClassCode) socket.emit('wb-clear', { code: activeClassCode });
 }
-
-
-// ===================== SOCKET.IO + WEBRTC =====================
-let activeClassCode = null;
-let isClassHost = false;
-let socket = null;
-const peers = {}; // socketId -> RTCPeerConnection
-const peerSlotMap = {}; // socketId -> slot element
-const ICE_SERVERS = {
-  iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' }
-  ]
-};
-
-function ensureSocket() {
-  if (socket && socket.connected) return socket;
-  socket = io({ transports: ['websocket', 'polling'] });
-  socket.on('connect', () => console.log('Socket.IO connected', socket.id));
-  socket.on('room-peers', async ({ peers: existing }) => {
-    for (const p of existing) {
-      await createPeerConnection(p.id, p.name, true); // we offer to existing peers
-    }
-    updateParticipantUI();
-  });
-  socket.on('user-joined', async ({ id, name, isHost }) => {
-    // New user joined — they will offer to us, or we wait for their offer.
-    // Create PC without offering; wait for signal.
-    await createPeerConnection(id, name, false);
-    updateParticipantUI();
-    const st = document.getElementById('classStatus');
-    if (st) st.textContent = (name || 'Someone') + ' joined';
-  });
-  socket.on('user-left', ({ id, name }) => {
-    removePeer(id);
-    updateParticipantUI();
-    const st = document.getElementById('classStatus');
-    if (st) st.textContent = (name || 'Someone') + ' left';
-  });
-  socket.on('signal', async ({ from, data }) => {
-    await handleSignal(from, data);
-  });
-  socket.on('wb-draw', ({ stroke }) => {
-    if (stroke) applyRemoteStroke(stroke);
-  });
-  socket.on('wb-clear', () => {
-    const canvas = document.getElementById('whiteboardCanvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#020617';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  });
-  socket.on('file-share', ({ file }) => {
-    if (file && file.dataUrl) {
-      showSharedFileFromData(file);
-    }
-  });
-  return socket;
-}
-
-function updateParticipantUI() {
-  const count = Object.keys(peers).length + (mediaStream ? 1 : 0);
-  const st = document.getElementById('classStatus');
-  if (st && activeClassCode) {
-    st.textContent = 'Live · ' + activeClassCode + ' · ' + count + ' connected';
-  }
-}
-
-async function createPeerConnection(remoteId, remoteName, shouldOffer) {
-  if (peers[remoteId]) return peers[remoteId];
-  const pc = new RTCPeerConnection(ICE_SERVERS);
-  peers[remoteId] = pc;
-  pc._name = remoteName || 'Peer';
-
-  if (mediaStream) {
-    mediaStream.getTracks().forEach((track) => pc.addTrack(track, mediaStream));
-  }
-
-  pc.ontrack = (event) => {
-    const stream = event.streams[0];
-    attachRemoteStream(remoteId, remoteName, stream);
-  };
-
-  pc.onicecandidate = (event) => {
-    if (event.candidate && socket) {
-      socket.emit('signal', { to: remoteId, data: { type: 'ice', candidate: event.candidate } });
-    }
-  };
-
-  pc.onconnectionstatechange = () => {
-    if (pc.connectionState === 'failed' || pc.connectionState === 'closed' || pc.connectionState === 'disconnected') {
-      // soft cleanup on failed
-    }
-  };
-
-  if (shouldOffer) {
-    try {
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      socket.emit('signal', { to: remoteId, data: { type: 'offer', sdp: pc.localDescription } });
-    } catch (e) {
-      console.error('Offer error', e);
-    }
-  }
-  return pc;
-}
-
-async function handleSignal(fromId, data) {
-  let pc = peers[fromId];
-  if (!pc) {
-    pc = await createPeerConnection(fromId, 'Peer', false);
-  }
-  try {
-    if (data.type === 'offer') {
-      await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      socket.emit('signal', { to: fromId, data: { type: 'answer', sdp: pc.localDescription } });
-    } else if (data.type === 'answer') {
-      await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
-    } else if (data.type === 'ice' && data.candidate) {
-      try {
-        await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-      } catch (e) {
-        console.warn('ICE error', e);
-      }
-    }
-  } catch (e) {
-    console.error('Signal handle error', e);
-  }
-}
-
-function attachRemoteStream(peerId, name, stream) {
-  let slot = peerSlotMap[peerId];
-  if (!slot) {
-    const slots = document.querySelectorAll('.peer-slot[data-empty="1"]');
-    slot = slots[0];
-    if (!slot) {
-      // create extra slot
-      const grid = document.getElementById('remoteVideos');
-      if (!grid) return;
-      slot = document.createElement('div');
-      slot.className = 'peer-slot aspect-video bg-slate-800 rounded-xl overflow-hidden relative';
-      grid.appendChild(slot);
-    }
-    peerSlotMap[peerId] = slot;
-    slot.dataset.empty = '0';
-  }
-  slot.innerHTML = '';
-  const video = document.createElement('video');
-  video.autoplay = true;
-  video.playsInline = true;
-  video.srcObject = stream;
-  video.className = 'w-full h-full object-cover';
-  slot.appendChild(video);
-  const label = document.createElement('div');
-  label.className = 'absolute bottom-1 left-1 px-2 py-0.5 rounded bg-black/60 text-white text-[10px]';
-  label.textContent = name || 'Participant';
-  slot.appendChild(label);
-}
-
-function removePeer(peerId) {
-  const pc = peers[peerId];
-  if (pc) {
-    try { pc.close(); } catch (e) {}
-    delete peers[peerId];
-  }
-  const slot = peerSlotMap[peerId];
-  if (slot) {
-    slot.dataset.empty = '1';
-    slot.innerHTML = '<div class="placeholder text-center text-slate-500 text-xs"><i class="fas fa-user text-2xl mb-1"></i><br>Waiting…</div>';
-    delete peerSlotMap[peerId];
-  }
-}
-
-function closeAllPeers() {
-  Object.keys(peers).forEach(removePeer);
-}
-
-function joinSocketRoom(code, asHost) {
-  const s = ensureSocket();
-  const name = (user && (user.name || user.username)) || 'Participant';
-  isClassHost = !!asHost;
-  s.emit('join-room', { code: code.toUpperCase(), name, isHost: isClassHost });
-}
-
-function leaveSocketRoom() {
-  if (socket) {
-    socket.emit('leave-room');
-  }
-  closeAllPeers();
-}
-
-function generateClassCode() {
-  const code = 'NOA-' + Math.random().toString(36).slice(2, 8).toUpperCase();
-  const el = document.getElementById('hostClassCode');
-  if (el) el.value = code;
-}
-
-async function startClassWithCode() {
-  if (!canHostClass()) { alert('Only approved staff and administrators can start a class.'); return; }
-  let code = (document.getElementById('hostClassCode').value || '').trim().toUpperCase();
-  const title = (document.getElementById('hostClassTitle').value || 'Olympiad Class').trim();
-  if (!code) {
-    generateClassCode();
-    code = document.getElementById('hostClassCode').value;
-  }
-  try {
-    const res = await fetch('/api/classes/start', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
-      body: JSON.stringify({ code, title })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.msg || 'Could not start class');
-    activeClassCode = data.code;
-    const badge = document.getElementById('classCodeBadge');
-    if (badge) {
-      badge.textContent = 'Code: ' + data.code;
-      badge.classList.remove('hidden');
-    }
-    document.getElementById('classStatus').textContent = 'Live · ' + (title || 'Class');
-    document.getElementById('codeSetupPanel')?.classList.add('hidden');
-    document.getElementById('waitingAfterStart')?.classList.remove('hidden');
-    const hint = document.getElementById('shareCodeHint');
-    if (hint) hint.textContent = data.code;
-    await initClassroomMedia();
-    joinSocketRoom(data.code, true);
-  } catch (err) {
-    alert(err.message);
-  }
-}
-
-async function initClassroomMedia() {
-  const video = document.getElementById('localVideo');
-  try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    if (video) video.srcObject = mediaStream;
-    // Add tracks to existing peer connections
-    Object.values(peers).forEach((pc) => {
-      mediaStream.getTracks().forEach((track) => {
-        const already = pc.getSenders().some((s) => s.track && s.track.kind === track.kind);
-        if (!already) pc.addTrack(track, mediaStream);
-      });
-    });
-  } catch (err) {
-    document.getElementById('classStatus').textContent = 'Camera unavailable — whiteboard still works';
-  }
-  initWhiteboard();
-}
-
-async function initClassroom() {
-  document.getElementById('codeSetupPanel')?.classList.remove('hidden');
-  document.getElementById('waitingAfterStart')?.classList.add('hidden');
-  document.getElementById('sharedFilePanel')?.classList.add('hidden');
-  if (!activeClassCode) {
-    document.getElementById('classStatus').textContent = 'Set a class code to start';
-  }
-  setTimeout(() => { try { initWhiteboard(); } catch (e) {} }, 100);
-}
-
 function joinClass() {
   const code = (document.getElementById('joinCode').value || '').trim().toUpperCase();
   if (!code) { alert('Please enter a class code'); return; }
@@ -1157,73 +796,125 @@ function joinClass() {
     setTimeout(async () => {
       document.getElementById('codeSetupPanel')?.classList.add('hidden');
       document.getElementById('waitingAfterStart')?.classList.add('hidden');
-      const ov = document.getElementById('waitingOverlay');
-      if (ov) ov.style.display = 'none';
+      document.getElementById('waitingOverlay').style.display = 'none';
       const badge = document.getElementById('classCodeBadge');
       if (badge) { badge.textContent = 'Code: ' + code; badge.classList.remove('hidden'); }
-      document.getElementById('classStatus').textContent = 'Joined · Host: ' + (data.host || '—');
+      document.getElementById('classStatus').textContent = 'Joined · Host: ' + (data.host || '—') + ' · ' + (data.title || '');
       await initClassroomMedia();
-      joinSocketRoom(code, false);
     }, 300);
   }).catch((err) => alert(err.message));
 }
 
-function endClass() {
-  leaveSocketRoom();
-  if (mediaStream) {
-    mediaStream.getTracks().forEach((t) => t.stop());
-    mediaStream = null;
+let activeClassCode = null;
+
+function generateClassCode() {
+  const code = 'NOA-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+  document.getElementById('hostClassCode').value = code;
+}
+
+async function startClassWithCode() {
+  let code = (document.getElementById('hostClassCode').value || '').trim().toUpperCase();
+  const title = (document.getElementById('hostClassTitle').value || 'Olympiad Class').trim();
+  if (!code) {
+    generateClassCode();
+    code = document.getElementById('hostClassCode').value;
   }
-  const lv = document.getElementById('localVideo');
-  if (lv) lv.srcObject = null;
-  const ov = document.getElementById('waitingOverlay');
-  if (ov) ov.style.display = 'flex';
-  document.getElementById('classStatus').textContent = 'Class ended';
-  document.getElementById('classCodeBadge')?.classList.add('hidden');
+  try {
+    const res = await fetch('/api/classes/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+      body: JSON.stringify({ code, title })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.msg || 'Could not start class');
+    activeClassCode = data.code;
+    const badge = document.getElementById('classCodeBadge');
+    badge.textContent = 'Code: ' + data.code;
+    badge.classList.remove('hidden');
+    document.getElementById('classStatus').textContent = 'Live · ' + (title || 'Class');
+    document.getElementById('codeSetupPanel').classList.add('hidden');
+    document.getElementById('waitingAfterStart').classList.remove('hidden');
+    document.getElementById('shareCodeHint').textContent = data.code;
+    await initClassroomMedia();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function initClassroomMedia() {
+  const video = document.getElementById('localVideo');
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    video.srcObject = mediaStream;
+  } catch (err) {
+    document.getElementById('classStatus').textContent = 'Camera unavailable — whiteboard still works';
+  }
+  initWhiteboard();
+}
+
+// Keep old name working
+async function initClassroom() {
+  // Reset overlay for new session
+  document.getElementById('codeSetupPanel')?.classList.remove('hidden');
+  document.getElementById('waitingAfterStart')?.classList.add('hidden');
   document.getElementById('sharedFilePanel')?.classList.add('hidden');
-  if (activeClassCode) {
-    if (isClassHost) {
-      fetch('/api/classes/' + activeClassCode, { method: 'DELETE' }).catch(() => {});
-    }
-    activeClassCode = null;
+  if (!activeClassCode) {
+    document.getElementById('classStatus').textContent = 'Set a class code to start';
   }
-  isClassHost = false;
-  if (document.fullscreenElement) document.exitFullscreen?.();
-  showSection('overview');
+  // Whiteboard can init early
+  setTimeout(() => { try { initWhiteboard(); } catch(e) {} }, 100);
 }
 
-function applyRemoteStroke(stroke) {
-  const canvas = document.getElementById('whiteboardCanvas');
-  if (!canvas || !stroke) return;
-  const ctx = canvas.getContext('2d');
-  ctx.beginPath();
-  ctx.moveTo(stroke.x0, stroke.y0);
-  ctx.lineTo(stroke.x1, stroke.y1);
-  ctx.strokeStyle = stroke.color || '#ffffff';
-  ctx.lineWidth = stroke.width || 3;
-  ctx.lineCap = 'round';
-  ctx.stroke();
+function triggerShareFile() {
+  if (!activeClassCode) {
+    alert('Start the class with a code first, then share a file.');
+    return;
+  }
+  document.getElementById('shareFileInput').click();
 }
 
-function showSharedFileFromData(file) {
-  document.getElementById('sharedFileName').textContent = file.name || 'Shared file';
+function onShareFileSelected(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  document.getElementById('sharedFileName').textContent = file.name;
+  document.getElementById('sharedFileLink').href = url;
+  document.getElementById('sharedFileLink').download = file.name;
   const img = document.getElementById('sharedFileImg');
   const frame = document.getElementById('sharedFileFrame');
-  const link = document.getElementById('sharedFileLink');
-  if (file.dataUrl && file.type && file.type.startsWith('image/')) {
-    img.src = file.dataUrl;
+  if (file.type.startsWith('image/')) {
+    img.src = url;
     img.classList.remove('hidden');
     frame.classList.add('hidden');
-  } else if (file.dataUrl) {
-    frame.src = file.dataUrl;
+  } else {
+    frame.src = url;
     frame.classList.remove('hidden');
     img.classList.add('hidden');
   }
-  if (link && file.dataUrl) {
-    link.href = file.dataUrl;
-    link.download = file.name || 'file';
-  }
   document.getElementById('sharedFilePanel').classList.remove('hidden');
+  // Notify room
+  fetch('/api/classes/' + activeClassCode + '/share', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ file: { name: file.name, type: file.type } })
+  }).catch(() => {});
+  e.target.value = '';
+}
+
+function closeSharedFile() {
+  document.getElementById('sharedFilePanel').classList.add('hidden');
+  document.getElementById('sharedFileFrame').src = '';
+  document.getElementById('sharedFileImg').src = '';
+}
+
+function toggleClassFullscreen() {
+  const shell = document.getElementById('liveClassShell');
+  if (!shell) return;
+  if (!document.fullscreenElement) {
+    shell.requestFullscreen?.() || shell.webkitRequestFullscreen?.();
+  } else {
+    document.exitFullscreen?.() || document.webkitExitFullscreen?.();
+  }
 }
 
 

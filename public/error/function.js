@@ -148,9 +148,11 @@ async function login(type) {
     localStorage.setItem('token', data.token);
     localStorage.setItem('user', JSON.stringify(data.user));
 
-    // Only env super_admins go to admin portal; students & staff use dashboard
-    if (data.user.role === 'super_admin') {
+    // Redirect based on role
+    if (data.user.role === 'super_admin' || data.user.role === 'admin') {
       window.location.href = 'admin.html';
+    } else if (data.user.role === 'staff' || data.user.role === 'staff_pending') {
+      window.location.href = 'staff.html';
     } else {
       window.location.href = 'dashboard.html';
     }

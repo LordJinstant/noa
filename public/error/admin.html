@@ -10,22 +10,6 @@
   <link rel="stylesheet" href="admin-style.css">
 </head>
 <body class="bg-gray-50 text-gray-800">
-
-<script>
-(function() {
-  try {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const token = localStorage.getItem('token');
-    if (!token || user.role !== 'super_admin') {
-      alert('Access denied. Only platform super administrators can open the admin portal.');
-      window.location.href = 'dashboard.html';
-    }
-  } catch (e) {
-    window.location.href = 'index.html';
-  }
-})();
-</script>
-
   <div class="min-h-screen flex">
     <!-- Sidebar -->
     <aside class="w-72 bg-white border-r shadow-sm p-6 sticky top-0 h-screen overflow-y-auto">
