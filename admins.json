@@ -60,6 +60,15 @@
       "name": "Okonta james",
       "role": "admin",
       "createdAt": "2026-08-04T10:22:01.028Z"
+    },
+    {
+      "id": 1785867146618,
+      "username": "foodcoat",
+      "email": "foodcoat@gmail.com",
+      "password": "$2b$10$BNCwf1MQZSCps8iP/dAqRedQUyH0Iz91Yj2y7Sy2ybeQaF2tVQp7O",
+      "name": "food coat",
+      "role": "admin",
+      "createdAt": "2026-08-04T18:12:26.618Z"
     }
   ]
 }
