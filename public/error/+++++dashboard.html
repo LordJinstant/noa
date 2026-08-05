@@ -380,10 +380,8 @@ let mediaStream = null, camOn = true, micOn = true;
 let drawing = false, tool = 'pen', color = '#ffffff', lastX = 0, lastY = 0;
 
 function showSection(id) {
-  // Assessments stay staff/admin-only. Live classroom (startClass) is allowed for
-  // everyone so students can Join Class as participants.
-  if (id === 'assessments' && !canHostClass()) {
-    alert('Students Assessments is only available to approved staff and platform administrators.');
+  if ((id === 'startClass' || id === 'assessments') && !canHostClass()) {
+    alert('Host Class is only available to approved staff and platform administrators.');
     id = 'overview';
   }
   document.querySelectorAll('[id^="section-"]').forEach(s => s.classList.add('hidden'));
@@ -1163,11 +1161,7 @@ function joinClass() {
       if (ov) ov.style.display = 'none';
       const badge = document.getElementById('classCodeBadge');
       if (badge) { badge.textContent = 'Code: ' + code; badge.classList.remove('hidden'); }
-      document.getElementById('classStatus').textContent = 'Joined as participant · Host: ' + (data.host || '—');
-      const titleEl = document.getElementById('pageTitle');
-      const subEl = document.getElementById('pageSubtitle');
-      if (titleEl) titleEl.textContent = 'Live Class · Participant';
-      if (subEl) subEl.textContent = 'Connected with code ' + code;
+      document.getElementById('classStatus').textContent = 'Joined · Host: ' + (data.host || '—');
       await initClassroomMedia();
       joinSocketRoom(code, false);
     }, 300);
