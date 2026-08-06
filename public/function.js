@@ -1124,3 +1124,166 @@ video.addEventListener('loadedmetadata', () => {
     durationEl.textContent = formatTime(video.duration);
   }
 })();
+
+
+
+(function() {
+  const galleryGrid = document.getElementById('galleryGrid');
+  const lightbox = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightboxImg');
+  const lightboxCaption = document.getElementById('lightboxCaption');
+  const lightboxCounter = document.getElementById('lightboxCounter');
+  const lightboxClose = document.getElementById('lightboxClose');
+  const lightboxPrev = document.getElementById('lightboxPrev');
+  const lightboxNext = document.getElementById('lightboxNext');
+  
+  // CONFIG: Change this to match how many images you have
+  const TOTAL_IMAGES = 12; // Set to your actual count (img1 through imgN)
+  const IMAGE_FOLDER = '../gallery2/';
+  const IMAGE_EXTENSION = '.jpg'; // Change to .png, .webp, etc. if needed
+  
+  let currentIndex = 0;
+  let images = [];
+  
+  // Generate gallery items
+  function initGallery() {
+    for (let i = 1; i <= TOTAL_IMAGES; i++) {
+      const item = document.createElement('div');
+      item.className = 'gallery-item reveal';
+      item.dataset.index = i - 1;
+      
+      // Stagger delay for entrance animation
+      item.style.transitionDelay = `${(i - 1) * 0.08}s`;
+      
+      item.innerHTML = `
+        <div class="gallery-skeleton" style="position:absolute;inset:0;z-index:0;"></div>
+        <img class="gallery-img" 
+             src="${IMAGE_FOLDER}img${i}${IMAGE_EXTENSION}" 
+             alt="Gallery image ${i}"
+             loading="lazy"
+             onload="this.previousElementSibling.style.display='none'">
+        <div class="gallery-glare"></div>
+        <div class="gallery-item-info">
+          <h4 class="gallery-item-title">Image ${i}</h4>
+          <span class="gallery-item-number">0${i < 10 ? '0' + i : i}</span>
+        </div>
+      `;
+      
+      // 3D Tilt effect
+      item.addEventListener('mousemove', handleTilt);
+      item.addEventListener('mouseleave', resetTilt);
+      item.addEventListener('click', () => openLightbox(i - 1));
+      
+      galleryGrid.appendChild(item);
+      images.push({
+        src: `${IMAGE_FOLDER}img${i}${IMAGE_EXTENSION}`,
+        alt: `Gallery image ${i}`,
+        title: `Image ${i}`
+      });
+    }
+    
+    // Trigger reveal animations
+    setTimeout(() => {
+      document.querySelectorAll('.reveal').forEach(el => el.classList.add('active'));
+    }, 100);
+  }
+  
+  // 3D Tilt handler
+  function handleTilt(e) {
+    const card = e.currentTarget;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const rotateX = (y - centerY) / centerY * -12;
+    const rotateY = (x - centerX) / centerX * 12;
+    
+    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+    
+    // Move glare
+    const glare = card.querySelector('.gallery-glare');
+    const glareX = (x / rect.width) * 100;
+    const glareY = (y / rect.height) * 100;
+    glare.style.background = `radial-gradient(circle at ${glareX}% ${glareY}%, rgba(255,255,255,0.3) 0%, transparent 60%)`;
+  }
+  
+  function resetTilt(e) {
+    const card = e.currentTarget;
+    card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)';
+  }
+  
+  // Lightbox functions
+  function openLightbox(index) {
+    currentIndex = index;
+    updateLightbox();
+    lightbox.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+  
+  function closeLightbox() {
+    lightbox.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+  
+  function updateLightbox() {
+    const img = images[currentIndex];
+    lightboxImg.src = img.src;
+    lightboxImg.alt = img.alt;
+    lightboxCaption.textContent = img.title;
+    lightboxCounter.textContent = `${currentIndex + 1} / ${TOTAL_IMAGES}`;
+  }
+  
+  function nextImage() {
+    currentIndex = (currentIndex + 1) % TOTAL_IMAGES;
+    updateLightbox();
+  }
+  
+  function prevImage() {
+    currentIndex = (currentIndex - 1 + TOTAL_IMAGES) % TOTAL_IMAGES;
+    updateLightbox();
+  }
+  
+  // Lightbox events
+  lightboxClose.addEventListener('click', closeLightbox);
+  lightboxNext.addEventListener('click', (e) => { e.stopPropagation(); nextImage(); });
+  lightboxPrev.addEventListener('click', (e) => { e.stopPropagation(); prevImage(); });
+  
+  lightbox.addEventListener('click', (e) => {
+    if (e.target === lightbox) closeLightbox();
+  });
+  
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (!lightbox.classList.contains('active')) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowRight') nextImage();
+    if (e.key === 'ArrowLeft') prevImage();
+  });
+  
+  // Swipe support for mobile
+  let touchStartX = 0;
+  lightbox.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+  });
+  lightbox.addEventListener('touchend', (e) => {
+    const touchEndX = e.changedTouches[0].screenX;
+    const diff = touchStartX - touchEndX;
+    if (Math.abs(diff) > 50) {
+      diff > 0 ? nextImage() : prevImage();
+    }
+  });
+  
+  // Intersection Observer for scroll reveals (fallback/enhancement)
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('active');
+      }
+    });
+  }, { threshold: 0.1 });
+  
+  // Initialize
+  initGallery();
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+})();
