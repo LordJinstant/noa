@@ -175,7 +175,7 @@ async function safeBcryptCompare(plain, hashed) {
 const tickets = [];
 
 app.post('/api/register', async (req, res) => {
-  const { username, password, name, school, email, grade, phone, gender, dob } = req.body;
+  const { username, password, name, school, email } = req.body;
 
   if (!username || !password || !name) {
     return res.status(400).json({ msg: 'Username, password and name are required' });
@@ -195,11 +195,10 @@ app.post('/api/register', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const joined = new Date().toISOString().split('T')[0];
-    const gradeVal = (grade || '').toString().trim();
 
     usersDb.prepare(`
-      INSERT INTO users (username, email, password, name, school, role, grade, joined)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO users (username, email, password, name, school, role, joined)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(
       username,
       email || username,
@@ -207,13 +206,12 @@ app.post('/api/register', async (req, res) => {
       name,
       school || 'Not specified',
       'student',
-      gradeVal,
       joined
     );
 
     return res.status(201).json({
       msg: 'Account created successfully! You can now login.',
-      user: { name, username, role: 'student', grade: gradeVal, school: school || 'Not specified' }
+      user: { name, username, role: 'student' }
     });
   } catch (err) {
     console.error('Register error:', err);
@@ -407,33 +405,7 @@ app.get('/api/admins', (req, res) => {
     let otherAdmins = [];
     try {
       const data = readJson('admins.json');
-      otherAdmins = (data.admins || []).map(a => ({
-        id: a.id,
-        username: a.username,
-        email: a.email,
-        name: a.name,
-        role: a.role || 'admin',
-        source: 'admins.json'
-      }));
-    } catch (e) {}
-
-    // Approved staff from users DB (created via Staff option or approved applications)
-    try {
-      const staffRows = usersDb.prepare(`
-        SELECT id, username, email, name, role, joined
-        FROM users WHERE role = 'staff' ORDER BY name ASC
-      `).all();
-      for (const s of staffRows) {
-        otherAdmins.push({
-          id: s.id,
-          username: s.username,
-          email: s.email,
-          name: s.name,
-          role: 'staff',
-          source: 'users',
-          joined: s.joined
-        });
-      }
+      otherAdmins = data.admins || [];
     } catch (e) {}
 
     return res.json({
@@ -452,17 +424,9 @@ app.post('/api/admins', async (req, res) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    // Only env super_admins (and admin type tokens) may create accounts here
-    if (decoded.type !== 'admin' && decoded.role !== 'super_admin') {
-      return res.status(403).json({ msg: 'Only super administrators can create accounts here' });
-    }
+    if (decoded.type !== 'admin') return res.status(403).json({ msg: 'Only admins can create admins' });
 
     const { username, email, password, name, role = 'admin' } = req.body;
-    const allowedRoles = ['admin', 'moderator', 'staff'];
-    const roleNorm = String(role || 'admin').toLowerCase();
-    if (!allowedRoles.includes(roleNorm)) {
-      return res.status(400).json({ msg: 'Role must be admin, moderator, or staff' });
-    }
 
     if (!username || !email || !password || !name) {
       return res.status(400).json({ msg: 'Username, email, password and name are required' });
@@ -471,62 +435,20 @@ app.post('/api/admins', async (req, res) => {
       return res.status(400).json({ msg: 'Password must be at least 6 characters' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Staff → users table as approved staff (dashboard Host Class)
-    if (roleNorm === 'staff') {
-      const existsUser = usersDb.prepare(
-        `SELECT id, role FROM users WHERE username = ? OR email = ?`
-      ).get(username, email);
-      if (existsUser) {
-        if (existsUser.role === 'staff') {
-          return res.status(409).json({ msg: 'This staff account already exists' });
-        }
-        // Promote pending/student to approved staff and set password
-        usersDb.prepare(`
-          UPDATE users SET role = 'staff', password = ?, name = COALESCE(?, name), email = COALESCE(?, email)
-          WHERE id = ?
-        `).run(hashedPassword, name, email, existsUser.id);
-        return res.status(200).json({
-          msg: 'User promoted to approved Staff',
-          admin: { id: existsUser.id, username, email, name, role: 'staff' }
-        });
-      }
-
-      const joined = new Date().toISOString().split('T')[0];
-      const info = usersDb.prepare(`
-        INSERT INTO users (username, email, password, name, school, role, bio, image, joined)
-        VALUES (?, ?, ?, ?, ?, 'staff', '', '', ?)
-      `).run(username, email, hashedPassword, name, 'Staff', joined);
-
-      return res.status(201).json({
-        msg: 'Staff account created successfully',
-        admin: { id: info.lastInsertRowid, username, email, name, role: 'staff' }
-      });
-    }
-
-    // Admin / Moderator → admins.json
     const data = readJson('admins.json');
     const exists = (data.admins || []).find(a => a.username === username || a.email === email);
     if (exists) {
-      return res.status(409).json({ msg: 'Username or email already exists among admins' });
+      return res.status(409).json({ msg: 'Username or email already exists' });
     }
 
-    // Also block collision with users table
-    const userCollision = usersDb.prepare(
-      `SELECT id FROM users WHERE username = ? OR email = ?`
-    ).get(username, email);
-    if (userCollision) {
-      return res.status(409).json({ msg: 'Username or email already used by a student/staff account' });
-    }
-
+    const hashedPassword = await bcrypt.hash(password, 10);
     const newAdmin = {
       id: Date.now(),
       username,
       email,
       password: hashedPassword,
       name,
-      role: roleNorm,
+      role,
       createdAt: new Date().toISOString()
     };
 
@@ -535,12 +457,12 @@ app.post('/api/admins', async (req, res) => {
     writeJson('admins.json', data);
 
     return res.status(201).json({
-      msg: roleNorm === 'moderator' ? 'Moderator created successfully' : 'Admin created successfully',
-      admin: { id: newAdmin.id, username, email, name, role: roleNorm }
+      msg: 'Admin created successfully',
+      admin: { id: newAdmin.id, username, email, name, role }
     });
   } catch (err) {
     console.error('Create admin error:', err);
-    return res.status(500).json({ msg: 'Server error: ' + (err.message || 'unknown') });
+    return res.status(401).json({ msg: 'Invalid or expired token' });
   }
 });
 
@@ -666,7 +588,7 @@ app.get('/api/users', (req, res) => {
 app.get('/api/public-directory', (req, res) => {
   try {
     const users = usersDb.prepare(`
-      SELECT id, username, name, email, school, role, bio, image as avatar, joined, grade
+      SELECT id, username, name, email, school, role, bio, image as avatar, joined
       FROM users
       WHERE role IN ('student', 'staff')
       ORDER BY role ASC, name ASC
@@ -677,15 +599,11 @@ app.get('/api/public-directory', (req, res) => {
       .map(u => ({
         id: u.id,
         name: u.name || u.username || 'Unnamed Staff',
-        username: u.username || '',
         role: 'staff',
         email: u.email || '',
-        school: u.school || '',
         department: u.school || 'General',
         office: u.bio || '',
-        bio: u.bio || '',
-        avatar: u.avatar || '',
-        joined: u.joined || ''
+        avatar: u.avatar || ''
       }));
 
     const students = users
@@ -693,15 +611,10 @@ app.get('/api/public-directory', (req, res) => {
       .map(u => ({
         id: u.id,
         name: u.name || u.username || 'Unnamed Student',
-        username: u.username || '',
-        role: 'student',
-        grade: (u.grade || '').trim() || 'Not set',
+        grade: 'Student',
         email: u.email || '',
-        school: u.school || '',
         major: u.school || 'General',
-        bio: u.bio || '',
-        avatar: u.avatar || '',
-        joined: u.joined || ''
+        avatar: u.avatar || ''
       }));
 
     return res.json({ staff, students });
@@ -848,7 +761,7 @@ app.delete('/api/admins/:id', (req, res) => {
 function isHostRole(decoded) {
   if (!decoded) return false;
   const role = String(decoded.role || '').toLowerCase();
-  return role === 'super_admin' || role === 'admin' || role === 'moderator' || role === 'staff' || decoded.type === 'admin';
+  return role === 'super_admin' || role === 'admin' || role === 'staff' || decoded.type === 'admin';
 }
 
 function requireHostAuth(req, res) {

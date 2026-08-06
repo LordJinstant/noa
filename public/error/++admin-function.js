@@ -252,8 +252,7 @@ document.getElementById('createAdminForm')?.addEventListener('submit', async (e)
     const data = await res.json();
 
     if (res.ok) {
-      const roleLabel = (payload.role === 'staff') ? 'Staff' : (payload.role === 'moderator') ? 'Moderator' : 'Admin';
-      if (statusEl) statusEl.innerHTML = `<span class="text-green-600">✅ ${roleLabel} created successfully!</span>`;
+      if (statusEl) statusEl.innerHTML = `<span class="text-green-600">✅ Admin created successfully!</span>`;
       document.getElementById('createAdminForm').reset();
       renderAdmins();
       loadDashboard();

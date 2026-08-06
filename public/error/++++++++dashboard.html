@@ -379,7 +379,7 @@ const user = JSON.parse(localStorage.getItem('user') || '{}');
 // Host Class only for approved staff + env super admins (and admin role)
 function canHostClass() {
   const role = String(user.role || 'student').toLowerCase();
-  return role === 'super_admin' || role === 'admin' || role === 'moderator' || role === 'staff';
+  return role === 'super_admin' || role === 'admin' || role === 'staff';
 }
 
 document.getElementById('welcomeName').textContent = (user.name || 'Champion').split(' ')[0];

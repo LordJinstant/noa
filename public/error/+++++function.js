@@ -473,9 +473,7 @@ async function completeStudentRegistration() {
     username: username,
     password: password,
     name: name,
-    email: email,
-    school: school || "Not specified",
-    grade: grade || ""
+    school: school || "Not specified"
   };
 
   try {
