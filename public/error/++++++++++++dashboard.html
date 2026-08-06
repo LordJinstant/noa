@@ -26,17 +26,6 @@
     #whiteboardCanvas { cursor: crosshair; touch-action: none; }
     .tool-btn.active { background: var(--brand); color: white; }
     .student-row:hover { background: #f0fdf4; }
-
-    .resizable-th { user-select: none; }
-    .col-resizer {
-      position: absolute; right: 0; top: 0; bottom: 0; width: 6px;
-      cursor: col-resize; background: transparent;
-    }
-    .col-resizer:hover, .col-resizer.active {
-      background: rgba(25, 169, 117, 0.45);
-    }
-    #assessStudentsTable td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
     .inspirational { background: linear-gradient(135deg, #0f172a 0%, #134e4a 50%, #19A975 100%); }
     .fade-in { animation: fadeIn 0.45s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -288,28 +277,15 @@
               <input id="qe_supposed" type="number" placeholder="Supposed" value="100" class="px-3 py-2 rounded-xl border text-sm">
               <button onclick="submitQuickEntry()" class="bg-brand text-white rounded-xl font-semibold text-sm hover:opacity-90"><i class="fas fa-plus mr-1"></i> Add Score</button>
             </div>
-            <div class="overflow-x-auto max-h-[480px] overflow-y-auto rounded-xl border border-slate-100">
-              <table id="assessStudentsTable" class="w-full text-sm table-fixed">
-                <colgroup>
-                  <col style="width:22%">
-                  <col style="width:16%">
-                  <col style="width:28%">
-                  <col style="width:22%">
-                  <col style="width:12%">
-                </colgroup>
-                <thead class="sticky top-0 bg-white z-10">
-                  <tr class="text-left text-slate-500 border-b">
-                    <th class="pb-3 pt-2 px-3 font-medium relative resizable-th">Name<span class="col-resizer" data-col="0"></span></th>
-                    <th class="pb-3 pt-2 px-3 font-medium relative resizable-th">Grade<span class="col-resizer" data-col="1"></span></th>
-                    <th class="pb-3 pt-2 px-3 font-medium relative resizable-th">School<span class="col-resizer" data-col="2"></span></th>
-                    <th class="pb-3 pt-2 px-3 font-medium relative resizable-th">Email<span class="col-resizer" data-col="3"></span></th>
-                    <th class="pb-3 pt-2 px-3 font-medium text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="assessStudentsBody"><tr><td colspan="5" class="py-10 text-center text-slate-400">Loading students…</td></tr></tbody>
+            <div class="overflow-x-auto max-h-[480px] overflow-y-auto">
+              <table class="w-full text-sm">
+                <thead class="sticky top-0 bg-white"><tr class="text-left text-slate-500 border-b">
+                  <th class="pb-3 font-medium">Name</th><th class="pb-3 font-medium">Grade / School</th>
+                  <th class="pb-3 font-medium">Email</th><th class="pb-3 font-medium text-center">Actions</th>
+                </tr></thead>
+                <tbody id="assessStudentsBody"><tr><td colspan="4" class="py-10 text-center text-slate-400">Loading students…</td></tr></tbody>
               </table>
             </div>
-            <p class="text-[11px] text-slate-400 mt-2"><i class="fas fa-arrows-alt-h mr-1"></i>Drag the edges of column headers to resize</p>
             <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t">
               <p class="text-xs text-slate-500">CSV columns: <code class="bg-slate-100 px-1 rounded">NAMES, GRADES, SUBJECTS, SCORE, SUPPOSED SCORE</code></p>
               <div class="flex gap-2">
@@ -446,7 +422,7 @@ function showSection(id) {
   document.getElementById('pageSubtitle').textContent = t[1];
   if (id === 'startClass') initClassroom();
   if (id === 'platform') loadDirectory();
-  if (id === 'assessments') { loadStudentsForAssess(); setTimeout(initAssessColumnResize, 50); }
+  if (id === 'assessments') loadStudentsForAssess();
   if (id === 'overview') loadPerformance(currentPeriod);
 }
 function toggleHostSub() {
@@ -562,19 +538,13 @@ async function loadDirectory() {
     document.getElementById('staffCount').textContent = staff.length;
     document.getElementById('studentCount').textContent = students.length;
 
-    const renderStars = (staffId, avg, total) => {
-      const a = Number(avg) || 0;
-      const t = Number(total) || 0;
-      let html = '<div class="flex items-center gap-0.5 mt-1 flex-wrap" data-rate-staff="' + staffId + '" title="Average of all student ratings (sum ÷ count)">';
+    const renderStars = (staffId, avg) => {
+      let html = '<div class="flex items-center gap-0.5 mt-1" data-rate-staff="' + staffId + '">';
       for (let i = 1; i <= 5; i++) {
-        // Fill by true average threshold (not just clicked value)
-        const filled = i <= Math.floor(a + 0.5);
-        html += '<button type="button" onclick="rateStaff(' + staffId + ',' + i + ')" class="text-sm leading-none ' + (filled ? 'text-amber-400' : 'text-slate-300') + ' hover:text-amber-400 transition" title="Your vote: ' + i + ' star' + (i > 1 ? 's' : '') + ' — overall score is the average of all votes"><i class="fas fa-star"></i></button>';
+        const filled = i <= Math.round(avg || 0);
+        html += '<button type="button" onclick="rateStaff(' + staffId + ',' + i + ')" class="text-sm leading-none ' + (filled ? 'text-amber-400' : 'text-slate-300') + ' hover:text-amber-400" title="Rate ' + i + ' star' + (i>1?'s':'') + '"><i class="fas fa-star"></i></button>';
       }
-      const label = t > 0
-        ? (a.toFixed(1) + ' · ' + t + ' vote' + (t === 1 ? '' : 's'))
-        : 'No ratings yet';
-      html += '<span class="text-[10px] text-slate-500 ml-1.5 font-medium" id="ratingLabel-' + staffId + '">' + label + '</span></div>';
+      html += '<span class="text-[10px] text-slate-400 ml-1" id="ratingLabel-' + staffId + '">' + (avg ? avg.toFixed(1) : 'Rate') + '</span></div>';
       return html;
     };
 
@@ -595,7 +565,7 @@ async function loadDirectory() {
         '<div class="min-w-0 flex-1">' +
           '<p class="font-semibold text-sm truncate">' + (p.name || 'Unnamed') + '</p>' +
           '<p class="text-xs text-slate-500 truncate">' + subline + '</p>' +
-          (type === 'staff' ? '<div onclick="event.stopPropagation()">' + renderStars(p.id, avg, p.ratingTotal || 0) + '</div>' : '') +
+          (type === 'staff' ? '<div onclick="event.stopPropagation()">' + renderStars(p.id, avg) + '</div>' : '') +
         '</div>' +
         '<span class="text-xs px-2 py-0.5 rounded-full ' + (type==='staff'?'bg-blue-50 text-blue-600':'bg-green-50 text-green-700') + '">' + type + '</span>' +
         '<i class="fas fa-chevron-down text-slate-300 text-xs"></i></div>';
@@ -608,7 +578,6 @@ async function loadDirectory() {
         if (rr.ok) {
           const rd = await rr.json();
           s.ratingAvg = rd.avg || 0;
-          s.ratingTotal = rd.total || 0;
         }
       } catch (e) {}
     }));
@@ -628,11 +597,6 @@ async function loadDirectory() {
 
 async function rateStaff(staffId, rating) {
   if (!token) { alert('Please log in as a student to rate staff'); return; }
-  const role = String((user && user.role) || 'student').toLowerCase();
-  if (role !== 'student') {
-    alert('Only students can rate staff. The score is the average of all student votes.');
-    return;
-  }
   try {
     const res = await fetch('/api/staff-ratings', {
       method: 'POST',
@@ -641,20 +605,14 @@ async function rateStaff(staffId, rating) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.msg || 'Failed');
-    // Always display server average (sum ÷ count), never the single click alone
-    const avg = Number(data.avg) || 0;
-    const total = Number(data.total) || 0;
     const label = document.getElementById('ratingLabel-' + staffId);
-    if (label) {
-      label.textContent = total > 0
-        ? (avg.toFixed(1) + ' · ' + total + ' vote' + (total === 1 ? '' : 's'))
-        : 'No ratings yet';
-    }
+    if (label) label.textContent = (data.avg || rating).toFixed ? (data.avg || rating).toFixed(1) : data.avg;
+    // Refresh stars visually
     const wrap = document.querySelector('[data-rate-staff="' + staffId + '"]');
     if (wrap) {
+      const avg = data.avg || rating;
       wrap.querySelectorAll('button').forEach((btn, idx) => {
-        const filled = (idx + 1) <= Math.floor(avg + 0.5);
-        btn.className = 'text-sm leading-none ' + (filled ? 'text-amber-400' : 'text-slate-300') + ' hover:text-amber-400 transition';
+        btn.className = 'text-sm leading-none ' + ((idx + 1) <= Math.round(avg) ? 'text-amber-400' : 'text-slate-300') + ' hover:text-amber-400';
       });
     }
   } catch (err) {
@@ -705,109 +663,48 @@ async function loadStudentsForAssess() {
 
   if (!Array.isArray(allStudents)) allStudents = [];
 
-  // Grade filter: registered grades + standard options so filter always works
+  // Grade filter options from registered student grades
   const gf = document.getElementById('gradeFilter');
   if (gf) {
-    const standard = [
-      'Grade 1 / Primary 1','Grade 2 / Primary 2','Grade 3 / Primary 3','Grade 4 / Primary 4',
-      'Grade 5 / Primary 5','Grade 6 / Primary 6','Grade 7 / Secondary 1','Grade 8 / Secondary 2',
-      'Grade 9 / Secondary 3','Grade 10 / Secondary 4','Grade 11 / Junior College 1','Grade 12 / Junior College 2'
-    ];
-    const fromData = allStudents.map(s => String(s.grade || '').trim()).filter(g => g && g.toLowerCase() !== 'not set');
-    const grades = [...new Set([...fromData, ...standard])].sort((a, b) =>
-      String(a).localeCompare(String(b), undefined, { numeric: true })
-    );
+    const grades = [...new Set(
+      allStudents.map(s => String(s.grade || '').trim()).filter(g => g && g.toLowerCase() !== 'not set')
+    )].sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
     const prev = gf.value;
     gf.innerHTML = '<option value="">All grades</option>' +
       grades.map(g => '<option value="' + g.replace(/"/g, '&quot;') + '">' + g + '</option>').join('');
-    if (prev) gf.value = prev;
+    if (prev && grades.includes(prev)) gf.value = prev;
   }
 
   renderAssessStudents(allStudents);
-}
-function normalizeGrade(g) {
-  return String(g || '').trim().toLowerCase().replace(/\s+/g, ' ');
-}
-function gradesMatch(studentGrade, filterValue) {
-  if (!filterValue) return true;
-  const sg = normalizeGrade(studentGrade);
-  const fg = normalizeGrade(filterValue);
-  if (!sg) return false;
-  if (sg === fg) return true;
-  // "7" matches "Grade 7" / "Grade 7 / Secondary 1"
-  if (sg.includes(fg) || fg.includes(sg)) return true;
-  const numS = sg.match(/\d+/);
-  const numF = fg.match(/\d+/);
-  if (numS && numF && numS[0] === numF[0]) return true;
-  return false;
 }
 function renderAssessStudents(list) {
   if (!Array.isArray(list)) list = [];
   const q = (document.getElementById('assessSearch')?.value || '').toLowerCase();
   const grade = document.getElementById('gradeFilter')?.value || '';
   const filtered = list.filter(s => {
-    const matchQ = !q ||
-      (s.name || '').toLowerCase().includes(q) ||
-      (s.email || '').toLowerCase().includes(q) ||
-      (s.school || '').toLowerCase().includes(q) ||
-      (s.grade || '').toLowerCase().includes(q);
-    const matchG = gradesMatch(s.grade, grade);
+    const matchQ = !q || (s.name || '').toLowerCase().includes(q) || (s.email || '').toLowerCase().includes(q);
+    const sg = String(s.grade || '').trim();
+    const matchG = !grade || sg === grade || sg.toLowerCase() === String(grade).toLowerCase();
     return matchQ && matchG;
   });
   const tbody = document.getElementById('assessStudentsBody');
-  if (!tbody) return;
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-slate-400">No students match the filter</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" class="py-10 text-center text-slate-400">No students match the filter</td></tr>';
     return;
   }
   tbody.innerHTML = filtered.map(s => {
-    const g = (s.grade && String(s.grade).trim() && String(s.grade) !== 'Not set') ? String(s.grade).trim() : '—';
-    const sch = (s.school && String(s.school).trim()) ? String(s.school).trim() : '—';
+    const g = (s.grade && String(s.grade).trim() && String(s.grade) !== 'Not set') ? String(s.grade).trim() : '';
+    const sch = (s.school && String(s.school).trim()) ? String(s.school).trim() : '';
+    const gradeSchool = g && sch ? (g + ' · ' + sch) : (g || sch || '—');
     const safe = JSON.stringify({
       id: s.id, name: s.name, email: s.email, grade: s.grade || '', school: s.school || ''
     }).replace(/'/g, '&#39;');
     return '<tr class="student-row border-b border-slate-50">' +
-      '<td class="py-3 px-3 font-medium" title="' + (s.name || '') + '">' + (s.name || '—') + '</td>' +
-      '<td class="py-3 px-3 text-slate-700 font-medium" title="' + g + '">' + g + '</td>' +
-      '<td class="py-3 px-3 text-slate-600" title="' + sch + '">' + sch + '</td>' +
-      '<td class="py-3 px-3 text-slate-500 text-xs" title="' + (s.email || '') + '">' + (s.email || '—') + '</td>' +
-      "<td class=\"py-3 px-3 text-center\"><button type=\"button\" data-student='" + safe + "' onclick=\"openScoreModal(JSON.parse(this.getAttribute('data-student')))\" class=\"text-brand hover:underline text-sm font-medium\"><i class=\"fas fa-edit mr-1\"></i>Score</button></td></tr>";
+      '<td class="py-3.5 font-medium">' + (s.name || '—') + '</td>' +
+      '<td class="py-3.5 text-slate-600">' + gradeSchool + '</td>' +
+      '<td class="py-3.5 text-slate-500 text-xs">' + (s.email || '—') + '</td>' +
+      "<td class=\"py-3.5 text-center\"><button type=\"button\" data-student='" + safe + "' onclick=\"openScoreModal(JSON.parse(this.getAttribute('data-student')))\" class=\"text-brand hover:underline text-sm font-medium\"><i class=\"fas fa-edit mr-1\"></i>Score</button></td></tr>";
   }).join('');
-}
-function initAssessColumnResize() {
-  const table = document.getElementById('assessStudentsTable');
-  if (!table || table.dataset.resizeReady === '1') return;
-  table.dataset.resizeReady = '1';
-  const cols = table.querySelectorAll('colgroup col');
-  let active = null;
-  let startX = 0;
-  let startW = 0;
-  table.querySelectorAll('.col-resizer').forEach(handle => {
-    handle.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const idx = parseInt(handle.dataset.col, 10);
-      active = { handle, idx, col: cols[idx] };
-      startX = e.pageX;
-      startW = cols[idx].getBoundingClientRect().width;
-      handle.classList.add('active');
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-    });
-  });
-  document.addEventListener('mousemove', (e) => {
-    if (!active) return;
-    const dx = e.pageX - startX;
-    const newW = Math.max(60, startW + dx);
-    active.col.style.width = newW + 'px';
-  });
-  document.addEventListener('mouseup', () => {
-    if (!active) return;
-    active.handle.classList.remove('active');
-    active = null;
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-  });
 }
 document.getElementById('assessSearch')?.addEventListener('input', () => renderAssessStudents(allStudents));
 document.getElementById('gradeFilter')?.addEventListener('change', () => renderAssessStudents(allStudents));
@@ -1451,7 +1348,7 @@ function openPersonDetail(key) {
   } else {
     html += row('fa-building', 'Department / School', p.department || p.school || '—');
     html += row('fa-briefcase', 'Bio / Office', p.bio || p.office || '—');
-    if (p.ratingAvg || p.ratingTotal) html += row('fa-star', 'Average rating', Number(p.ratingAvg || 0).toFixed(1) + ' / 5  (' + (p.ratingTotal || 0) + ' student vote' + ((p.ratingTotal||0)===1?'':'s') + ')');
+    if (p.ratingAvg) html += row('fa-star', 'Average rating', Number(p.ratingAvg).toFixed(1) + ' / 5');
   }
   html += row('fa-envelope', 'Email', p.email || '—');
   html += row('fa-user', 'Username', p.username || '—');

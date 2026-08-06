@@ -1046,53 +1046,13 @@ app.get('/api/performance-summary', (req, res) => {
 
 
 // ===================== STAFF RATINGS =====================
-// Standard rating = arithmetic mean: SUM(ratings) / COUNT(ratings)
-// One rating per student per staff (UNIQUE). Only students may vote.
-
-function computeStaffRating(staffId) {
-  const row = usersDb.prepare(`
-    SELECT
-      COALESCE(SUM(rating), 0) as sum_rating,
-      COUNT(*) as total,
-      AVG(rating) as avg_rating
-    FROM staff_ratings
-    WHERE staff_id = ?
-  `).get(staffId);
-  const total = row?.total || 0;
-  const sum = row?.sum_rating || 0;
-  // Prefer explicit sum/count; fall back to SQL AVG
-  const avg = total > 0 ? sum / total : 0;
-  const breakdown = usersDb.prepare(`
-    SELECT rating, COUNT(*) as count FROM staff_ratings
-    WHERE staff_id = ? GROUP BY rating ORDER BY rating DESC
-  `).all(staffId);
-  return {
-    avg: Math.round(avg * 10) / 10,
-    total,
-    sum,
-    breakdown
-  };
-}
-
 app.get('/api/staff-ratings/:staffId', (req, res) => {
   try {
-    const staffId = parseInt(req.params.staffId, 10);
-    if (!staffId) return res.status(400).json({ msg: 'Invalid staff id' });
-    const stats = computeStaffRating(staffId);
-    let myRating = null;
-    const token = req.headers.authorization?.split(' ')[1];
-    if (token) {
-      try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        if (decoded.id) {
-          const mine = usersDb.prepare(
-            `SELECT rating FROM staff_ratings WHERE staff_id = ? AND student_id = ?`
-          ).get(staffId, decoded.id);
-          if (mine) myRating = mine.rating;
-        }
-      } catch (e) {}
-    }
-    return res.json({ ...stats, myRating });
+    const rows = usersDb.prepare(`
+      SELECT rating, COUNT(*) as count FROM staff_ratings WHERE staff_id = ? GROUP BY rating
+    `).all(req.params.staffId);
+    const all = usersDb.prepare(`SELECT AVG(rating) as avg, COUNT(*) as total FROM staff_ratings WHERE staff_id = ?`).get(req.params.staffId);
+    return res.json({ avg: all?.avg ? Math.round(all.avg * 10) / 10 : 0, total: all?.total || 0, breakdown: rows });
   } catch (err) {
     return res.status(500).json({ msg: err.message });
   }
@@ -1103,61 +1063,19 @@ app.post('/api/staff-ratings', (req, res) => {
   if (!token) return res.status(401).json({ msg: 'Login required to rate staff' });
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const role = String(decoded.role || '').toLowerCase();
-
-    // Only registered students can rate (prevents staff/admin self-boosting)
-    if (role && role !== 'student') {
-      return res.status(403).json({
-        msg: 'Only students can rate staff. Ratings use the average of all student votes.'
-      });
-    }
-    if (decoded.type === 'admin' || role === 'super_admin' || role === 'admin' || role === 'moderator' || role === 'staff') {
-      return res.status(403).json({ msg: 'Only students can rate staff' });
-    }
-    if (!decoded.id) {
-      return res.status(400).json({ msg: 'Invalid student session — please log in again' });
-    }
-
     const { staff_id, rating } = req.body;
-    const staffId = parseInt(staff_id, 10);
     const r = parseInt(rating, 10);
-    if (!staffId || !r || r < 1 || r > 5) {
-      return res.status(400).json({ msg: 'staff_id and rating 1–5 required' });
-    }
+    if (!staff_id || !r || r < 1 || r > 5) return res.status(400).json({ msg: 'staff_id and rating 1-5 required' });
 
-    // Staff must exist and be approved staff
-    const staffUser = usersDb.prepare(
-      `SELECT id, role FROM users WHERE id = ? AND role = 'staff'`
-    ).get(staffId);
-    if (!staffUser) {
-      return res.status(404).json({ msg: 'Staff member not found' });
-    }
-
-    // One vote per student: insert or replace that student's rating only
     usersDb.prepare(`
       INSERT INTO staff_ratings (staff_id, student_id, student_name, rating)
       VALUES (?, ?, ?, ?)
-      ON CONFLICT(staff_id, student_id) DO UPDATE SET
-        rating = excluded.rating,
-        student_name = excluded.student_name,
-        created_at = datetime('now')
-    `).run(
-      staffId,
-      decoded.id,
-      decoded.username || decoded.name || 'Student',
-      r
-    );
+      ON CONFLICT(staff_id, student_id) DO UPDATE SET rating = excluded.rating, created_at = datetime('now')
+    `).run(staff_id, decoded.id || null, decoded.username || decoded.name || 'Student', r);
 
-    const stats = computeStaffRating(staffId);
-    return res.json({
-      msg: 'Rating saved. Displayed score is the average of all student ratings.',
-      avg: stats.avg,
-      total: stats.total,
-      sum: stats.sum,
-      myRating: r
-    });
+    const all = usersDb.prepare(`SELECT AVG(rating) as avg, COUNT(*) as total FROM staff_ratings WHERE staff_id = ?`).get(staff_id);
+    return res.json({ msg: 'Rating saved', avg: Math.round((all.avg || 0) * 10) / 10, total: all.total });
   } catch (err) {
-    console.error('Rating error:', err);
     return res.status(401).json({ msg: 'Invalid token or error: ' + err.message });
   }
 });

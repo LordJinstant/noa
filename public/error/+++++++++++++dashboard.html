@@ -562,19 +562,13 @@ async function loadDirectory() {
     document.getElementById('staffCount').textContent = staff.length;
     document.getElementById('studentCount').textContent = students.length;
 
-    const renderStars = (staffId, avg, total) => {
-      const a = Number(avg) || 0;
-      const t = Number(total) || 0;
-      let html = '<div class="flex items-center gap-0.5 mt-1 flex-wrap" data-rate-staff="' + staffId + '" title="Average of all student ratings (sum ÷ count)">';
+    const renderStars = (staffId, avg) => {
+      let html = '<div class="flex items-center gap-0.5 mt-1" data-rate-staff="' + staffId + '">';
       for (let i = 1; i <= 5; i++) {
-        // Fill by true average threshold (not just clicked value)
-        const filled = i <= Math.floor(a + 0.5);
-        html += '<button type="button" onclick="rateStaff(' + staffId + ',' + i + ')" class="text-sm leading-none ' + (filled ? 'text-amber-400' : 'text-slate-300') + ' hover:text-amber-400 transition" title="Your vote: ' + i + ' star' + (i > 1 ? 's' : '') + ' — overall score is the average of all votes"><i class="fas fa-star"></i></button>';
+        const filled = i <= Math.round(avg || 0);
+        html += '<button type="button" onclick="rateStaff(' + staffId + ',' + i + ')" class="text-sm leading-none ' + (filled ? 'text-amber-400' : 'text-slate-300') + ' hover:text-amber-400" title="Rate ' + i + ' star' + (i>1?'s':'') + '"><i class="fas fa-star"></i></button>';
       }
-      const label = t > 0
-        ? (a.toFixed(1) + ' · ' + t + ' vote' + (t === 1 ? '' : 's'))
-        : 'No ratings yet';
-      html += '<span class="text-[10px] text-slate-500 ml-1.5 font-medium" id="ratingLabel-' + staffId + '">' + label + '</span></div>';
+      html += '<span class="text-[10px] text-slate-400 ml-1" id="ratingLabel-' + staffId + '">' + (avg ? avg.toFixed(1) : 'Rate') + '</span></div>';
       return html;
     };
 
@@ -595,7 +589,7 @@ async function loadDirectory() {
         '<div class="min-w-0 flex-1">' +
           '<p class="font-semibold text-sm truncate">' + (p.name || 'Unnamed') + '</p>' +
           '<p class="text-xs text-slate-500 truncate">' + subline + '</p>' +
-          (type === 'staff' ? '<div onclick="event.stopPropagation()">' + renderStars(p.id, avg, p.ratingTotal || 0) + '</div>' : '') +
+          (type === 'staff' ? '<div onclick="event.stopPropagation()">' + renderStars(p.id, avg) + '</div>' : '') +
         '</div>' +
         '<span class="text-xs px-2 py-0.5 rounded-full ' + (type==='staff'?'bg-blue-50 text-blue-600':'bg-green-50 text-green-700') + '">' + type + '</span>' +
         '<i class="fas fa-chevron-down text-slate-300 text-xs"></i></div>';
@@ -608,7 +602,6 @@ async function loadDirectory() {
         if (rr.ok) {
           const rd = await rr.json();
           s.ratingAvg = rd.avg || 0;
-          s.ratingTotal = rd.total || 0;
         }
       } catch (e) {}
     }));
@@ -628,11 +621,6 @@ async function loadDirectory() {
 
 async function rateStaff(staffId, rating) {
   if (!token) { alert('Please log in as a student to rate staff'); return; }
-  const role = String((user && user.role) || 'student').toLowerCase();
-  if (role !== 'student') {
-    alert('Only students can rate staff. The score is the average of all student votes.');
-    return;
-  }
   try {
     const res = await fetch('/api/staff-ratings', {
       method: 'POST',
@@ -641,20 +629,14 @@ async function rateStaff(staffId, rating) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.msg || 'Failed');
-    // Always display server average (sum ÷ count), never the single click alone
-    const avg = Number(data.avg) || 0;
-    const total = Number(data.total) || 0;
     const label = document.getElementById('ratingLabel-' + staffId);
-    if (label) {
-      label.textContent = total > 0
-        ? (avg.toFixed(1) + ' · ' + total + ' vote' + (total === 1 ? '' : 's'))
-        : 'No ratings yet';
-    }
+    if (label) label.textContent = (data.avg || rating).toFixed ? (data.avg || rating).toFixed(1) : data.avg;
+    // Refresh stars visually
     const wrap = document.querySelector('[data-rate-staff="' + staffId + '"]');
     if (wrap) {
+      const avg = data.avg || rating;
       wrap.querySelectorAll('button').forEach((btn, idx) => {
-        const filled = (idx + 1) <= Math.floor(avg + 0.5);
-        btn.className = 'text-sm leading-none ' + (filled ? 'text-amber-400' : 'text-slate-300') + ' hover:text-amber-400 transition';
+        btn.className = 'text-sm leading-none ' + ((idx + 1) <= Math.round(avg) ? 'text-amber-400' : 'text-slate-300') + ' hover:text-amber-400';
       });
     }
   } catch (err) {
@@ -1451,7 +1433,7 @@ function openPersonDetail(key) {
   } else {
     html += row('fa-building', 'Department / School', p.department || p.school || '—');
     html += row('fa-briefcase', 'Bio / Office', p.bio || p.office || '—');
-    if (p.ratingAvg || p.ratingTotal) html += row('fa-star', 'Average rating', Number(p.ratingAvg || 0).toFixed(1) + ' / 5  (' + (p.ratingTotal || 0) + ' student vote' + ((p.ratingTotal||0)===1?'':'s') + ')');
+    if (p.ratingAvg) html += row('fa-star', 'Average rating', Number(p.ratingAvg).toFixed(1) + ' / 5');
   }
   html += row('fa-envelope', 'Email', p.email || '—');
   html += row('fa-user', 'Username', p.username || '—');
