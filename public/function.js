@@ -1057,3 +1057,70 @@ video.addEventListener('loadedmetadata', () => {
   video.loop = true;
   video.play().catch(() => {});
 });
+
+
+(function() {
+  const video = document.getElementById('mainVideo');
+  const overlay = document.getElementById('videoOverlay');
+  const playBtn = document.getElementById('playBtn');
+  const loading = document.getElementById('videoLoading');
+  const durationEl = document.getElementById('duration');
+
+  function formatTime(seconds) {
+    if (isNaN(seconds)) return '--:--';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  function togglePlay() {
+    if (video.paused || video.ended) {
+      video.play();
+    } else {
+      video.pause();
+    }
+  }
+
+  function updatePlayButton() {
+    const isPlaying = !video.paused && !video.ended;
+    overlay.classList.toggle('hidden', isPlaying);
+    
+    // Update button icon
+    playBtn.innerHTML = isPlaying 
+      ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>`
+      : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
+  }
+
+  // Event listeners
+  playBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    togglePlay();
+  });
+
+  video.addEventListener('click', togglePlay);
+  
+  video.addEventListener('play', updatePlayButton);
+  video.addEventListener('pause', updatePlayButton);
+  video.addEventListener('ended', updatePlayButton);
+
+  video.addEventListener('waiting', () => loading.classList.add('active'));
+  video.addEventListener('playing', () => loading.classList.remove('active'));
+  video.addEventListener('canplay', () => loading.classList.remove('active'));
+
+  video.addEventListener('loadedmetadata', () => {
+    durationEl.textContent = formatTime(video.duration);
+  });
+
+  // Keyboard support
+  video.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' || e.code === 'Enter') {
+      e.preventDefault();
+      togglePlay();
+    }
+  });
+
+  // Set initial duration when ready
+  if (video.readyState >= 1) {
+    durationEl.textContent = formatTime(video.duration);
+  }
+})();
