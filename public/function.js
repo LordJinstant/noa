@@ -1138,7 +1138,7 @@ video.addEventListener('loadedmetadata', () => {
   const lightboxNext = document.getElementById('lightboxNext');
   
   // CONFIG: Change this to match how many images you have
-  const TOTAL_IMAGES = 12; // Set to your actual count (img1 through imgN)
+  const TOTAL_IMAGES = 14; // Set to your actual count (img1 through imgN)
   const IMAGE_FOLDER = '../gallery2/';
   const IMAGE_EXTENSION = '.jpg'; // Change to .png, .webp, etc. if needed
   
