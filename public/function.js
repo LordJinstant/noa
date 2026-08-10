@@ -1287,3 +1287,59 @@ video.addEventListener('loadedmetadata', () => {
   initGallery();
   document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 })();
+
+
+
+(function () {
+  const track = document.getElementById('shiftTrack');
+  const gallery = document.getElementById('shiftGallery');
+  const lightbox = document.getElementById('shiftLightbox');
+  const lightboxImg = document.getElementById('shiftLightboxImg');
+  const lightboxClose = document.getElementById('shiftLightboxClose');
+
+  function openLightbox(src) {
+    lightboxImg.src = src;
+    lightbox.classList.add('open');
+  }
+  function closeLightbox() {
+    lightbox.classList.remove('open');
+    lightboxImg.src = '';
+  }
+  lightboxClose.addEventListener('click', closeLightbox);
+  lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
+
+  fetch('/api/gallery/gallery3')
+    .then(r => r.json())
+    .then(images => {
+      if (!Array.isArray(images) || images.length === 0) {
+        gallery.innerHTML = `
+          <div class="shift-gallery-empty">
+            <i class="fa-solid fa-images"></i>
+            <strong>Photos are on the way</strong>
+            <span>Drop images into <code>/public/gallery3</code> and they'll appear here automatically.</span>
+          </div>`;
+        return;
+      }
+
+      // Duplicate the set once so the CSS marquee (translateX -50%) loops seamlessly.
+      const slideSet = images.concat(images);
+      track.innerHTML = slideSet.map((src, i) => `
+        <div class="shift-slide" data-src="${src}">
+          <img src="${src}" alt="NOA gallery photo ${(i % images.length) + 1}" loading="lazy">
+          <span class="shift-slide-tag">NOA</span>
+        </div>
+      `).join('');
+
+      track.querySelectorAll('.shift-slide').forEach(slide => {
+        slide.addEventListener('click', () => openLightbox(slide.dataset.src));
+      });
+    })
+    .catch(() => {
+      gallery.innerHTML = `
+        <div class="shift-gallery-empty">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <strong>Gallery unavailable</strong>
+          <span>Couldn't load photos right now — check back shortly.</span>
+        </div>`;
+    });
+})();

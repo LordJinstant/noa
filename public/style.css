@@ -1639,3 +1639,229 @@
     grid-row: span 1;
   }
 }
+
+
+/* ============================================================
+   SHIFT GALLERY — pale, slim, self-scrolling marketing catalogue
+   Pulls live images from /gallery3 via /api/gallery/gallery3
+   ============================================================ */
+
+.shift-gallery-wrap {
+  max-width: 1200px;
+  margin: 64px auto;
+  padding: 0 24px;
+  position: relative;
+}
+
+.shift-gallery-head {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.shift-gallery-eyebrow {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #19A975;
+  background: rgba(25, 169, 117, 0.08);
+  border: 1px solid rgba(25, 169, 117, 0.25);
+  padding: 6px 16px;
+  border-radius: 999px;
+  margin-bottom: 14px;
+}
+
+.shift-gallery-head h2 {
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-weight: 800;
+  color: #10241c;
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+
+.shift-gallery-head p {
+  color: #6b7a74;
+  max-width: 40rem;
+  margin: 0 auto;
+  font-size: 0.98rem;
+  line-height: 1.6;
+}
+
+.shift-gallery {
+  position: relative;
+  width: 100%;
+  height: 240px;
+  border-radius: 26px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #FCFBF8 0%, #F2F6F3 55%, #F7F3EE 100%);
+  border: 1px solid rgba(16, 36, 28, 0.06);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 30px 60px -25px rgba(16, 36, 28, 0.25);
+}
+
+/* soft fade at both edges so the loop feels seamless and "premium" */
+.shift-gallery::before,
+.shift-gallery::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 90px;
+  z-index: 3;
+  pointer-events: none;
+}
+.shift-gallery::before {
+  left: 0;
+  background: linear-gradient(90deg, #FCFBF8 0%, rgba(252, 251, 248, 0) 100%);
+}
+.shift-gallery::after {
+  right: 0;
+  background: linear-gradient(270deg, #F7F3EE 0%, rgba(247, 243, 238, 0) 100%);
+}
+
+.shift-track {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: 100%;
+  width: max-content;
+  padding: 20px;
+  animation: shiftScroll 38s linear infinite;
+}
+
+.shift-gallery:hover .shift-track {
+  animation-play-state: paused;
+}
+
+@keyframes shiftScroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.shift-slide {
+  position: relative;
+  flex: 0 0 auto;
+  height: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 10px 26px -12px rgba(16, 36, 28, 0.35);
+  border: 3px solid #ffffff;
+  transition: transform 0.35s ease, box-shadow 0.35s ease;
+}
+
+.shift-slide:hover {
+  transform: translateY(-6px) scale(1.03);
+  box-shadow: 0 18px 34px -14px rgba(16, 36, 28, 0.45);
+  z-index: 2;
+}
+
+.shift-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.shift-slide .shift-slide-tag {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #10241c;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  padding: 3px 9px;
+  border-radius: 999px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.shift-slide:hover .shift-slide-tag {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Empty state — invites you to drop photos into /public/gallery3 */
+.shift-gallery-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #6b7a74;
+  text-align: center;
+  padding: 0 20px;
+}
+.shift-gallery-empty i {
+  font-size: 1.6rem;
+  color: #19A975;
+}
+.shift-gallery-empty strong {
+  color: #10241c;
+  font-size: 0.95rem;
+}
+.shift-gallery-empty span {
+  font-size: 0.8rem;
+}
+
+/* Lightbox for the shift gallery */
+.shift-lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 16, 13, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  padding: 32px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.shift-lightbox.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.shift-lightbox img {
+  max-width: min(90vw, 900px);
+  max-height: 82vh;
+  border-radius: 18px;
+  box-shadow: 0 40px 90px rgba(0, 0, 0, 0.5);
+  border: 4px solid rgba(255, 255, 255, 0.9);
+}
+.shift-lightbox-close {
+  position: absolute;
+  top: 26px;
+  right: 32px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.1rem;
+}
+.shift-lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+@media (max-width: 768px) {
+  .shift-gallery { height: 170px; border-radius: 20px; }
+  .shift-track { gap: 12px; padding: 14px; }
+  .shift-gallery::before, .shift-gallery::after { width: 50px; }
+  .shift-gallery-head h2 { font-size: 1.4rem; }
+}
