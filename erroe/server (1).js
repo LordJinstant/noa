@@ -1327,32 +1327,6 @@ function leaveCurrentRoom(socket) {
   socket.data.roomCode = null;
 }
 
-
-
-app.get('/api/gallery/:name', (req, res) => {
-  const name = req.params.name;
-  if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
-    return res.status(400).json({ msg: 'Invalid gallery name' });
-  }
-
-  const dir = path.join(__dirname, 'public', name);
-  const imageExt = /\.(jpe?g|png|webp|gif|avif)$/i;
-
-  try {
-    if (!fs.existsSync(dir)) return res.json([]);
-    const files = fs.readdirSync(dir)
-      .filter(f => imageExt.test(f))
-      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-    return res.json(files.map(f => `/${name}/${f}`));
-  } catch (err) {
-    console.error('Gallery list error:', err);
-    return res.status(500).json({ msg: 'Failed to list gallery' });
-  }
-});
-
-
-
-
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on http://localhost:${PORT}`);
   console.log(`Socket.IO signaling ready for WebRTC classes`);

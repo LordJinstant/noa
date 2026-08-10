@@ -8,15 +8,6 @@
       "role": "Superadmin"
     },
     {
-      "id": 1780307957322,
-      "username": "Jakob",
-      "email": "Jakk@gmail.com",
-      "password": "$2b$10$WqPnq4EdY7E0./vDxcuXtucfYAr9U0fiXgYb7vzT4BFLjbDzpjaOW",
-      "name": "Jakob Hitman",
-      "role": "moderator",
-      "img": "https://i.pravatar.cc/150?img=53"
-    },
-    {
       "id": 1780879042929,
       "username": "Hedgeaskman",
       "email": "Hedgeaskman@gmail.com",
@@ -44,15 +35,6 @@
       "createdAt": "2026-07-24T11:31:40.977Z"
     },
     {
-      "id": 1785764229559,
-      "username": "My Cal",
-      "email": "michathae@gmail.com",
-      "password": "$2b$10$zMbLmzNyAubgsC.qzNHk6uR8cgYnOhDyRjvxYaTTniy.jU.QnBLBC",
-      "name": "Micheal Cathae",
-      "role": "admin",
-      "createdAt": "2026-08-03T13:37:09.559Z"
-    },
-    {
       "id": 1785838921028,
       "username": "james",
       "email": "jameso@gmail.com",
@@ -69,6 +51,15 @@
       "name": "food coat",
       "role": "admin",
       "createdAt": "2026-08-04T18:12:26.618Z"
+    },
+    {
+      "id": 1786370573323,
+      "username": "success",
+      "email": "mailmee@gmail.com",
+      "password": "$2b$10$fqO.3DxZB.uzz/E0kema9eDIKaDux8GxmV6J7RhhBOGnNd8FoCLvC",
+      "name": "Dr. Success ",
+      "role": "moderator",
+      "createdAt": "2026-08-10T14:02:53.323Z"
     }
   ]
 }

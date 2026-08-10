@@ -114,8 +114,8 @@
           <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <div><h3 class="font-bold text-lg">Performance Trend</h3>
-                <p class="text-sm text-slate-500">Scores = (Score ÷ Supposed Score) × 100 · filter by subject below</p></div>
-              <div class="flex flex-wrap gap-2 items-center">
+                <p class="text-sm text-slate-500">Scores = (Score ÷ Supposed Score) × 100</p></div>
+              <div class="flex flex-wrap gap-2">
                 <button class="period-btn active px-3 py-1.5 rounded-full text-xs font-semibold border border-slate-200" data-period="week">Week</button>
                 <button class="period-btn px-3 py-1.5 rounded-full text-xs font-semibold border border-slate-200" data-period="month">Month</button>
                 <button class="period-btn px-3 py-1.5 rounded-full text-xs font-semibold border border-slate-200" data-period="3months">3 Months</button>
@@ -127,18 +127,7 @@
             <div class="relative h-72"><canvas id="performanceChart"></canvas></div>
           </div>
           <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-              <div>
-                <h3 class="font-bold text-lg">Recent Assessments</h3>
-                <p class="text-xs text-slate-500 mt-0.5">Chart &amp; scores above follow this subject filter</p>
-              </div>
-              <div class="flex items-center gap-2">
-                <label for="subjectFilter" class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Subject</label>
-                <select id="subjectFilter" class="px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-green-300 min-w-[160px] bg-white">
-                  <option value="">All subjects</option>
-                </select>
-              </div>
-            </div>
+            <h3 class="font-bold text-lg mb-4">Recent Assessments</h3>
             <div class="overflow-x-auto">
               <table class="w-full text-sm">
                 <thead><tr class="text-left text-slate-500 border-b">
@@ -428,7 +417,7 @@ document.getElementById('avatarCircle').textContent = (user.name || 'S').charAt(
   nav.style.display = canHostClass() ? '' : 'none';
 })();
 
-let performanceChart = null, currentPeriod = 'week', currentSubject = '', allPerformanceData = [], allStudents = [], currentModalStudent = null;
+let performanceChart = null, currentPeriod = 'week', allStudents = [], currentModalStudent = null;
 let mediaStream = null, camOn = true, micOn = true;
 let drawing = false, tool = 'pen', color = '#ffffff', lastX = 0, lastY = 0;
 
@@ -480,32 +469,13 @@ document.querySelectorAll('.period-btn').forEach(btn => {
     loadPerformance(currentPeriod);
   });
 });
-document.getElementById('subjectFilter')?.addEventListener('change', (e) => {
-  currentSubject = (e.target.value || '').trim();
-  // Re-filter without full reload when we already have period data
-  if (allPerformanceData.length) {
-    let filtered = allPerformanceData;
-    if (currentSubject) {
-      const sub = currentSubject.toLowerCase();
-      filtered = allPerformanceData.filter(d => String(d.subject || '').toLowerCase() === sub);
-    }
-    renderPerformanceView(filtered);
-  } else {
-    loadPerformance(currentPeriod);
-  }
-});
 
 async function loadPerformance(period) {
   try {
     const headers = token ? { Authorization: 'Bearer ' + token } : {};
-    let url = '/api/my-assessments?period=' + encodeURIComponent(period || currentPeriod || 'week');
-    if (currentSubject) url += '&subject=' + encodeURIComponent(currentSubject);
-    const res = await fetch(url, { headers });
+    const res = await fetch('/api/my-assessments?period=' + period, { headers });
     let data = res.ok ? await res.json() : [];
-    if (!Array.isArray(data)) data = [];
-
-    // Demo sample only when student has no real data for the period (all subjects)
-    if (!data.length && !currentSubject && (period === 'week' || period === currentPeriod)) {
+    if (!data.length && period === 'week') {
       data = [
         { assessed_at: '2026-07-28', percentage: 72, subject: 'Mathematics', score: 72, supposed_score: 100 },
         { assessed_at: '2026-07-29', percentage: 78, subject: 'Mathematics', score: 78, supposed_score: 100 },
@@ -515,155 +485,72 @@ async function loadPerformance(period) {
         { assessed_at: '2026-08-02', percentage: 91, subject: 'Chemistry', score: 91, supposed_score: 100 }
       ];
     }
+    const labels = data.map(d => d.assessed_at || d.date);
+    const scores = data.map(d => d.percentage);
+    const overall = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : 0;
+    document.getElementById('overallScore').textContent = overall || '—';
+    document.getElementById('assessCount').textContent = data.length || '—';
+    document.getElementById('classRank').textContent = data.length ? '#' + Math.max(1, Math.ceil(Math.random()*12)) : '#—';
+    const tbody = document.getElementById('recentAssessBody');
+    const role = (user.role || 'student').toLowerCase();
+    const isStaffView = role.includes('admin') || role.includes('staff') || role === 'super_admin';
 
-    // Keep unfiltered period data for subject dropdown; filter client-side for display
-    // Re-fetch without subject to build full subject list for this period
-    let periodAll = data;
-    if (currentSubject) {
+    if (isStaffView) {
+      // Staff / admin: show top student scores
       try {
-        const resAll = await fetch('/api/my-assessments?period=' + encodeURIComponent(period || currentPeriod || 'week'), { headers });
-        if (resAll.ok) {
-          periodAll = await resAll.json();
-          if (!Array.isArray(periodAll)) periodAll = data;
+        const topRes = await fetch('/api/top-assessments');
+        const top = topRes.ok ? await topRes.json() : [];
+        if (top.length) {
+          tbody.innerHTML = top.slice(0, 10).map(d =>
+            '<tr class="border-b border-slate-50"><td class="py-3 font-medium">' + (d.student_name || '—') + '</td><td class="py-3">' + (d.subject || '—') + '</td><td class="py-3">' + (d.score ?? '—') + '/' + (d.supposed_score ?? '—') + '</td><td class="py-3"><span class="font-bold brand-green">' + d.percentage + '%</span></td><td class="py-3 text-slate-500">' + (d.assessed_at || '—') + '</td></tr>'
+          ).join('');
+          // Adjust header labels for staff view
+          const thead = tbody.closest('table').querySelector('thead tr');
+          if (thead) thead.innerHTML = '<th class="pb-3 font-medium">Student</th><th class="pb-3 font-medium">Subject</th><th class="pb-3 font-medium">Score</th><th class="pb-3 font-medium">%</th><th class="pb-3 font-medium">Date</th>';
+        } else {
+          tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400">No assessment scores yet</td></tr>';
         }
-      } catch (e) { periodAll = data; }
-      if (!periodAll.length && data.length) periodAll = data;
-    }
-    allPerformanceData = periodAll;
-
-    // Apply subject filter for chart + table + stats
-    let filtered = periodAll;
-    if (currentSubject) {
-      const sub = currentSubject.toLowerCase();
-      filtered = periodAll.filter(d => String(d.subject || '').toLowerCase() === sub);
-    }
-
-    populateSubjectFilter(periodAll);
-    renderPerformanceView(filtered);
-  } catch (err) { console.error(err); }
-}
-
-function populateSubjectFilter(rows) {
-  const sel = document.getElementById('subjectFilter');
-  if (!sel) return;
-  const subjects = [...new Set(
-    (rows || []).map(r => String(r.subject || '').trim()).filter(Boolean)
-  )].sort((a, b) => a.localeCompare(b));
-  const prev = currentSubject || sel.value || '';
-  sel.innerHTML = '<option value="">All subjects</option>' +
-    subjects.map(s => '<option value="' + s.replace(/"/g, '&quot;') + '">' + s + '</option>').join('');
-  if (prev && subjects.some(s => s.toLowerCase() === prev.toLowerCase())) {
-    const match = subjects.find(s => s.toLowerCase() === prev.toLowerCase());
-    sel.value = match;
-    currentSubject = match;
-  } else if (prev && !subjects.length) {
-    sel.innerHTML = '<option value="">All subjects</option><option value="' + prev.replace(/"/g, '&quot;') + '">' + prev + '</option>';
-    sel.value = prev;
-  } else {
-    sel.value = '';
-    if (prev && !subjects.some(s => s.toLowerCase() === prev.toLowerCase())) currentSubject = '';
-  }
-}
-
-function renderPerformanceView(data) {
-  if (!Array.isArray(data)) data = [];
-  const labels = data.map(d => d.assessed_at || d.date);
-  const scores = data.map(d => Number(d.percentage) || 0);
-  const overall = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
-  document.getElementById('overallScore').textContent = scores.length ? overall : '—';
-  document.getElementById('assessCount').textContent = data.length || '—';
-  document.getElementById('classRank').textContent = data.length ? '#' + Math.max(1, Math.min(12, Math.ceil((100 - overall) / 8) || 1)) : '#—';
-
-  const tbody = document.getElementById('recentAssessBody');
-  const role = (user.role || 'student').toLowerCase();
-  const isStaffView = role.includes('admin') || role.includes('staff') || role === 'super_admin' || role === 'moderator';
-
-  if (isStaffView) {
-    loadStaffRecentAssessments(tbody);
-  } else if (data.length) {
-    const thead = tbody.closest('table')?.querySelector('thead tr');
-    if (thead) {
-      thead.innerHTML = '<th class="pb-3 font-medium">Subject</th><th class="pb-3 font-medium">Score</th><th class="pb-3 font-medium">Out of</th><th class="pb-3 font-medium">%</th><th class="pb-3 font-medium">Date</th>';
-    }
-    tbody.innerHTML = data.slice().reverse().slice(0, 12).map(d =>
-      '<tr class="border-b border-slate-50"><td class="py-3 font-medium">' + (d.subject || '—') + '</td><td class="py-3">' + (d.score ?? '—') + '</td><td class="py-3">' + (d.supposed_score ?? '—') + '</td><td class="py-3"><span class="font-bold brand-green">' + d.percentage + '%</span></td><td class="py-3 text-slate-500">' + (d.assessed_at || '—') + '</td></tr>'
-    ).join('');
-  } else {
-    const msg = currentSubject
-      ? ('No assessments for “' + currentSubject + '” in this period')
-      : 'No assessments in this period for you yet';
-    tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400">' + msg + '</td></tr>';
-  }
-
-  const ctx = document.getElementById('performanceChart')?.getContext('2d');
-  if (!ctx) return;
-  if (performanceChart) performanceChart.destroy();
-  const chartLabel = currentSubject ? (currentSubject + ' %') : 'Performance %';
-  performanceChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels.length ? labels : ['No data'],
-      datasets: [{
-        label: chartLabel,
-        data: scores.length ? scores : [0],
-        borderColor: '#19A975',
-        backgroundColor: (context) => {
-          const chart = context.chart; const { ctx: c2, chartArea } = chart;
-          if (!chartArea) return null;
-          const g = c2.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-          g.addColorStop(0, 'rgba(25,169,117,0.25)'); g.addColorStop(1, 'rgba(25,169,117,0.02)');
-          return g;
-        },
-        fill: true, tension: 0.4, borderWidth: 3, pointRadius: 5,
-        pointBackgroundColor: '#19A975', pointBorderColor: '#fff', pointBorderWidth: 2
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: !!currentSubject },
-        tooltip: { backgroundColor: '#0f172a', padding: 12, cornerRadius: 10 }
-      },
-      scales: {
-        y: { min: 0, max: 100, grid: { color: '#f1f5f9' }, ticks: { callback: v => v + '%' } },
-        x: { grid: { display: false } }
+      } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400">Could not load top scores</td></tr>';
       }
-    }
-  });
-}
-
-async function loadStaffRecentAssessments(tbody) {
-  try {
-    let url = '/api/top-assessments';
-    if (currentSubject) url += '?subject=' + encodeURIComponent(currentSubject);
-    const topRes = await fetch(url);
-    let top = topRes.ok ? await topRes.json() : [];
-    if (!Array.isArray(top)) top = [];
-    if (currentSubject) {
-      const sub = currentSubject.toLowerCase();
-      top = top.filter(d => String(d.subject || '').toLowerCase() === sub);
-    }
-    // Populate subject options from top list if student data empty
-    if (!allPerformanceData.length && top.length) {
-      populateSubjectFilter(top);
-    }
-    const thead = tbody.closest('table')?.querySelector('thead tr');
-    if (thead) {
-      thead.innerHTML = '<th class="pb-3 font-medium">Student</th><th class="pb-3 font-medium">Subject</th><th class="pb-3 font-medium">Score</th><th class="pb-3 font-medium">%</th><th class="pb-3 font-medium">Date</th>';
-    }
-    if (top.length) {
-      tbody.innerHTML = top.slice(0, 12).map(d =>
-        '<tr class="border-b border-slate-50"><td class="py-3 font-medium">' + (d.student_name || '—') + '</td><td class="py-3">' + (d.subject || '—') + '</td><td class="py-3">' + (d.score ?? '—') + '/' + (d.supposed_score ?? '—') + '</td><td class="py-3"><span class="font-bold brand-green">' + d.percentage + '%</span></td><td class="py-3 text-slate-500">' + (d.assessed_at || '—') + '</td></tr>'
+    } else if (data.length) {
+      // Student: only their own subject scores
+      tbody.innerHTML = data.slice().reverse().slice(0, 8).map(d =>
+        '<tr class="border-b border-slate-50"><td class="py-3 font-medium">' + (d.subject || '—') + '</td><td class="py-3">' + (d.score ?? '—') + '</td><td class="py-3">' + (d.supposed_score ?? '—') + '</td><td class="py-3"><span class="font-bold brand-green">' + d.percentage + '%</span></td><td class="py-3 text-slate-500">' + (d.assessed_at || '—') + '</td></tr>'
       ).join('');
     } else {
-      const msg = currentSubject
-        ? ('No top scores for “' + currentSubject + '” yet')
-        : 'No assessment scores yet';
-      tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400">' + msg + '</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400">No assessments in this period for you yet</td></tr>';
     }
-  } catch (e) {
-    tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400">Could not load top scores</td></tr>';
-  }
+    const ctx = document.getElementById('performanceChart').getContext('2d');
+    if (performanceChart) performanceChart.destroy();
+    performanceChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels.length ? labels : ['No data'],
+        datasets: [{
+          label: 'Performance %', data: scores.length ? scores : [0],
+          borderColor: '#19A975',
+          backgroundColor: (context) => {
+            const chart = context.chart; const {ctx, chartArea} = chart;
+            if (!chartArea) return null;
+            const g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+            g.addColorStop(0, 'rgba(25,169,117,0.25)'); g.addColorStop(1, 'rgba(25,169,117,0.02)');
+            return g;
+          },
+          fill: true, tension: 0.4, borderWidth: 3, pointRadius: 5,
+          pointBackgroundColor: '#19A975', pointBorderColor: '#fff', pointBorderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0f172a', padding: 12, cornerRadius: 10 } },
+        scales: {
+          y: { min: 0, max: 100, grid: { color: '#f1f5f9' }, ticks: { callback: v => v + '%' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  } catch (err) { console.error(err); }
 }
 
 async function loadDirectory() {

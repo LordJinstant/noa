@@ -940,9 +940,9 @@ app.get('/api/my-assessments', (req, res) => {
   if (!token) return res.status(401).json({ msg: 'No token' });
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const { period = 'all', subject } = req.query;
-    let sql = `SELECT * FROM assessments WHERE (student_id = ? OR lower(student_name) = lower(?))`;
-    const params = [decoded.id, decoded.username || decoded.name || ''];
+    const { period = 'all' } = req.query;
+    let sql = `SELECT * FROM assessments WHERE student_id = ? OR lower(student_name) = lower(?)`;
+    const params = [decoded.id, decoded.username || ''];
 
     const now = new Date();
     if (period === 'week') {
@@ -965,10 +965,6 @@ app.get('/api/my-assessments', (req, res) => {
       const d = new Date(now); d.setFullYear(d.getFullYear() - 1);
       sql += ` AND date(assessed_at) >= date(?)`;
       params.push(d.toISOString().split('T')[0]);
-    }
-    if (subject && String(subject).trim()) {
-      sql += ` AND lower(subject) = lower(?)`;
-      params.push(String(subject).trim());
     }
     sql += ` ORDER BY assessed_at ASC`;
     const rows = usersDb.prepare(sql).all(...params);
@@ -1215,18 +1211,12 @@ app.delete('/api/classes/:code', (req, res) => {
 
 app.get('/api/top-assessments', (req, res) => {
   try {
-    const subject = (req.query.subject || '').trim();
-    let sql = `
+    const rows = usersDb.prepare(`
       SELECT student_name, subject, percentage, score, supposed_score, assessed_at, grade
       FROM assessments
-      WHERE 1=1`;
-    const params = [];
-    if (subject) {
-      sql += ` AND lower(subject) = lower(?)`;
-      params.push(subject);
-    }
-    sql += ` ORDER BY percentage DESC, assessed_at DESC LIMIT 30`;
-    const rows = usersDb.prepare(sql).all(...params);
+      ORDER BY percentage DESC, assessed_at DESC
+      LIMIT 15
+    `).all();
     return res.json(rows);
   } catch (err) {
     return res.status(500).json({ msg: err.message });
@@ -1349,7 +1339,6 @@ app.get('/api/gallery/:name', (req, res) => {
     return res.status(500).json({ msg: 'Failed to list gallery' });
   }
 });
-
 
 
 
