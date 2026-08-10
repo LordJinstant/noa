@@ -1581,4 +1581,151 @@ function closePersonDetail() {
 
 document.addEventListener('DOMContentLoaded', () => { loadPerformance('week'); });
 </script>
+
+
+<!-- NOA AI Assistant Widget -->
+<div id="noaAiRoot" class="fixed bottom-5 right-5 z-[300] font-sans">
+  <button id="noaAiFab" onclick="toggleNoaAi()" class="w-14 h-14 rounded-full bg-[#19A975] text-white shadow-lg shadow-green-600/30 flex items-center justify-center text-xl hover:scale-105 transition">
+    <i class="fas fa-robot"></i>
+  </button>
+  <div id="noaAiPanel" class="hidden absolute bottom-16 right-0 w-[min(100vw-2rem,380px)] bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col" style="height:min(70vh,520px)">
+    <div class="bg-gradient-to-r from-slate-900 to-teal-800 text-white px-4 py-3 flex items-center justify-between">
+      <div>
+        <p class="font-bold text-sm">NOA Assistant</p>
+        <p class="text-[11px] text-white/70">Answers fact from this website.</p>
+      </div>
+      <button onclick="toggleNoaAi(false)" class="text-white/80 hover:text-white">✕</button>
+    </div>
+    <div id="noaAiHistory" class="px-3 py-2 border-b bg-slate-50 max-h-16 overflow-x-auto flex gap-2 text-xs"></div>
+    <div id="noaAiMessages" class="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50/50"></div>
+    <div id="noaAiContact" class="px-3 py-2 border-t grid grid-cols-1 gap-1.5 bg-white">
+      <input id="aiName" placeholder="Your name" class="text-xs px-3 py-2 rounded-xl border" />
+      <input id="aiEmail" placeholder="Email" type="email" class="text-xs px-3 py-2 rounded-xl border" />
+      <input id="aiPhone" placeholder="Phone" class="text-xs px-3 py-2 rounded-xl border" />
+    </div>
+    <div class="p-3 border-t flex gap-2 bg-white">
+      <input id="noaAiInput" type="text" placeholder="Ask a question…" class="flex-1 text-sm px-3 py-2.5 rounded-2xl border focus:border-[#19A975] outline-none" onkeydown="if(event.key==='Enter')sendNoaAi()" />
+      <button onclick="sendNoaAi()" class="px-4 py-2.5 rounded-2xl bg-[#19A975] text-white text-sm font-semibold">Send</button>
+    </div>
+    <div class="px-3 pb-2 flex justify-between text-[10px] text-slate-400 bg-white">
+      <button onclick="requestModerator()" class="text-[#19A975] font-semibold hover:underline">Talk to moderator</button>
+      <span>AI uses information only</span>
+    </div>
+  </div>
+</div>
+<script>
+(function() {
+  const VISITOR_KEY = 'noa_ai_visitor';
+  const CONV_KEY = 'noa_ai_conv';
+  function getVisitorId() {
+    let id = localStorage.getItem(VISITOR_KEY);
+    if (!id) { id = 'v' + Date.now() + Math.random().toString(36).slice(2, 8); localStorage.setItem(VISITOR_KEY, id); }
+    return id;
+  }
+  window.toggleNoaAi = function(force) {
+    const p = document.getElementById('noaAiPanel');
+    if (!p) return;
+    const show = force === false ? false : force === true ? true : p.classList.contains('hidden');
+    p.classList.toggle('hidden', !show);
+    if (show) {
+      loadMyAiHistory();
+      const convId = localStorage.getItem(CONV_KEY);
+      if (convId) loadAiThread(convId);
+      else if (!document.getElementById('noaAiMessages').children.length) {
+        appendAiMsg('assistant', 'Hello! I am the NOA Assistant. I am here to help you with information about classes, registration, or SIMCC — or request a moderator anytime.');
+      }
+    }
+  };
+  function appendAiMsg(role, text) {
+    const box = document.getElementById('noaAiMessages');
+    const div = document.createElement('div');
+    const isUser = role === 'user';
+    const isMod = role === 'moderator';
+    div.className = (isUser ? 'ml-6 bg-emerald-600 text-white' : isMod ? 'mr-6 bg-amber-50 border border-amber-200' : 'mr-6 bg-white border') + ' rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap';
+    div.textContent = text;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+  window.sendNoaAi = async function() {
+    const input = document.getElementById('noaAiInput');
+    const text = (input.value || '').trim();
+    if (!text) return;
+    input.value = '';
+    appendAiMsg('user', text);
+    try {
+      const res = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: text,
+          visitorId: getVisitorId(),
+          conversationId: localStorage.getItem(CONV_KEY) || undefined,
+          name: document.getElementById('aiName').value.trim(),
+          email: document.getElementById('aiEmail').value.trim(),
+          phone: document.getElementById('aiPhone').value.trim()
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.msg || 'Error');
+      if (data.conversationId) localStorage.setItem(CONV_KEY, data.conversationId);
+      appendAiMsg('assistant', data.reply);
+      loadMyAiHistory();
+    } catch (e) {
+      appendAiMsg('assistant', 'Sorry, I could not reach the server. Please try again.');
+    }
+  };
+  window.requestModerator = async function() {
+    const convId = localStorage.getItem(CONV_KEY);
+    if (!convId) {
+      appendAiMsg('assistant', 'Send a message first, then request a moderator.');
+      return;
+    }
+    const name = document.getElementById('aiName').value.trim();
+    const email = document.getElementById('aiEmail').value.trim();
+    const phone = document.getElementById('aiPhone').value.trim();
+    if (!name || !email || !phone) {
+      appendAiMsg('assistant', 'Please fill in your name, email, and phone above so a moderator can reach you.');
+      return;
+    }
+    const res = await fetch('/api/ai/handoff', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversationId: convId, name, email, phone })
+    });
+    const data = await res.json();
+    appendAiMsg('assistant', data.msg || 'Moderator has been notified.');
+    loadMyAiHistory();
+  };
+  async function loadMyAiHistory() {
+    const el = document.getElementById('noaAiHistory');
+    try {
+      const res = await fetch('/api/ai/my-conversations?visitorId=' + encodeURIComponent(getVisitorId()));
+      const list = await res.json();
+      if (!Array.isArray(list) || !list.length) {
+        el.innerHTML = '<span class="text-slate-400">Past chats appear here</span>';
+        return;
+      }
+      el.innerHTML = list.slice(0, 8).map(c =>
+        `<button type="button" onclick="loadAiThread('${c.id}')" class="px-2 py-1 rounded-lg bg-white border whitespace-nowrap hover:border-emerald-500">${(c.preview || c.id).slice(0, 28)}</button>`
+      ).join('');
+    } catch (e) {}
+  }
+  window.loadAiThread = async function(id) {
+    localStorage.setItem(CONV_KEY, id);
+    const res = await fetch('/api/ai/conversation/' + id + '?visitorId=' + encodeURIComponent(getVisitorId()));
+    if (!res.ok) return;
+    const conv = await res.json();
+    const box = document.getElementById('noaAiMessages');
+    box.innerHTML = '';
+    if (conv.name) document.getElementById('aiName').value = conv.name;
+    if (conv.email) document.getElementById('aiEmail').value = conv.email;
+    if (conv.phone) document.getElementById('aiPhone').value = conv.phone;
+    (conv.messages || []).forEach(m => appendAiMsg(m.role === 'user' ? 'user' : m.role === 'moderator' ? 'moderator' : 'assistant', m.text));
+  };
+})();
+</script>
+
+
+
+
 </body>
