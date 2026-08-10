@@ -1,3 +1,59 @@
 {
-  "conversations": []
+  "conversations": [
+    {
+      "id": "c1786378896264hgolk",
+      "visitorId": "v1786378393738cu8k49",
+      "name": "JOSH MAHN",
+      "email": "jinstant>jo@gmail>com",
+      "phone": "07068610151",
+      "messages": [
+        {
+          "role": "user",
+          "text": "WHATS THIS SITE ALL ABOUT?",
+          "at": "2026-08-10T16:21:36.266Z"
+        },
+        {
+          "role": "assistant",
+          "text": "Nigeria Olympiad Academy (NOA) prepares students for international mathematics and science contests including SIMCC competitions. Students can register on the website, join live classes with a class code, and view their assessment scores on the dashboard.\n\nIf you need a person to follow up, ask for a moderator and leave your name, email, and phone.",
+          "at": "2026-08-10T16:21:36.267Z"
+        },
+        {
+          "role": "user",
+          "text": "GET ME A MODERATOR",
+          "at": "2026-08-10T16:22:22.592Z"
+        },
+        {
+          "role": "assistant",
+          "text": "To speak with a human moderator, ask for a moderator or support at the end of this chat. Provide your name, email, and phone number so they can reach you.\n\nIf you need a person to follow up, ask for a moderator and leave your name, email, and phone.\n\nI've flagged this conversation for a moderator. Please confirm your name, email, and phone number if you haven't already.",
+          "at": "2026-08-10T16:22:22.592Z"
+        },
+        {
+          "role": "assistant",
+          "text": "A moderator has been notified. They will continue this conversation with you shortly.",
+          "at": "2026-08-10T16:23:20.587Z"
+        },
+        {
+          "role": "assistant",
+          "text": "A moderator has been notified. They will continue this conversation with you shortly.",
+          "at": "2026-08-10T16:23:24.283Z"
+        },
+        {
+          "role": "moderator",
+          "text": "Hello, how can i help you?",
+          "at": "2026-08-10T16:24:37.629Z",
+          "by": "drmercy.cp"
+        },
+        {
+          "role": "assistant",
+          "text": "A moderator has been notified. They will continue this conversation with you shortly.",
+          "at": "2026-08-10T16:25:14.958Z"
+        }
+      ],
+      "summary": "User: WHATS THIS SITE ALL ABOUT?\nAI: Nigeria Olympiad Academy (NOA) prepares students for international mathematics and science contests including SIMCC competitions. Students can register on the w\nUser: GET ME A MODERATOR\nAI: To speak with a human moderator, ask for a moderator or support at the end of this chat. Provide your name, email, and phone number so they can reach you.\n\nIf y\nAI: A moderator has been notified. They will continue this conversation with you shortly.\nAI: A moderator has been notified. They will continue this conversation with you shortly.\nModerator: Hello, how can i help you?",
+      "status": "handoff",
+      "unreadModerator": true,
+      "createdAt": "2026-08-10T16:21:36.264Z",
+      "updatedAt": "2026-08-10T16:25:14.958Z"
+    }
+  ]
 }

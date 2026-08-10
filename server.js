@@ -1302,7 +1302,7 @@ function buildAiReply(question, db) {
   if (!ranked.length || ranked[0].score < 3) {
     return {
       reply: (attitude ? '' : '') +
-        "I don't have trained information that fully answers that yet. " +
+        "I don't have the information that fully answers that yet. " +
         "Would you like me to connect you with a human moderator? " +
         "Share your name, email, and phone number and I'll open a support chat for you.",
       confidence: 0,

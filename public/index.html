@@ -1000,7 +1000,7 @@ The most recent SIMCC examinations in Singapore underscored the organization’s
     <div class="bg-gradient-to-r from-slate-900 to-teal-800 text-white px-4 py-3 flex items-center justify-between">
       <div>
         <p class="font-bold text-sm">NOA Assistant</p>
-        <p class="text-[11px] text-white/70">Answers from trained knowledge only</p>
+        <p class="text-[11px] text-white/70">Answers fact from this website.</p>
       </div>
       <button onclick="toggleNoaAi(false)" class="text-white/80 hover:text-white">✕</button>
     </div>
@@ -1017,7 +1017,7 @@ The most recent SIMCC examinations in Singapore underscored the organization’s
     </div>
     <div class="px-3 pb-2 flex justify-between text-[10px] text-slate-400 bg-white">
       <button onclick="requestModerator()" class="text-[#19A975] font-semibold hover:underline">Talk to moderator</button>
-      <span>AI uses trained database only</span>
+      <span>AI uses information only</span>
     </div>
   </div>
 </div>
@@ -1040,7 +1040,7 @@ The most recent SIMCC examinations in Singapore underscored the organization’s
       const convId = localStorage.getItem(CONV_KEY);
       if (convId) loadAiThread(convId);
       else if (!document.getElementById('noaAiMessages').children.length) {
-        appendAiMsg('assistant', 'Hello! I am the NOA Assistant. I answer from our trained knowledge base. Ask about classes, registration, or SIMCC — or request a moderator anytime.');
+        appendAiMsg('assistant', 'Hello! I am the NOA Assistant. I am here to help you with information about classes, registration, or SIMCC — or request a moderator anytime.');
       }
     }
   };
