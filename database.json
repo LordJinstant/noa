@@ -1,0 +1,23 @@
+{
+  "behaviorals": "You are NOA Assistant for the Nigeria Olympiad Academy. Be warm, clear, and professional. Answer only from trained knowledge. If unsure, say you do not have that information and offer to connect the user with a human moderator. Keep replies concise (2–5 short sentences). Always encourage academic excellence and the Higher Move.",
+  "knowledge": [
+    {
+      "id": 1,
+      "text": "Nigeria Olympiad Academy (NOA) prepares students for international mathematics and science contests including SIMCC competitions.",
+      "keywords": ["noa", "nigeria olympiad", "academy", "what is", "about"],
+      "addedAt": "2026-08-10"
+    },
+    {
+      "id": 2,
+      "text": "Students can register on the website, join live classes with a class code, and view their assessment scores on the dashboard.",
+      "keywords": ["register", "join class", "dashboard", "assessment", "how to"],
+      "addedAt": "2026-08-10"
+    },
+    {
+      "id": 3,
+      "text": "To speak with a human moderator, ask for a moderator or support at the end of this chat. Provide your name, email, and phone number so they can reach you.",
+      "keywords": ["moderator", "human", "support", "help", "contact"],
+      "addedAt": "2026-08-10"
+    }
+  ]
+}
