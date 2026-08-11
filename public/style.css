@@ -1859,6 +1859,57 @@
   background: rgba(255, 255, 255, 0.22);
 }
 
+#floatingImage {
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  object-fit: cover;
+  position: absolute;
+  left: 85%;
+  top: 0%;
+  z-index: 2;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+  animation: floatUpDown 3s ease-in-out infinite;
+}
+
+/* Tablets */
+@media (max-width: 1024px) {
+  #floatingImage {
+    width: 110px;
+    height: 110px;
+    left: 81%;
+  }
+}
+
+/* Large phones / small tablets */
+@media (max-width: 768px) {
+  #floatingImage {
+    width: 100px;
+    height: 100px;
+    left: 79%;
+    top: 5%;
+  }
+}
+
+/* Small phones */
+@media (max-width: 480px) {
+  #floatingImage {
+    width: 70px;
+    height: 70px;
+    left: 75%;
+    top: 5%;
+  }
+}
+
+@keyframes floatUpDown {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
 @media (max-width: 768px) {
   .shift-gallery { height: 170px; border-radius: 20px; }
   .shift-track { gap: 12px; padding: 14px; }
