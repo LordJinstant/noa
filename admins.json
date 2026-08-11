@@ -8,51 +8,6 @@
       "role": "Superadmin"
     },
     {
-      "id": 1780879042929,
-      "username": "Hedgeaskman",
-      "email": "Hedgeaskman@gmail.com",
-      "password": "$2b$10$L0tYT.jXAI21zpQ7MQ9Pf.CsFeOL8aFd0wOeK8BEnuHY0LboXv86O",
-      "name": "Hedge Askman",
-      "role": "moderator",
-      "createdAt": "2026-06-08T00:37:22.929Z"
-    },
-    {
-      "id": 1780919795634,
-      "username": "Happylaw",
-      "email": "Happy@gmail.com",
-      "password": "$2b$10$c4ERMEdSK1ESuXp8GBdrKOJdMqngHC629Lo8yDVO4.WNBPgsrKkzm",
-      "name": "Happy Lawrence",
-      "role": "moderator",
-      "createdAt": "2026-06-08T11:56:35.634Z"
-    },
-    {
-      "id": 1784892700977,
-      "username": "Uriel Okafor",
-      "email": "urielo@gmail.com",
-      "password": "$2b$10$HbIfDuqUy5Rvk8CwZyJc9.Lw/2qV/1zvkt1hQf8nc1.eRRaQnB2ha",
-      "name": "uriel28",
-      "role": "moderator",
-      "createdAt": "2026-07-24T11:31:40.977Z"
-    },
-    {
-      "id": 1785838921028,
-      "username": "james",
-      "email": "jameso@gmail.com",
-      "password": "$2b$10$sLexEFcclRCHM6pXUTFFTeCjCymh001g/Fx7RjrPYEM.0gP1jMIYO",
-      "name": "Okonta james",
-      "role": "admin",
-      "createdAt": "2026-08-04T10:22:01.028Z"
-    },
-    {
-      "id": 1785867146618,
-      "username": "foodcoat",
-      "email": "foodcoat@gmail.com",
-      "password": "$2b$10$BNCwf1MQZSCps8iP/dAqRedQUyH0Iz91Yj2y7Sy2ybeQaF2tVQp7O",
-      "name": "food coat",
-      "role": "admin",
-      "createdAt": "2026-08-04T18:12:26.618Z"
-    },
-    {
       "id": 1786370573323,
       "username": "success",
       "email": "mailmee@gmail.com",
@@ -60,6 +15,15 @@
       "name": "Dr. Success ",
       "role": "moderator",
       "createdAt": "2026-08-10T14:02:53.323Z"
+    },
+    {
+      "id": 1786416923634,
+      "username": "hfhfhhff",
+      "email": "jjjfjjffjjf@gmail.com",
+      "password": "$2b$10$EJyGMy55VbrJ/2EOUCMZd.gDqqvyKOyZ5XaB7v90aYPHy35QIIYmS",
+      "name": "hhhhhhhhhh",
+      "role": "admin",
+      "createdAt": "2026-08-11T02:55:23.634Z"
     }
   ]
 }

@@ -63,13 +63,29 @@
           "text": "did you ask about the exams we offer>\"?",
           "at": "2026-08-10T19:15:36.606Z",
           "by": "superadmin"
+        },
+        {
+          "role": "moderator",
+          "text": "Lets talk about scholarshi[ps",
+          "at": "2026-08-11T02:25:39.844Z",
+          "by": "superadmin"
+        },
+        {
+          "role": "user",
+          "text": "okY. GO ON",
+          "at": "2026-08-11T02:26:10.534Z"
+        },
+        {
+          "role": "assistant",
+          "text": "You're in the moderator queue. A moderator will reply here soon. You can keep adding details.",
+          "at": "2026-08-11T02:26:10.535Z"
         }
       ],
-      "summary": "User: WHATS THIS SITE ALL ABOUT?\nAI: Nigeria Olympiad Academy (NOA) prepares students for international mathematics and science contests including SIMCC competitions. Students can register on the w\nUser: GET ME A MODERATOR\nAI: To speak with a human moderator, ask for a moderator or support at the end of this chat. Provide your name, email, and phone number so they can reach you.\n\nIf y\nAI: A moderator has been notified. They will continue this conversation with you shortly.\nAI: A moderator has been notified. They will continue this conversation with you shortly.\nModerator: Hello, how can i help you?\nAI: A moderator has been notified. They will continue this conversation with you shortly.\nUser: what exams can be offered\nAI: You're in the moderator queue. A moderator will reply here soon. You can keep adding details.\nModerator: did you ask about the exams we offer>\"?",
+      "summary": "User: GET ME A MODERATOR\nAI: To speak with a human moderator, ask for a moderator or support at the end of this chat. Provide your name, email, and phone number so they can reach you.\n\nIf y\nAI: A moderator has been notified. They will continue this conversation with you shortly.\nAI: A moderator has been notified. They will continue this conversation with you shortly.\nModerator: Hello, how can i help you?\nAI: A moderator has been notified. They will continue this conversation with you shortly.\nUser: what exams can be offered\nAI: You're in the moderator queue. A moderator will reply here soon. You can keep adding details.\nModerator: did you ask about the exams we offer>\"?\nModerator: Lets talk about scholarshi[ps\nUser: okY. GO ON\nAI: You're in the moderator queue. A moderator will reply here soon. You can keep adding details.",
       "status": "open",
       "unreadModerator": false,
       "createdAt": "2026-08-10T16:21:36.264Z",
-      "updatedAt": "2026-08-10T19:15:36.606Z"
+      "updatedAt": "2026-08-11T02:26:10.535Z"
     }
   ]
 }
