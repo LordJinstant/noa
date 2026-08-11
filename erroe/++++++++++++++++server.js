@@ -1260,60 +1260,6 @@ function writeAiConv(data) {
   fs.writeFileSync(AI_CONV_FILE, JSON.stringify(data, null, 2));
 }
 
-// 24 hours of inactivity → conversation is cleared
-const AI_CONV_TTL_MS = 24 * 60 * 60 * 1000;
-
-function conversationLastActivity(conv) {
-  if (!conv) return 0;
-  if (conv.updatedAt) {
-    const t = Date.parse(conv.updatedAt);
-    if (!Number.isNaN(t)) return t;
-  }
-  const msgs = conv.messages || [];
-  if (msgs.length) {
-    const t = Date.parse(msgs[msgs.length - 1].at || '');
-    if (!Number.isNaN(t)) return t;
-  }
-  if (conv.createdAt) {
-    const t = Date.parse(conv.createdAt);
-    if (!Number.isNaN(t)) return t;
-  }
-  return 0;
-}
-
-function isConversationExpired(conv) {
-  const last = conversationLastActivity(conv);
-  if (!last) return true;
-  return (Date.now() - last) > AI_CONV_TTL_MS;
-}
-
-/** Remove conversations with no activity for 24+ hours. Returns cleaned store. */
-function pruneExpiredConversations(store) {
-  const data = store || readAiConv();
-  data.conversations = data.conversations || [];
-  const before = data.conversations.length;
-  data.conversations = data.conversations.filter(c => !isConversationExpired(c));
-  if (data.conversations.length !== before) {
-    writeAiConv(data);
-  }
-  return data;
-}
-
-function getActiveConversation(store, { conversationId, visitorId }) {
-  const data = pruneExpiredConversations(store);
-  let conv = null;
-  if (conversationId) {
-    conv = (data.conversations || []).find(c => c.id === conversationId);
-    if (conv && isConversationExpired(conv)) conv = null;
-  }
-  if (!conv && visitorId) {
-    conv = (data.conversations || []).find(
-      c => c.visitorId === visitorId && c.status !== 'closed' && !isConversationExpired(c)
-    );
-  }
-  return { store: data, conv };
-}
-
 function tokenize(text) {
   return String(text || '')
     .toLowerCase()
@@ -1483,11 +1429,16 @@ app.post('/api/ai/chat', (req, res) => {
     if (!text) return res.status(400).json({ msg: 'Message required' });
 
     const db = readAiDb();
-    let { store, conv } = getActiveConversation(readAiConv(), { conversationId, visitorId });
+    const store = readAiConv();
     store.conversations = store.conversations || [];
-    // If client sent an expired conversationId, start completely fresh
-    const expiredRestart = conversationId && !conv;
 
+    let conv = null;
+    if (conversationId) {
+      conv = store.conversations.find(c => c.id === conversationId);
+    }
+    if (!conv && visitorId) {
+      conv = store.conversations.find(c => c.visitorId === visitorId && c.status !== 'closed');
+    }
     if (!conv) {
       conv = {
         id: 'c' + Date.now() + Math.random().toString(36).slice(2, 7),
@@ -1549,9 +1500,7 @@ app.post('/api/ai/chat', (req, res) => {
       conversationId: conv.id,
       visitorId: conv.visitorId,
       status: conv.status,
-      needsContact: !(conv.name && conv.email && conv.phone),
-      restarted: !!expiredRestart,
-      expiresInHours: 24
+      needsContact: !(conv.name && conv.email && conv.phone)
     });
   } catch (err) {
     console.error('AI chat error:', err);
@@ -1562,11 +1511,9 @@ app.post('/api/ai/chat', (req, res) => {
 app.post('/api/ai/handoff', (req, res) => {
   try {
     const { conversationId, name, email, phone } = req.body || {};
-    const store = pruneExpiredConversations(readAiConv());
+    const store = readAiConv();
     const conv = (store.conversations || []).find(c => c.id === conversationId);
-    if (!conv || isConversationExpired(conv)) {
-      return res.status(410).json({ msg: 'Conversation expired after 24 hours of inactivity. Start a new chat.', expired: true });
-    }
+    if (!conv) return res.status(404).json({ msg: 'Conversation not found' });
     if (name) conv.name = String(name).trim();
     if (email) conv.email = String(email).trim();
     if (phone) conv.phone = String(phone).trim();
@@ -1590,16 +1537,15 @@ app.get('/api/ai/my-conversations', (req, res) => {
   try {
     const visitorId = req.query.visitorId;
     if (!visitorId) return res.status(400).json({ msg: 'visitorId required' });
-    const store = pruneExpiredConversations(readAiConv());
+    const store = readAiConv();
     const list = (store.conversations || [])
-      .filter(c => c.visitorId === visitorId && !isConversationExpired(c))
+      .filter(c => c.visitorId === visitorId)
       .map(c => ({
         id: c.id,
         status: c.status,
         name: c.name,
         updatedAt: c.updatedAt,
-        preview: (c.messages || []).slice(-1)[0]?.text?.slice(0, 80) || '',
-        expiresInHours: 24
+        preview: (c.messages || []).slice(-1)[0]?.text?.slice(0, 80) || ''
       }));
     return res.json(list);
   } catch (err) {
@@ -1609,14 +1555,9 @@ app.get('/api/ai/my-conversations', (req, res) => {
 
 app.get('/api/ai/conversation/:id', (req, res) => {
   try {
-    const store = pruneExpiredConversations(readAiConv());
+    const store = readAiConv();
     const conv = (store.conversations || []).find(c => c.id === req.params.id);
-    if (!conv || isConversationExpired(conv)) {
-      return res.status(410).json({
-        msg: 'Conversation expired after 24 hours of inactivity. Start a new chat.',
-        expired: true
-      });
-    }
+    if (!conv) return res.status(404).json({ msg: 'Not found' });
     // Public can load own if visitorId matches
     const visitorId = req.query.visitorId;
     const token = req.headers.authorization?.split(' ')[1];
@@ -1639,9 +1580,9 @@ app.get('/api/ai/conversation/:id', (req, res) => {
 
 app.get('/api/ai/inbox', (req, res) => {
   if (!requireAdminOrMod(req, res)) return;
-  const store = pruneExpiredConversations(readAiConv());
+  const store = readAiConv();
   const list = (store.conversations || [])
-    .filter(c => !isConversationExpired(c) && (c.status === 'handoff' || c.status === 'open' || c.unreadModerator))
+    .filter(c => c.status === 'handoff' || c.status === 'open' || c.unreadModerator)
     .map(c => ({
       id: c.id,
       name: c.name || 'Visitor',
@@ -1658,8 +1599,8 @@ app.get('/api/ai/inbox', (req, res) => {
 
 app.get('/api/ai/unread-count', (req, res) => {
   if (!requireAdminOrMod(req, res)) return;
-  const store = pruneExpiredConversations(readAiConv());
-  const count = (store.conversations || []).filter(c => c.unreadModerator && !isConversationExpired(c)).length;
+  const store = readAiConv();
+  const count = (store.conversations || []).filter(c => c.unreadModerator).length;
   return res.json({ count });
 });
 
@@ -1670,11 +1611,9 @@ app.post('/api/ai/reply', (req, res) => {
     const { conversationId, message } = req.body || {};
     const text = String(message || '').trim();
     if (!conversationId || !text) return res.status(400).json({ msg: 'conversationId and message required' });
-    const store = pruneExpiredConversations(readAiConv());
+    const store = readAiConv();
     const conv = (store.conversations || []).find(c => c.id === conversationId);
-    if (!conv || isConversationExpired(conv)) {
-      return res.status(410).json({ msg: 'Conversation expired after 24 hours of inactivity.', expired: true });
-    }
+    if (!conv) return res.status(404).json({ msg: 'Not found' });
     conv.messages.push({
       role: 'moderator',
       text,
@@ -1821,8 +1760,6 @@ app.get('/api/gallery/:name', (req, res) => {
 });
 
 
-
-setInterval(() => { try { pruneExpiredConversations(readAiConv()); } catch (e) {} }, 60 * 60 * 1000);
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on http://localhost:${PORT}`);

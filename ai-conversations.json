@@ -79,13 +79,74 @@
           "role": "assistant",
           "text": "You're in the moderator queue. A moderator will reply here soon. You can keep adding details.",
           "at": "2026-08-11T02:26:10.535Z"
+        },
+        {
+          "role": "user",
+          "text": "whats the lates exam now",
+          "at": "2026-08-11T12:33:22.053Z"
+        },
+        {
+          "role": "assistant",
+          "text": "You're in the moderator queue. A moderator will reply here soon. You can keep adding details.",
+          "at": "2026-08-11T12:33:22.053Z"
+        },
+        {
+          "role": "user",
+          "text": "tell me news on simcc",
+          "at": "2026-08-11T12:37:57.223Z"
+        },
+        {
+          "role": "assistant",
+          "text": "You're in the moderator queue. A moderator will reply here soon. You can keep adding details.",
+          "at": "2026-08-11T12:37:57.224Z"
+        },
+        {
+          "role": "assistant",
+          "text": "A moderator has been notified. They will continue this conversation with you shortly.",
+          "at": "2026-08-11T12:44:56.058Z"
+        },
+        {
+          "role": "user",
+          "text": "hi",
+          "at": "2026-08-11T13:10:02.766Z"
+        },
+        {
+          "role": "assistant",
+          "text": "You're in the moderator queue. A moderator will reply here soon. You can keep adding details.",
+          "at": "2026-08-11T13:10:02.766Z"
+        },
+        {
+          "role": "moderator",
+          "text": "I am success. Nice knowing you. Are you contended with the ai conversation?",
+          "at": "2026-08-11T13:33:25.000Z",
+          "by": "success"
+        },
+        {
+          "role": "user",
+          "text": "tell me about",
+          "at": "2026-08-11T13:34:29.203Z"
+        },
+        {
+          "role": "assistant",
+          "text": "You're in the moderator queue. A moderator will reply here soon. You can keep adding details.",
+          "at": "2026-08-11T13:34:29.203Z"
+        },
+        {
+          "role": "user",
+          "text": "hi",
+          "at": "2026-08-11T14:02:56.808Z"
+        },
+        {
+          "role": "assistant",
+          "text": "You're in the moderator queue. A moderator will reply here soon. You can keep adding details.",
+          "at": "2026-08-11T14:02:56.808Z"
         }
       ],
-      "summary": "User: GET ME A MODERATOR\nAI: To speak with a human moderator, ask for a moderator or support at the end of this chat. Provide your name, email, and phone number so they can reach you.\n\nIf y\nAI: A moderator has been notified. They will continue this conversation with you shortly.\nAI: A moderator has been notified. They will continue this conversation with you shortly.\nModerator: Hello, how can i help you?\nAI: A moderator has been notified. They will continue this conversation with you shortly.\nUser: what exams can be offered\nAI: You're in the moderator queue. A moderator will reply here soon. You can keep adding details.\nModerator: did you ask about the exams we offer>\"?\nModerator: Lets talk about scholarshi[ps\nUser: okY. GO ON\nAI: You're in the moderator queue. A moderator will reply here soon. You can keep adding details.",
+      "summary": "User: whats the lates exam now\nAI: You're in the moderator queue. A moderator will reply here soon. You can keep adding details.\nUser: tell me news on simcc\nAI: You're in the moderator queue. A moderator will reply here soon. You can keep adding details.\nAI: A moderator has been notified. They will continue this conversation with you shortly.\nUser: hi\nAI: You're in the moderator queue. A moderator will reply here soon. You can keep adding details.\nModerator: I am success. Nice knowing you. Are you contended with the ai conversation?\nUser: tell me about\nAI: You're in the moderator queue. A moderator will reply here soon. You can keep adding details.\nUser: hi\nAI: You're in the moderator queue. A moderator will reply here soon. You can keep adding details.",
       "status": "open",
-      "unreadModerator": false,
+      "unreadModerator": true,
       "createdAt": "2026-08-10T16:21:36.264Z",
-      "updatedAt": "2026-08-11T02:26:10.535Z"
+      "updatedAt": "2026-08-11T14:02:56.808Z"
     }
   ]
 }

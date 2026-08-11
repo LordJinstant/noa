@@ -1,17 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
-<head    <meta charset="UTF-8"> 
+<head>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NOA | Nigeria Olympiad Academy / WIHM</title>
+  <title>NOA | Nigeria Olympiad Academy · The Higher Move</title>
+  <meta name="description" content="Nigeria Olympiad Academy — mastery classes, SIMCC contests, and the Higher Move for young mathematicians.">
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-
-  <!-- Custom CSS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <link rel="stylesheet" href="style.css">
+  <style>
+    body, button, input, select { font-family: 'Outfit', system-ui, sans-serif; }
+  </style>
 </head>
-<body class="bg-white overflow-x-hidden">
+<body class="overflow-x-hidden antialiased">
 
 <div class="flex min-h-screen">
 
@@ -105,7 +109,7 @@
       <button onclick="showLoginModal()" class="w-full py-3 text-sm font-medium border border-gray-300 rounded-2xl hover:bg-gray-50 mb-3">
         Login
       </button>
-      <button onclick="showRegisterModal()" class="w-full py-3 bg-[#19A975] text-white rounded-2xl font-semibold hover:bg-[#158a5f]">
+      <button onclick="showRegisterModal()" class="btn-shine w-full py-3 bg-[#19A975] text-white rounded-2xl font-semibold hover:bg-[#158a5f] transition">
         Register
       </button>
     </div>
@@ -137,7 +141,7 @@
       <button onclick="showLoginModal()" class="hidden sm:block px-6 py-2.5 font-medium border border-gray-300 rounded-2xl hover:bg-gray-50">
         Login
       </button>
-      <button onclick="showRegisterModal()" class="w-full py-3 bg-[#19A975] text-white rounded-2xl font-semibold hover:bg-[#158a5f]">
+      <button onclick="showRegisterModal()" class="btn-shine w-full py-3 bg-[#19A975] text-white rounded-2xl font-semibold hover:bg-[#158a5f] transition">
         Register
       </button>
     </div>
@@ -157,7 +161,7 @@
           </p>
           
           <div class="flex flex-wrap gap-4">
-            <button onclick="showRegisterModal()" class="w-full py-3 bg-[#19A975] text-white rounded-2xl font-semibold hover:bg-[#158a5f]">
+            <button onclick="showRegisterModal()" class="btn-shine w-full py-3 bg-[#19A975] text-white rounded-2xl font-semibold hover:bg-[#158a5f] transition">
               Join Now
             </button>
             <button onclick="showLoginModal()" class="border border-gray-400 px-10 py-4 rounded-3xl text-lg font-medium hover:bg-gray-50">
@@ -167,7 +171,7 @@
         </div>
 
         <div class="relative">
-          <div id="specialHero" class="ripple bg-white rounded-3xl shadow-2xl overflow-hidden border-8 border-gray-200 cursor-pointer min-h-[420px] flex items-center justify-center relative" onclick="cycleAnimation()">
+          <div id="specialHero" class="ripple sparkle-bg rounded-3xl shadow-2xl overflow-hidden border-8 border-gray-200 cursor-pointer min-h-[420px] flex items-center justify-center relative" onclick="cycleAnimation()">
             <div class="absolute inset-0 bg-gradient-to-br from-emerald-900/90 to-black/90"></div>
             <div class="relative text-center p-8 z-10">
               <div class="hero-shell relative text-center p-8 z-10">
@@ -318,67 +322,6 @@
   </div>
 </div>
 
-
-
-<!-- SHIFT GALLERY — pale, self-scrolling marketing catalogue fed by /gallery3 -->
-<section class="shift-gallery-wrap">
-  <div class="shift-gallery-head">
-    <span class="shift-gallery-eyebrow">Moments From SIMCC</span>
-    <h2>Life Inside the Academy</h2>
-    <p>Competitions, classrooms and champions — a living catalogue of Our Moments, Come Share Moments with Us.</p>
-  </div>
-  <div class="shift-gallery" id="shiftGallery">
-    <div class="shift-track" id="shiftTrack"></div>
-  </div>
-</section>
-
-<div class="shift-lightbox" id="shiftLightbox">
-  <div class="shift-lightbox-close" id="shiftLightboxClose"><i class="fa-solid fa-xmark"></i></div>
-  <img id="shiftLightboxImg" src="" alt="Expanded gallery image">
-</div>
-
-<!--000000000000 BASIC-BEST GALLERY SETUP -->
-
-
-<section class="gallery-section" id="gallery2">
-  <div class="gallery-header">
-    <h2 class="gallery-title">Gallery</h2>
-    <p class="gallery-subtitle">A collection of moments</p>
-  </div>
-  
-  <div class="gallery-grid" id="galleryGrid">
-    <!-- Images injected by JS -->
-  </div>
-</section>
-
-<!-- Lightbox -->
-<div class="lightbox" id="lightbox">
-  <button class="lightbox-close" id="lightboxClose" aria-label="Close">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <line x1="18" y1="6" x2="6" y2="18"></line>
-      <line x1="6" y1="6" x2="18" y2="18"></line>
-    </svg>
-  </button>
-  
-  <button class="lightbox-nav lightbox-prev" id="lightboxPrev" aria-label="Previous">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <polyline points="15 18 9 12 15 6"></polyline>
-    </svg>
-  </button>
-  
-  <div class="lightbox-content">
-    <img src="" alt="" id="lightboxImg" class="lightbox-img">
-    <div class="lightbox-caption" id="lightboxCaption"></div>
-  </div>
-  
-  <button class="lightbox-nav lightbox-next" id="lightboxNext" aria-label="Next">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <polyline points="9 18 15 12 9 6"></polyline>
-    </svg>
-  </button>
-  
-  <div class="lightbox-counter" id="lightboxCounter">1 / 12</div>
-</div>
 
 
 
@@ -536,98 +479,6 @@ For Nigerian students and others worldwide, the message is clear: do not shy awa
   </script>
 
 
-<div class="video-grid-container">
-  <div class="video-card">
-    <div class="video-wrapper">
-      <video id="mainVideo" class="video-player" preload="metadata" poster="videos/vid2-poster.jpg">
-        <source src="videos/vid2.mp4" type="video/mp4">
-        <source src="videos/vid2.webm" type="video/webm">
-        Your browser does not support the video tag.
-      </video>
-      
-      <div class="video-overlay" id="videoOverlay">
-        <button class="play-btn" id="playBtn" aria-label="Play video">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="5 3 19 12 5 21 5 3"></polygon>
-          </svg>
-        </button>
-      </div>
-      
-      <div class="video-loading" id="videoLoading">
-        <div class="spinner"></div>
-      </div>
-    </div>
-    
-    <div class="video-info">
-      <h3 class="video-title">Featured Video Of Our Students Arriving Singapore on Arrival</h3>
-      <p class="video-meta">
-        <span class="badge">HD</span>
-        <span class="duration" id="duration">--:--</span>
-      </p>
-    </div>
-  </div>
-</div>
-
-
-<!-- GALLERY SETUP 02 -->
-
-  <main class="gallery-app">
-    <section class="hero">
-      <div class="hero-image">
-        <img id="mainImage" src="gallery2/img1.jpg" alt="Selected gallery image" />
-      </div>
-      <div class="hero-text">
-        <h1> Out For Some Amazing Gallery Displays</h1>
-        <p>Click any thumbnail to preview it in the large display.</p>
-      </div>
-    </section>
-
-    <section class="thumb-grid" aria-label="Image gallery">
-      <button class="thumb active" type="button">
-        <img src="gallery2/img1.jpg" alt="Gallery image 1" />
-      </button>
-      <button class="thumb" type="button">
-        <img src="gallery2/img2.jpg" alt="Gallery image 2" />
-      </button>
-      <button class="thumb" type="button">
-        <img src="gallery2/img3.jpg" alt="Gallery image 3" />
-      </button>
-      <button class="thumb" type="button">
-        <img src="gallery2/img4.jpg" alt="Gallery image 4" />
-      </button>
-      <button class="thumb" type="button">
-        <img src="gallery2/img5.jpg" alt="Gallery image 5" />
-      </button>
-      <button class="thumb" type="button">
-        <img src="gallery2/img6.jpg" alt="Gallery image 6" />
-      </button>
-      <button class="thumb" type="button">
-        <img src="gallery2/img7.jpg" alt="Gallery image 7" />
-      </button>
-      <button class="thumb" type="button">
-        <img src="gallery2/img8.jpg" alt="Gallery image 8" />
-      </button>
-      <button class="thumb" type="button">
-        <img src="gallery2/img9.jpg" alt="Gallery image 9" />
-      </button>
-      <button class="thumb" type="button">
-        <img src="gallery2/img10.jpg" alt="Gallery image 10" />
-      </button>
-      <button class="thumb" type="button">
-        <img src="gallery2/img11.jpg" alt="Gallery image 11" />
-      </button>
-      <button class="thumb" type="button">
-        <img src="gallery2/img12.jpg" alt="Gallery image 12" />
-      </button>
-      <button class="thumb" type="button">
-        <img src="gallery2/img13.jpg" alt="Gallery image 13" />
-      </button>
-      <button class="thumb" type="button">
-        <img src="gallery2/img14.jpg" alt="Gallery image 14" />
-      </button>
-    </section>
-  </main>
-
 
 
 
@@ -699,7 +550,7 @@ The most recent SIMCC examinations in Singapore underscored the organization’s
       <p class="text-xl text-gray-600">Stay informed with our latest news, competition updates, and study materials</p>
     </div>
 
-    <div id="postsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+    <div id="postsGrid" class="magic-section grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
       <!-- Posts will be injected here -->
       <div class="text-center col-span-full py-12">
         <p class="text-gray-500 text-lg">Loading posts...</p>
@@ -769,7 +620,7 @@ The most recent SIMCC examinations in Singapore underscored the organization’s
             </li>
             <li class="flex justify-center lg:justify-start items-center gap-3">
               <i class="fa-solid fa-location-dot"></i>
-              <span>Port Harcourt, Nigeria</span>
+              <span>Lagos, Nigeria</span>
             </li>
           </ul>
 
@@ -964,31 +815,6 @@ The most recent SIMCC examinations in Singapore underscored the organization’s
   </div>
 </div>
 
-       <i class="fas fa-user text-gray-400 text-5xl"></i>
-      </div>
-      <div class="flex-1">
-        <input type="file" id="final_image" accept="image/*" class="w-full px-4 py-3 border rounded-2xl" onchange="previewFinalImage(this)">
-        <p class="text-xs text-gray-500 mt-2">JPG, PNG, or GIF (Max 5MB)</p>
-      </div>
-    </div>
-    
-    <div class="flex gap-3">
-      <button type="button" onclick="skipPhoto()" 
-              class="flex-1 py-4 border-2 border-gray-300 text-gray-700 rounded-2xl font-semibold hover:bg-gray-50">
-        Skip for Now
-      </button>
-      <button type="button" onclick="submitWithPhoto()" 
-              class="flex-1 py-4 bg-[#19A975] text-white rounded-2xl font-semibold hover:bg-[#158a5f]">
-        Submit Application
-      </button>
-    </div>
-    
-    <button type="button" onclick="closePhotoModal()" class="mt-4 w-full text-gray-500 text-sm">
-      Close
-    </button>
-  </div>
-</div>
-
 
 
 <!-- NOA AI Assistant Widget -->
@@ -1000,7 +826,7 @@ The most recent SIMCC examinations in Singapore underscored the organization’s
     <div class="bg-gradient-to-r from-slate-900 to-teal-800 text-white px-4 py-3 flex items-center justify-between">
       <div>
         <p class="font-bold text-sm">NOA Assistant</p>
-        <p class="text-[11px] text-white/70">Answers fact from this website.</p>
+        <p class="text-[11px] text-white/70">Answers from trained knowledge only</p>
       </div>
       <button onclick="toggleNoaAi(false)" class="text-white/80 hover:text-white">✕</button>
     </div>
@@ -1017,7 +843,7 @@ The most recent SIMCC examinations in Singapore underscored the organization’s
     </div>
     <div class="px-3 pb-2 flex justify-between text-[10px] text-slate-400 bg-white">
       <button onclick="requestModerator()" class="text-[#19A975] font-semibold hover:underline">Talk to moderator</button>
-      <span>AI uses information only</span>
+      <span>AI uses trained database only</span>
     </div>
   </div>
 </div>
@@ -1040,7 +866,7 @@ The most recent SIMCC examinations in Singapore underscored the organization’s
       const convId = localStorage.getItem(CONV_KEY);
       if (convId) loadAiThread(convId);
       else if (!document.getElementById('noaAiMessages').children.length) {
-        appendAiMsg('assistant', 'Hello! I am the NOA Assistant. I am here to help you with information about classes, registration, or SIMCC — or request a moderator anytime.');
+        appendAiMsg('assistant', 'Hello! I am the NOA Assistant. I answer from our trained knowledge base. Ask about classes, registration, or SIMCC — or request a moderator anytime.');
       }
     }
   };
@@ -1144,7 +970,6 @@ The most recent SIMCC examinations in Singapore underscored the organization’s
   };
 })();
 </script>
-
 
 <script src="function.js"></script>
 </body>
