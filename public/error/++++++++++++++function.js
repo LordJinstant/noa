@@ -148,9 +148,8 @@ async function login(type) {
     localStorage.setItem('token', data.token);
     localStorage.setItem('user', JSON.stringify(data.user));
 
-    // Super admin, admin, moderator → admin.html (moderators: AI messages only, no train)
-    const r = String(data.user.role || '').toLowerCase();
-    if (r === 'super_admin' || r === 'admin' || r === 'moderator') {
+    // Only env super_admins go to admin portal; students & staff use dashboard
+    if (data.user.role === 'super_admin') {
       window.location.href = 'admin.html';
     } else {
       window.location.href = 'dashboard.html';
