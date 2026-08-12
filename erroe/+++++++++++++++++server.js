@@ -1180,7 +1180,6 @@ app.post('/api/classes/start', (req, res) => {
     title: req.body.title || 'Olympiad Class',
     createdAt: new Date().toISOString(),
     participants: [],
-    banned: [], // names / userIds / emails that cannot rejoin this code
     sharedFile: null
   });
   return res.json({ msg: 'Class started', code, host });
@@ -1197,16 +1196,6 @@ app.post('/api/classes/:code/join', (req, res) => {
   const room = liveClasses.get(code);
   if (!room) return res.status(404).json({ msg: 'Class not found. Check the code with your host.' });
   const name = (req.body.name || 'Participant').trim();
-  const email = (req.body.email || '').trim().toLowerCase();
-  const userId = req.body.userId != null ? String(req.body.userId) : '';
-  const banned = room.banned || [];
-  const blocked =
-    banned.includes(name.toLowerCase()) ||
-    (email && banned.includes(email)) ||
-    (userId && banned.includes('id:' + userId));
-  if (blocked) {
-    return res.status(403).json({ msg: 'You were removed from this class and cannot rejoin this code.' });
-  }
   if (!room.participants.includes(name)) room.participants.push(name);
   return res.json({ msg: 'Joined', code, host: room.host, title: room.title, participants: room.participants });
 });
@@ -1723,65 +1712,36 @@ const socketRooms = new Map();
 io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id);
 
-  socket.on('join-room', ({ code, name, isHost, userId, email, username }) => {
+  socket.on('join-room', ({ code, name, isHost }) => {
     if (!code) return;
     const roomCode = String(code).toUpperCase();
+    socket.join(roomCode);
     socket.data.roomCode = roomCode;
     socket.data.name = name || 'Participant';
     socket.data.isHost = !!isHost;
-    socket.data.userId = userId != null ? String(userId) : '';
-    socket.data.email = (email || '').toLowerCase();
-    socket.data.username = username || '';
-
-    // Ban check for this class code
-    if (typeof liveClasses !== 'undefined' && liveClasses.has(roomCode)) {
-      const lc = liveClasses.get(roomCode);
-      const banned = lc.banned || [];
-      const blocked =
-        banned.includes(String(socket.data.name).toLowerCase()) ||
-        (socket.data.email && banned.includes(socket.data.email)) ||
-        (socket.data.userId && banned.includes('id:' + socket.data.userId));
-      if (blocked) {
-        socket.emit('kicked', { reason: 'You were removed from this class and cannot rejoin this code.' });
-        return;
-      }
-    }
-
-    socket.join(roomCode);
 
     if (!socketRooms.has(roomCode)) socketRooms.set(roomCode, new Map());
     const room = socketRooms.get(roomCode);
 
+    // Existing peers for the new joiner
     const peers = [];
     room.forEach((info, id) => {
-      peers.push({
-        id,
-        name: info.name,
-        isHost: info.isHost,
-        email: info.email,
-        username: info.username,
-        userId: info.userId
-      });
+      peers.push({ id, name: info.name, isHost: info.isHost });
     });
 
-    room.set(socket.id, {
-      name: socket.data.name,
-      isHost: socket.data.isHost,
-      email: socket.data.email,
-      username: socket.data.username,
-      userId: socket.data.userId
-    });
+    room.set(socket.id, { name: socket.data.name, isHost: socket.data.isHost });
 
+    // Tell the new user who is already here
     socket.emit('room-peers', { peers, code: roomCode });
+
+    // Tell others someone joined
     socket.to(roomCode).emit('user-joined', {
       id: socket.id,
       name: socket.data.name,
-      isHost: socket.data.isHost,
-      email: socket.data.email,
-      username: socket.data.username,
-      userId: socket.data.userId
+      isHost: socket.data.isHost
     });
 
+    // Update liveClasses participants if present
     if (typeof liveClasses !== 'undefined' && liveClasses.has(roomCode)) {
       const lc = liveClasses.get(roomCode);
       if (!lc.participants.includes(socket.data.name)) {
@@ -1790,42 +1750,6 @@ io.on('connection', (socket) => {
     }
 
     console.log(`${socket.data.name} joined room ${roomCode} (${room.size} in room)`);
-  });
-
-  socket.on('kick-participant', ({ code, targetId, name }) => {
-    if (!code || !targetId) return;
-    const roomCode = String(code).toUpperCase();
-    if (!socket.data.isHost || socket.data.roomCode !== roomCode) return;
-
-    const room = socketRooms.get(roomCode);
-    const targetInfo = room ? room.get(targetId) : null;
-    const targetName = (targetInfo && targetInfo.name) || name || 'Participant';
-
-    if (typeof liveClasses !== 'undefined' && liveClasses.has(roomCode)) {
-      const lc = liveClasses.get(roomCode);
-      lc.banned = lc.banned || [];
-      const keys = [
-        String(targetName).toLowerCase(),
-        targetInfo && targetInfo.email,
-        targetInfo && targetInfo.userId ? ('id:' + targetInfo.userId) : null
-      ].filter(Boolean);
-      keys.forEach(k => {
-        if (!lc.banned.includes(k)) lc.banned.push(k);
-      });
-      lc.participants = (lc.participants || []).filter(p => p !== targetName);
-    }
-
-    io.to(targetId).emit('kicked', {
-      reason: 'You were removed from this class by the host. You cannot rejoin this class code.'
-    });
-    socket.to(roomCode).emit('participant-kicked', { id: targetId, name: targetName });
-
-    if (room) room.delete(targetId);
-    const targetSock = io.sockets.sockets.get(targetId);
-    if (targetSock) {
-      targetSock.leave(roomCode);
-      targetSock.data.roomCode = null;
-    }
   });
 
   // WebRTC signaling relay (offer / answer / ice-candidate)
@@ -1849,14 +1773,6 @@ io.on('connection', (socket) => {
   socket.on('file-share', ({ code, file }) => {
     if (!code) return;
     socket.to(String(code).toUpperCase()).emit('file-share', { from: socket.id, file });
-  });
-
-  socket.on('board-permission', ({ code, allowed }) => {
-    if (!code) return;
-    socket.to(String(code).toUpperCase()).emit('board-permission', {
-      from: socket.id,
-      allowed: !!allowed
-    });
   });
 
   socket.on('leave-room', () => {

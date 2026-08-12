@@ -114,8 +114,8 @@
           <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <div><h3 class="font-bold text-lg">Performance Trend</h3>
-                <p class="text-sm text-slate-500">Scores = (Score ÷ Supposed Score) × 100 · filter by subject below</p></div>
-              <div class="flex flex-wrap gap-2 items-center">
+                <p class="text-sm text-slate-500">Scores = (Score ÷ Supposed Score) × 100</p></div>
+              <div class="flex flex-wrap gap-2">
                 <button class="period-btn active px-3 py-1.5 rounded-full text-xs font-semibold border border-slate-200" data-period="week">Week</button>
                 <button class="period-btn px-3 py-1.5 rounded-full text-xs font-semibold border border-slate-200" data-period="month">Month</button>
                 <button class="period-btn px-3 py-1.5 rounded-full text-xs font-semibold border border-slate-200" data-period="3months">3 Months</button>
@@ -127,18 +127,7 @@
             <div class="relative h-72"><canvas id="performanceChart"></canvas></div>
           </div>
           <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-              <div>
-                <h3 class="font-bold text-lg">Recent Assessments</h3>
-                <p class="text-xs text-slate-500 mt-0.5">Chart &amp; scores above follow this subject filter</p>
-              </div>
-              <div class="flex items-center gap-2">
-                <label for="subjectFilter" class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Subject</label>
-                <select id="subjectFilter" class="px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-green-300 min-w-[160px] bg-white">
-                  <option value="">All subjects</option>
-                </select>
-              </div>
-            </div>
+            <h3 class="font-bold text-lg mb-4">Recent Assessments</h3>
             <div class="overflow-x-auto">
               <table class="w-full text-sm">
                 <thead><tr class="text-left text-slate-500 border-b">
@@ -178,128 +167,98 @@
         <!-- START CLASS -->
         <section id="section-startClass" class="hidden space-y-6 fade-in">
           <div id="liveClassShell" class="bg-slate-900 rounded-3xl overflow-hidden shadow-2xl">
-            <div class="px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-700">
+            <div class="px-6 py-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-700">
               <div class="flex items-center gap-3 flex-wrap">
                 <div class="w-3 h-3 rounded-full bg-red-500 animate-pulse"></div>
                 <span class="text-white font-semibold">Live Classroom</span>
                 <span id="classCodeBadge" class="hidden text-xs font-mono px-2.5 py-1 rounded-lg bg-brand/20 text-emerald-300 border border-emerald-500/30"></span>
                 <span id="classStatus" class="text-xs text-slate-400">Set a class code to start</span>
-                <span id="participantCountBadge" class="text-xs text-slate-400"></span>
               </div>
               <div class="flex items-center gap-2 flex-wrap">
-                <button id="btnToggleCam" type="button" onclick="toggleCamera()" class="px-3 py-2 rounded-xl bg-slate-700 text-white text-sm hover:bg-slate-600" title="Camera"><i class="fas fa-video mr-1"></i><span class="hidden sm:inline">Cam</span></button>
-                <button id="btnToggleMic" type="button" onclick="toggleMic()" class="px-3 py-2 rounded-xl bg-slate-700 text-white text-sm hover:bg-slate-600" title="Microphone"><i class="fas fa-microphone mr-1"></i><span class="hidden sm:inline">Mic</span></button>
-                <button id="btnScreenShare" type="button" onclick="toggleScreenShare()" class="px-3 py-2 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-400 shadow-lg shadow-indigo-900/40 ring-2 ring-indigo-300/40" title="Share your screen with the class">
-                  <i class="fas fa-desktop mr-1"></i><span>Screen</span>
-                </button>
-                <button type="button" onclick="triggerShareFile()" class="px-3 py-2 rounded-xl bg-slate-700 text-white text-sm hover:bg-slate-600" title="Share a file"><i class="fas fa-file-upload mr-1"></i><span class="hidden sm:inline">File</span></button>
-                <button id="btnToggleBoard" type="button" onclick="toggleWhiteboardPanel()" class="px-3 py-2 rounded-xl bg-slate-700 text-white text-sm hover:bg-slate-600" title="Show or hide whiteboard"><i class="fas fa-chalkboard mr-1"></i><span class="hidden sm:inline">Board</span></button>
-                <button id="btnBoardPerm" type="button" onclick="toggleBoardPermission()" class="hidden px-3 py-2 rounded-xl bg-amber-600 text-white text-sm hover:bg-amber-500" title="Allow students to draw"><i class="fas fa-pen-fancy mr-1"></i>Draw</button>
-                <button type="button" onclick="toggleClassFullscreen()" class="px-3 py-2 rounded-xl bg-slate-700 text-white text-sm hover:bg-slate-600" title="Fullscreen"><i class="fas fa-expand mr-1"></i></button>
-                <button type="button" onclick="endClass()" class="px-3 py-2 rounded-xl bg-red-600 text-white text-sm hover:bg-red-500" title="End class"><i class="fas fa-phone-slash mr-1"></i>End</button>
+                <button id="btnToggleCam" onclick="toggleCamera()" class="px-3 py-2 rounded-xl bg-slate-700 text-white text-sm hover:bg-slate-600"><i class="fas fa-video mr-1"></i>Cam</button>
+                <button id="btnToggleMic" onclick="toggleMic()" class="px-3 py-2 rounded-xl bg-slate-700 text-white text-sm hover:bg-slate-600"><i class="fas fa-microphone mr-1"></i>Mic</button>
+                <button onclick="triggerShareFile()" class="px-3 py-2 rounded-xl bg-slate-700 text-white text-sm hover:bg-slate-600"><i class="fas fa-file-upload mr-1"></i>Share File</button>
+                <button onclick="toggleClassFullscreen()" class="px-3 py-2 rounded-xl bg-slate-700 text-white text-sm hover:bg-slate-600" title="Expand to full screen"><i class="fas fa-expand mr-1"></i>Expand</button>
+                <button onclick="endClass()" class="px-3 py-2 rounded-xl bg-red-600 text-white text-sm hover:bg-red-500"><i class="fas fa-phone-slash mr-1"></i>End</button>
               </div>
             </div>
-            <input type="file" id="shareFileInput" class="hidden" onchange="onShareFileSelected(event)" accept="*/*">
-
-            <div class="flex flex-col lg:flex-row min-h-[520px]" id="classLayoutRow">
-              <!-- Main stage (grows as board shrinks) -->
-              <div class="flex-1 min-w-0 p-4 space-y-3 relative" id="classMainColumn" style="flex: 1 1 auto;">
-                <div id="mainStage" class="relative aspect-video bg-slate-950 rounded-2xl overflow-hidden border border-slate-700">
-                  <video id="localVideo" autoplay muted playsinline class="w-full h-full object-contain bg-black"></video>
-                  <video id="focusVideo" autoplay playsinline class="hidden w-full h-full object-contain bg-black"></video>
-                  <div id="screenShareBadge" class="hidden absolute top-3 left-3 px-3 py-1 rounded-lg bg-indigo-600 text-white text-xs font-semibold"><i class="fas fa-desktop mr-1"></i>Screen sharing</div>
-                  <div id="waitingOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/95 text-white p-6">
+            <input type="file" id="shareFileInput" class="hidden" onchange="onShareFileSelected(event)">
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-0">
+              <div class="xl:col-span-2 p-4 space-y-3">
+                <div class="relative aspect-video bg-black rounded-2xl overflow-hidden">
+                  <video id="localVideo" autoplay muted playsinline class="w-full h-full object-cover"></video>
+                  <div id="waitingOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 text-white p-6">
                     <div id="codeSetupPanel" class="w-full max-w-sm text-center">
-                      <p class="text-lg font-semibold mb-2">Start a live class</p>
-                      <input id="hostClassTitle" type="text" placeholder="Class title" class="w-full mb-2 px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-600 text-sm">
-                      <div class="flex gap-2 mb-3">
-                        <input id="hostClassCode" type="text" placeholder="Class code" class="flex-1 px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-600 text-sm font-mono uppercase">
-                        <button type="button" onclick="generateClassCode()" class="px-3 rounded-xl bg-slate-700 text-sm">Gen</button>
-                      </div>
+                      <i class="fas fa-key text-3xl text-brand mb-3"></i>
+                      <p class="font-semibold text-lg mb-1">Start your class</p>
+                      <p class="text-sm text-slate-400 mb-4">Create a class code. Students use the same code under Join Class.</p>
+                      <input id="hostClassCode" type="text" placeholder="e.g. NOA-MATH-01" class="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-600 text-center font-mono text-lg mb-3 focus:outline-none focus:ring-2 focus:ring-brand">
+                      <input id="hostClassTitle" type="text" placeholder="Class title (optional)" class="w-full px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-600 text-center text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-brand">
                       <button onclick="startClassWithCode()" class="w-full py-3 rounded-xl bg-brand font-semibold hover:opacity-90">Start Class &amp; Open Camera</button>
+                      <button onclick="generateClassCode()" class="mt-2 text-xs text-slate-400 hover:text-white">Generate random code</button>
                     </div>
                     <div id="waitingAfterStart" class="hidden text-center">
-                      <p class="text-lg font-semibold">Waiting for students…</p>
-                      <p class="text-sm text-slate-400 mt-2">Share code <span id="shareCodeHint" class="font-mono text-emerald-300"></span></p>
-                      <button type="button" onclick="dismissWaiting()" class="mt-4 text-sm text-emerald-300 underline">Hide this overlay</button>
+                      <div class="w-16 h-16 rounded-full border-4 border-brand border-t-transparent animate-spin mb-4 mx-auto"></div>
+                      <p class="font-semibold text-lg waiting-pulse">Waiting for others to join…</p>
+                      <p class="text-sm text-slate-400 mt-2">Share code <span id="shareCodeHint" class="font-mono text-emerald-300"></span> with students</p>
+                      <button onclick="dismissWaiting()" class="mt-6 px-5 py-2 rounded-xl bg-slate-700 text-sm">Continue teaching</button>
                     </div>
                   </div>
-                  <div id="sharedFilePanel" class="hidden absolute inset-0 z-20 bg-slate-950 flex flex-col">
-                    <div class="flex items-center justify-between px-3 py-2 bg-slate-900 border-b border-slate-700">
-                      <span id="sharedFileName" class="text-white text-sm truncate font-medium">Shared file</span>
-                      <div class="flex gap-2">
-                        <a id="sharedFileLink" href="#" target="_blank" rel="noopener" class="text-xs text-emerald-300 underline">Open / Download</a>
-                        <button type="button" onclick="closeSharedFile()" class="text-white/80 hover:text-white text-sm px-2">✕</button>
-                      </div>
-                    </div>
-                    <div class="flex-1 min-h-0 bg-slate-900 relative">
-                      <img id="sharedFileImg" class="hidden w-full h-full object-contain" alt="Shared">
-                      <iframe id="sharedFileFrame" class="hidden w-full h-full bg-white border-0" title="Shared file"></iframe>
-                      <video id="sharedFileVideo" class="hidden w-full h-full object-contain" controls></video>
-                      <div id="sharedFileFallback" class="hidden absolute inset-0 flex flex-col items-center justify-center text-slate-300 p-6 text-center">
-                        <i class="fas fa-file-alt text-4xl mb-3 text-slate-500"></i>
-                        <p class="text-sm mb-2">Preview not available for this file type.</p>
-                        <a id="sharedFileFallbackLink" href="#" target="_blank" class="text-emerald-400 underline text-sm">Download / open in new tab</a>
-                      </div>
-                    </div>
+                  <!-- Shared file overlay sits on host cam area -->
+                  <div id="sharedFilePanel" class="hidden absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-4 z-10">
+                    <button onclick="closeSharedFile()" class="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/10 text-white hover:bg-white/20"><i class="fas fa-times"></i></button>
+                    <p class="text-white text-sm mb-3"><i class="fas fa-file mr-2"></i><span id="sharedFileName">Shared file</span></p>
+                    <iframe id="sharedFileFrame" class="w-full flex-1 rounded-xl bg-white min-h-[200px]"></iframe>
+                    <img id="sharedFileImg" class="hidden max-h-full max-w-full object-contain rounded-xl" alt="Shared">
+                    <a id="sharedFileLink" href="#" target="_blank" class="mt-3 text-brand text-sm underline">Open / download</a>
                   </div>
-                  <div class="absolute bottom-3 left-3 px-3 py-1 rounded-lg bg-black/60 text-white text-xs" id="mainStageLabel">You</div>
-                  <button type="button" id="btnClearFocus" onclick="clearFocusPeer()" class="hidden absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-black/70 text-white text-xs hover:bg-black">Back to my camera</button>
-                  <div id="focusedStudentCard" class="hidden absolute bottom-3 right-3 max-w-xs w-[min(100%,280px)] bg-slate-900/95 border border-slate-600 rounded-2xl p-3 text-white shadow-xl z-10">
-                    <p class="text-[10px] uppercase tracking-wide text-slate-400 mb-1">Participant</p>
-                    <p id="fsName" class="font-bold text-sm truncate">—</p>
-                    <p id="fsMeta" class="text-xs text-slate-300 mt-1 leading-relaxed"></p>
-                    <div id="fsHostActions" class="hidden mt-3 flex gap-2">
-                      <button type="button" id="btnKickStudent" onclick="kickFocusedStudent()" class="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-xs font-semibold"><i class="fas fa-user-slash mr-1"></i>Remove from class</button>
-                    </div>
-                  </div>
+                  <div class="absolute bottom-3 left-3 px-3 py-1 rounded-lg bg-black/60 text-white text-xs">You (Host)</div>
                 </div>
-
-                <div>
-                  <div class="flex items-center justify-between mb-2">
-                    <p class="text-slate-400 text-xs font-semibold uppercase tracking-wide">Participants — click to enlarge</p>
-                    <span id="livePeerHint" class="text-[10px] text-slate-500">Cameras &amp; mics stream peer-to-peer</span>
+                <div id="remoteVideos" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div class="peer-slot aspect-video bg-slate-800 rounded-xl flex items-center justify-center text-slate-500 text-xs overflow-hidden relative" data-empty="1">
+                    <div class="placeholder text-center"><i class="fas fa-user text-2xl mb-1"></i><br>Waiting…</div>
                   </div>
-                  <div id="remoteVideos" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-[220px] overflow-y-auto pr-1">
-                    <!-- peer slots filled dynamically -->
+                  <div class="peer-slot aspect-video bg-slate-800 rounded-xl flex items-center justify-center text-slate-500 text-xs overflow-hidden relative" data-empty="1">
+                    <div class="placeholder text-center"><i class="fas fa-user text-2xl mb-1"></i><br>Waiting…</div>
+                  </div>
+                  <div class="peer-slot aspect-video bg-slate-800 rounded-xl flex items-center justify-center text-slate-500 text-xs overflow-hidden relative" data-empty="1">
+                    <div class="placeholder text-center"><i class="fas fa-user text-2xl mb-1"></i><br>Waiting…</div>
+                  </div>
+                  <div class="peer-slot aspect-video bg-slate-800 rounded-xl flex items-center justify-center text-slate-500 text-xs overflow-hidden relative" data-empty="1">
+                    <div class="placeholder text-center"><i class="fas fa-user text-2xl mb-1"></i><br>Waiting…</div>
                   </div>
                 </div>
               </div>
-
-              <!-- Drag handle between stage and board -->
-              <div id="boardResizeHandle" class="hidden lg:flex w-1.5 cursor-col-resize bg-slate-700 hover:bg-brand items-stretch flex-shrink-0" title="Drag to resize board"></div>
-              <!-- Whiteboard (resizable) -->
-              <div id="whiteboardPanel" class="hidden bg-slate-800 p-3 flex flex-col border-l border-slate-700 min-h-[280px] relative" style="width: 360px; min-width: 180px; max-width: 100%;">
-                <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
+              <div class="bg-slate-800 p-4 flex flex-col border-l border-slate-700">
+                <div class="flex items-center justify-between mb-3">
                   <h4 class="text-white font-semibold text-sm"><i class="fas fa-chalkboard mr-2"></i>Whiteboard</h4>
-                  <div class="flex gap-1 items-center">
-                    <span id="boardLockHint" class="text-[10px] text-amber-300/90 mr-1"></span>
-                    <button type="button" onclick="setBoardWidthPct(0.22)" class="w-8 h-8 rounded-lg bg-slate-700 text-white text-xs" title="Smaller board"><i class="fas fa-compress"></i></button>
-                    <button type="button" onclick="setBoardWidthPct(0.45)" class="w-8 h-8 rounded-lg bg-slate-700 text-white text-xs" title="Medium board"><i class="fas fa-equals"></i></button>
-                    <button type="button" onclick="setBoardWidthPct(0.92)" class="w-8 h-8 rounded-lg bg-slate-700 text-white text-xs" title="Board almost full width"><i class="fas fa-expand"></i></button>
+                  <div class="flex gap-1">
                     <button class="tool-btn active w-8 h-8 rounded-lg bg-slate-700 text-white text-xs" data-tool="pen"><i class="fas fa-pen"></i></button>
                     <button class="tool-btn w-8 h-8 rounded-lg bg-slate-700 text-white text-xs" data-tool="eraser"><i class="fas fa-eraser"></i></button>
                     <button onclick="clearBoard()" class="w-8 h-8 rounded-lg bg-slate-700 text-white text-xs"><i class="fas fa-trash"></i></button>
-                    <button onclick="toggleWhiteboardPanel(false)" class="w-8 h-8 rounded-lg bg-slate-700 text-white text-xs" title="Hide board"><i class="fas fa-times"></i></button>
                   </div>
                 </div>
                 <div class="flex gap-1 mb-2">
-                  <button class="color-btn w-6 h-6 rounded-full bg-white border-2 border-transparent" data-color="#ffffff"></button>
-                  <button class="color-btn w-6 h-6 rounded-full bg-red-400" data-color="#f87171"></button>
-                  <button class="color-btn w-6 h-6 rounded-full bg-yellow-300" data-color="#fde047"></button>
-                  <button class="color-btn w-6 h-6 rounded-full bg-emerald-400" data-color="#34d399"></button>
-                  <button class="color-btn w-6 h-6 rounded-full bg-sky-400" data-color="#38bdf8"></button>
+                  <button class="color-btn w-6 h-6 rounded-full bg-white border-2 border-brand" data-color="#ffffff"></button>
+                  <button class="color-btn w-6 h-6 rounded-full bg-red-500" data-color="#ef4444"></button>
+                  <button class="color-btn w-6 h-6 rounded-full bg-yellow-400" data-color="#facc15"></button>
+                  <button class="color-btn w-6 h-6 rounded-full bg-green-400" data-color="#4ade80"></button>
+                  <button class="color-btn w-6 h-6 rounded-full bg-blue-400" data-color="#60a5fa"></button>
+                  <button class="color-btn w-6 h-6 rounded-full bg-pink-400" data-color="#f472b6"></button>
                 </div>
-                <canvas id="whiteboardCanvas" class="flex-1 w-full bg-slate-950 rounded-xl min-h-[240px]"></canvas>
+                <canvas id="whiteboardCanvas" class="flex-1 w-full bg-slate-950 rounded-xl min-h-[280px]"></canvas>
+                <p class="text-xs text-slate-500 mt-2 text-center">Draw equations · diagrams · notes</p>
               </div>
             </div>
           </div>
           <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-sm text-emerald-900">
-            <p class="font-semibold mb-1"><i class="fas fa-broadcast-tower mr-2 text-brand"></i>Live class</p>
-            <p>Host starts with a code; students join with the same code. Cameras and mics connect peer-to-peer. Host can share screen/files and open the whiteboard. Students draw only when the host allows it.</p>
+            <p class="font-semibold mb-1"><i class="fas fa-broadcast-tower mr-2 text-brand"></i>Live class is connected (Socket.IO + WebRTC)</p>
+            <p>Host creates a <strong>class code</strong>. Students enter it under <strong>Join Class</strong>. Cameras connect peer-to-peer; whiteboard strokes and shared files sync in the room.</p>
+            <p class="mt-2 text-xs text-emerald-800/80">Use HTTPS or localhost for camera access. For users behind strict firewalls you may later add a TURN server.</p>
           </div>
         </section>
 
+        <!-- ASSESSMENTS -->
         <section id="section-assessments" class="hidden space-y-6 fade-in">
           <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
@@ -458,7 +417,7 @@ document.getElementById('avatarCircle').textContent = (user.name || 'S').charAt(
   nav.style.display = canHostClass() ? '' : 'none';
 })();
 
-let performanceChart = null, currentPeriod = 'week', currentSubject = '', allPerformanceData = [], allStudents = [], currentModalStudent = null;
+let performanceChart = null, currentPeriod = 'week', allStudents = [], currentModalStudent = null;
 let mediaStream = null, camOn = true, micOn = true;
 let drawing = false, tool = 'pen', color = '#ffffff', lastX = 0, lastY = 0;
 
@@ -510,32 +469,13 @@ document.querySelectorAll('.period-btn').forEach(btn => {
     loadPerformance(currentPeriod);
   });
 });
-document.getElementById('subjectFilter')?.addEventListener('change', (e) => {
-  currentSubject = (e.target.value || '').trim();
-  // Re-filter without full reload when we already have period data
-  if (allPerformanceData.length) {
-    let filtered = allPerformanceData;
-    if (currentSubject) {
-      const sub = currentSubject.toLowerCase();
-      filtered = allPerformanceData.filter(d => String(d.subject || '').toLowerCase() === sub);
-    }
-    renderPerformanceView(filtered);
-  } else {
-    loadPerformance(currentPeriod);
-  }
-});
 
 async function loadPerformance(period) {
   try {
     const headers = token ? { Authorization: 'Bearer ' + token } : {};
-    let url = '/api/my-assessments?period=' + encodeURIComponent(period || currentPeriod || 'week');
-    if (currentSubject) url += '&subject=' + encodeURIComponent(currentSubject);
-    const res = await fetch(url, { headers });
+    const res = await fetch('/api/my-assessments?period=' + period, { headers });
     let data = res.ok ? await res.json() : [];
-    if (!Array.isArray(data)) data = [];
-
-    // Demo sample only when student has no real data for the period (all subjects)
-    if (!data.length && !currentSubject && (period === 'week' || period === currentPeriod)) {
+    if (!data.length && period === 'week') {
       data = [
         { assessed_at: '2026-07-28', percentage: 72, subject: 'Mathematics', score: 72, supposed_score: 100 },
         { assessed_at: '2026-07-29', percentage: 78, subject: 'Mathematics', score: 78, supposed_score: 100 },
@@ -545,155 +485,72 @@ async function loadPerformance(period) {
         { assessed_at: '2026-08-02', percentage: 91, subject: 'Chemistry', score: 91, supposed_score: 100 }
       ];
     }
+    const labels = data.map(d => d.assessed_at || d.date);
+    const scores = data.map(d => d.percentage);
+    const overall = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : 0;
+    document.getElementById('overallScore').textContent = overall || '—';
+    document.getElementById('assessCount').textContent = data.length || '—';
+    document.getElementById('classRank').textContent = data.length ? '#' + Math.max(1, Math.ceil(Math.random()*12)) : '#—';
+    const tbody = document.getElementById('recentAssessBody');
+    const role = (user.role || 'student').toLowerCase();
+    const isStaffView = role.includes('admin') || role.includes('staff') || role === 'super_admin';
 
-    // Keep unfiltered period data for subject dropdown; filter client-side for display
-    // Re-fetch without subject to build full subject list for this period
-    let periodAll = data;
-    if (currentSubject) {
+    if (isStaffView) {
+      // Staff / admin: show top student scores
       try {
-        const resAll = await fetch('/api/my-assessments?period=' + encodeURIComponent(period || currentPeriod || 'week'), { headers });
-        if (resAll.ok) {
-          periodAll = await resAll.json();
-          if (!Array.isArray(periodAll)) periodAll = data;
+        const topRes = await fetch('/api/top-assessments');
+        const top = topRes.ok ? await topRes.json() : [];
+        if (top.length) {
+          tbody.innerHTML = top.slice(0, 10).map(d =>
+            '<tr class="border-b border-slate-50"><td class="py-3 font-medium">' + (d.student_name || '—') + '</td><td class="py-3">' + (d.subject || '—') + '</td><td class="py-3">' + (d.score ?? '—') + '/' + (d.supposed_score ?? '—') + '</td><td class="py-3"><span class="font-bold brand-green">' + d.percentage + '%</span></td><td class="py-3 text-slate-500">' + (d.assessed_at || '—') + '</td></tr>'
+          ).join('');
+          // Adjust header labels for staff view
+          const thead = tbody.closest('table').querySelector('thead tr');
+          if (thead) thead.innerHTML = '<th class="pb-3 font-medium">Student</th><th class="pb-3 font-medium">Subject</th><th class="pb-3 font-medium">Score</th><th class="pb-3 font-medium">%</th><th class="pb-3 font-medium">Date</th>';
+        } else {
+          tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400">No assessment scores yet</td></tr>';
         }
-      } catch (e) { periodAll = data; }
-      if (!periodAll.length && data.length) periodAll = data;
-    }
-    allPerformanceData = periodAll;
-
-    // Apply subject filter for chart + table + stats
-    let filtered = periodAll;
-    if (currentSubject) {
-      const sub = currentSubject.toLowerCase();
-      filtered = periodAll.filter(d => String(d.subject || '').toLowerCase() === sub);
-    }
-
-    populateSubjectFilter(periodAll);
-    renderPerformanceView(filtered);
-  } catch (err) { console.error(err); }
-}
-
-function populateSubjectFilter(rows) {
-  const sel = document.getElementById('subjectFilter');
-  if (!sel) return;
-  const subjects = [...new Set(
-    (rows || []).map(r => String(r.subject || '').trim()).filter(Boolean)
-  )].sort((a, b) => a.localeCompare(b));
-  const prev = currentSubject || sel.value || '';
-  sel.innerHTML = '<option value="">All subjects</option>' +
-    subjects.map(s => '<option value="' + s.replace(/"/g, '&quot;') + '">' + s + '</option>').join('');
-  if (prev && subjects.some(s => s.toLowerCase() === prev.toLowerCase())) {
-    const match = subjects.find(s => s.toLowerCase() === prev.toLowerCase());
-    sel.value = match;
-    currentSubject = match;
-  } else if (prev && !subjects.length) {
-    sel.innerHTML = '<option value="">All subjects</option><option value="' + prev.replace(/"/g, '&quot;') + '">' + prev + '</option>';
-    sel.value = prev;
-  } else {
-    sel.value = '';
-    if (prev && !subjects.some(s => s.toLowerCase() === prev.toLowerCase())) currentSubject = '';
-  }
-}
-
-function renderPerformanceView(data) {
-  if (!Array.isArray(data)) data = [];
-  const labels = data.map(d => d.assessed_at || d.date);
-  const scores = data.map(d => Number(d.percentage) || 0);
-  const overall = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
-  document.getElementById('overallScore').textContent = scores.length ? overall : '—';
-  document.getElementById('assessCount').textContent = data.length || '—';
-  document.getElementById('classRank').textContent = data.length ? '#' + Math.max(1, Math.min(12, Math.ceil((100 - overall) / 8) || 1)) : '#—';
-
-  const tbody = document.getElementById('recentAssessBody');
-  const role = (user.role || 'student').toLowerCase();
-  const isStaffView = role.includes('admin') || role.includes('staff') || role === 'super_admin' || role === 'moderator';
-
-  if (isStaffView) {
-    loadStaffRecentAssessments(tbody);
-  } else if (data.length) {
-    const thead = tbody.closest('table')?.querySelector('thead tr');
-    if (thead) {
-      thead.innerHTML = '<th class="pb-3 font-medium">Subject</th><th class="pb-3 font-medium">Score</th><th class="pb-3 font-medium">Out of</th><th class="pb-3 font-medium">%</th><th class="pb-3 font-medium">Date</th>';
-    }
-    tbody.innerHTML = data.slice().reverse().slice(0, 12).map(d =>
-      '<tr class="border-b border-slate-50"><td class="py-3 font-medium">' + (d.subject || '—') + '</td><td class="py-3">' + (d.score ?? '—') + '</td><td class="py-3">' + (d.supposed_score ?? '—') + '</td><td class="py-3"><span class="font-bold brand-green">' + d.percentage + '%</span></td><td class="py-3 text-slate-500">' + (d.assessed_at || '—') + '</td></tr>'
-    ).join('');
-  } else {
-    const msg = currentSubject
-      ? ('No assessments for “' + currentSubject + '” in this period')
-      : 'No assessments in this period for you yet';
-    tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400">' + msg + '</td></tr>';
-  }
-
-  const ctx = document.getElementById('performanceChart')?.getContext('2d');
-  if (!ctx) return;
-  if (performanceChart) performanceChart.destroy();
-  const chartLabel = currentSubject ? (currentSubject + ' %') : 'Performance %';
-  performanceChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels.length ? labels : ['No data'],
-      datasets: [{
-        label: chartLabel,
-        data: scores.length ? scores : [0],
-        borderColor: '#19A975',
-        backgroundColor: (context) => {
-          const chart = context.chart; const { ctx: c2, chartArea } = chart;
-          if (!chartArea) return null;
-          const g = c2.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-          g.addColorStop(0, 'rgba(25,169,117,0.25)'); g.addColorStop(1, 'rgba(25,169,117,0.02)');
-          return g;
-        },
-        fill: true, tension: 0.4, borderWidth: 3, pointRadius: 5,
-        pointBackgroundColor: '#19A975', pointBorderColor: '#fff', pointBorderWidth: 2
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: !!currentSubject },
-        tooltip: { backgroundColor: '#0f172a', padding: 12, cornerRadius: 10 }
-      },
-      scales: {
-        y: { min: 0, max: 100, grid: { color: '#f1f5f9' }, ticks: { callback: v => v + '%' } },
-        x: { grid: { display: false } }
+      } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400">Could not load top scores</td></tr>';
       }
-    }
-  });
-}
-
-async function loadStaffRecentAssessments(tbody) {
-  try {
-    let url = '/api/top-assessments';
-    if (currentSubject) url += '?subject=' + encodeURIComponent(currentSubject);
-    const topRes = await fetch(url);
-    let top = topRes.ok ? await topRes.json() : [];
-    if (!Array.isArray(top)) top = [];
-    if (currentSubject) {
-      const sub = currentSubject.toLowerCase();
-      top = top.filter(d => String(d.subject || '').toLowerCase() === sub);
-    }
-    // Populate subject options from top list if student data empty
-    if (!allPerformanceData.length && top.length) {
-      populateSubjectFilter(top);
-    }
-    const thead = tbody.closest('table')?.querySelector('thead tr');
-    if (thead) {
-      thead.innerHTML = '<th class="pb-3 font-medium">Student</th><th class="pb-3 font-medium">Subject</th><th class="pb-3 font-medium">Score</th><th class="pb-3 font-medium">%</th><th class="pb-3 font-medium">Date</th>';
-    }
-    if (top.length) {
-      tbody.innerHTML = top.slice(0, 12).map(d =>
-        '<tr class="border-b border-slate-50"><td class="py-3 font-medium">' + (d.student_name || '—') + '</td><td class="py-3">' + (d.subject || '—') + '</td><td class="py-3">' + (d.score ?? '—') + '/' + (d.supposed_score ?? '—') + '</td><td class="py-3"><span class="font-bold brand-green">' + d.percentage + '%</span></td><td class="py-3 text-slate-500">' + (d.assessed_at || '—') + '</td></tr>'
+    } else if (data.length) {
+      // Student: only their own subject scores
+      tbody.innerHTML = data.slice().reverse().slice(0, 8).map(d =>
+        '<tr class="border-b border-slate-50"><td class="py-3 font-medium">' + (d.subject || '—') + '</td><td class="py-3">' + (d.score ?? '—') + '</td><td class="py-3">' + (d.supposed_score ?? '—') + '</td><td class="py-3"><span class="font-bold brand-green">' + d.percentage + '%</span></td><td class="py-3 text-slate-500">' + (d.assessed_at || '—') + '</td></tr>'
       ).join('');
     } else {
-      const msg = currentSubject
-        ? ('No top scores for “' + currentSubject + '” yet')
-        : 'No assessment scores yet';
-      tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400">' + msg + '</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400">No assessments in this period for you yet</td></tr>';
     }
-  } catch (e) {
-    tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400">Could not load top scores</td></tr>';
-  }
+    const ctx = document.getElementById('performanceChart').getContext('2d');
+    if (performanceChart) performanceChart.destroy();
+    performanceChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels.length ? labels : ['No data'],
+        datasets: [{
+          label: 'Performance %', data: scores.length ? scores : [0],
+          borderColor: '#19A975',
+          backgroundColor: (context) => {
+            const chart = context.chart; const {ctx, chartArea} = chart;
+            if (!chartArea) return null;
+            const g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+            g.addColorStop(0, 'rgba(25,169,117,0.25)'); g.addColorStop(1, 'rgba(25,169,117,0.02)');
+            return g;
+          },
+          fill: true, tension: 0.4, borderWidth: 3, pointRadius: 5,
+          pointBackgroundColor: '#19A975', pointBorderColor: '#fff', pointBorderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0f172a', padding: 12, cornerRadius: 10 } },
+        scales: {
+          y: { min: 0, max: 100, grid: { color: '#f1f5f9' }, ticks: { callback: v => v + '%' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  } catch (err) { console.error(err); }
 }
 
 async function loadDirectory() {
@@ -1210,85 +1067,46 @@ function clearBoard() {
 }
 
 
-
 // ===================== SOCKET.IO + WEBRTC =====================
 let activeClassCode = null;
 let isClassHost = false;
 let socket = null;
-let screenStream = null;
-let isScreenSharing = false;
-let boardUnlockedForStudents = false; // host controls
-let canDrawBoard = false; // local permission
-let whiteboardOpen = false;
-let focusedPeerId = null;
-const peers = {};
-const peerMeta = {}; // id -> { name, isHost }
-const peerSlotMap = {};
+const peers = {}; // socketId -> RTCPeerConnection
+const peerSlotMap = {}; // socketId -> slot element
 const ICE_SERVERS = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' }
+    { urls: 'stun:stun1.l.google.com:19302' }
   ]
 };
 
 function ensureSocket() {
   if (socket && socket.connected) return socket;
-  if (typeof io === 'undefined') {
-    console.error('Socket.IO client not loaded');
-    return null;
-  }
-  socket = io({ transports: ['websocket', 'polling'], reconnection: true });
+  socket = io({ transports: ['websocket', 'polling'] });
   socket.on('connect', () => console.log('Socket.IO connected', socket.id));
-
   socket.on('room-peers', async ({ peers: existing }) => {
-    for (const p of existing || []) {
-      peerMeta[p.id] = { name: p.name, isHost: p.isHost, email: p.email, username: p.username, userId: p.userId };
-      // We are the new joiner: create offer to each existing peer
-      await createPeerConnection(p.id, p.name, true);
+    for (const p of existing) {
+      await createPeerConnection(p.id, p.name, true); // we offer to existing peers
     }
     updateParticipantUI();
   });
-
-  socket.on('user-joined', async ({ id, name, isHost, email, username, userId }) => {
-    peerMeta[id] = { name, isHost, email, username, userId };
-    // Existing peer: wait for their offer (they send offers on room-peers)
+  socket.on('user-joined', async ({ id, name, isHost }) => {
+    // New user joined — they will offer to us, or we wait for their offer.
+    // Create PC without offering; wait for signal.
     await createPeerConnection(id, name, false);
     updateParticipantUI();
     const st = document.getElementById('classStatus');
     if (st) st.textContent = (name || 'Someone') + ' joined';
   });
-
   socket.on('user-left', ({ id, name }) => {
-    if (focusedPeerId === id) clearFocusPeer();
     removePeer(id);
-    delete peerMeta[id];
     updateParticipantUI();
     const st = document.getElementById('classStatus');
     if (st) st.textContent = (name || 'Someone') + ' left';
   });
-
-  socket.on('kicked', ({ reason }) => {
-    alert(reason || 'You were removed from this class by the host. You cannot rejoin this class code.');
-    try {
-      localStorage.setItem('noa_banned_' + (activeClassCode || ''), '1');
-    } catch (e) {}
-    endClass();
-  });
-
-  socket.on('participant-kicked', ({ id, name }) => {
-    if (focusedPeerId === id) clearFocusPeer();
-    removePeer(id);
-    delete peerMeta[id];
-    updateParticipantUI();
-    const st = document.getElementById('classStatus');
-    if (st) st.textContent = (name || 'A student') + ' was removed';
-  });
-
   socket.on('signal', async ({ from, data }) => {
     await handleSignal(from, data);
   });
-
   socket.on('wb-draw', ({ stroke }) => {
     if (stroke) applyRemoteStroke(stroke);
   });
@@ -1299,52 +1117,19 @@ function ensureSocket() {
     ctx.fillStyle = '#020617';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   });
-  socket.on('board-permission', ({ allowed }) => {
-    boardUnlockedForStudents = !!allowed;
-    if (!isClassHost) {
-      canDrawBoard = !!allowed;
-      updateBoardLockUI();
+  socket.on('file-share', ({ file }) => {
+    if (file && file.dataUrl) {
+      showSharedFileFromData(file);
     }
   });
-  socket.on('file-share', ({ file }) => {
-    if (file) showSharedFileFromData(file);
-  });
-
   return socket;
 }
 
 function updateParticipantUI() {
-  const n = Object.keys(peers).length + (mediaStream ? 1 : 0);
+  const count = Object.keys(peers).length + (mediaStream ? 1 : 0);
   const st = document.getElementById('classStatus');
-  const badge = document.getElementById('participantCountBadge');
-  if (st && activeClassCode) st.textContent = 'Live · ' + activeClassCode;
-  if (badge) badge.textContent = n + ' connected';
-}
-
-async function getLocalMedia() {
-  if (mediaStream) return mediaStream;
-  try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
-      }
-    });
-    camOn = true;
-    micOn = true;
-    const lv = document.getElementById('localVideo');
-    if (lv) {
-      lv.srcObject = mediaStream;
-      lv.muted = true; // prevent local echo
-      try { await lv.play(); } catch (e) {}
-    }
-    return mediaStream;
-  } catch (err) {
-    console.error('getUserMedia', err);
-    document.getElementById('classStatus').textContent = 'Camera/mic blocked — check browser permissions';
-    return null;
+  if (st && activeClassCode) {
+    st.textContent = 'Live · ' + activeClassCode + ' · ' + count + ' connected';
   }
 }
 
@@ -1353,19 +1138,14 @@ async function createPeerConnection(remoteId, remoteName, shouldOffer) {
   const pc = new RTCPeerConnection(ICE_SERVERS);
   peers[remoteId] = pc;
   pc._name = remoteName || 'Peer';
-  peerMeta[remoteId] = peerMeta[remoteId] || { name: remoteName, isHost: false };
 
-  // Ensure we have local media before adding tracks
-  if (!mediaStream) await getLocalMedia();
   if (mediaStream) {
-    mediaStream.getTracks().forEach((track) => {
-      try { pc.addTrack(track, mediaStream); } catch (e) {}
-    });
+    mediaStream.getTracks().forEach((track) => pc.addTrack(track, mediaStream));
   }
 
   pc.ontrack = (event) => {
-    const stream = event.streams[0] || new MediaStream([event.track]);
-    attachRemoteStream(remoteId, peerMeta[remoteId]?.name || remoteName, stream);
+    const stream = event.streams[0];
+    attachRemoteStream(remoteId, remoteName, stream);
   };
 
   pc.onicecandidate = (event) => {
@@ -1375,14 +1155,14 @@ async function createPeerConnection(remoteId, remoteName, shouldOffer) {
   };
 
   pc.onconnectionstatechange = () => {
-    if (pc.connectionState === 'failed') {
-      try { pc.restartIce(); } catch (e) {}
+    if (pc.connectionState === 'failed' || pc.connectionState === 'closed' || pc.connectionState === 'disconnected') {
+      // soft cleanup on failed
     }
   };
 
   if (shouldOffer) {
     try {
-      const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+      const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       socket.emit('signal', { to: remoteId, data: { type: 'offer', sdp: pc.localDescription } });
     } catch (e) {
@@ -1394,18 +1174,12 @@ async function createPeerConnection(remoteId, remoteName, shouldOffer) {
 
 async function handleSignal(fromId, data) {
   let pc = peers[fromId];
-  if (!pc) pc = await createPeerConnection(fromId, peerMeta[fromId]?.name || 'Peer', false);
+  if (!pc) {
+    pc = await createPeerConnection(fromId, 'Peer', false);
+  }
   try {
     if (data.type === 'offer') {
       await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
-      // Ensure local tracks before answering
-      if (mediaStream) {
-        const senders = pc.getSenders();
-        mediaStream.getTracks().forEach((track) => {
-          const has = senders.some(s => s.track && s.track.kind === track.kind);
-          if (!has) try { pc.addTrack(track, mediaStream); } catch (e) {}
-        });
-      }
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       socket.emit('signal', { to: fromId, data: { type: 'answer', sdp: pc.localDescription } });
@@ -1415,199 +1189,72 @@ async function handleSignal(fromId, data) {
       try {
         await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
       } catch (e) {
-        console.warn('ICE', e);
+        console.warn('ICE error', e);
       }
     }
   } catch (e) {
-    console.error('Signal handle', e);
+    console.error('Signal handle error', e);
   }
 }
 
 function attachRemoteStream(peerId, name, stream) {
-  peerMeta[peerId] = peerMeta[peerId] || { name: name || 'Peer' };
-  peerMeta[peerId].stream = stream;
-
   let slot = peerSlotMap[peerId];
   if (!slot) {
-    const grid = document.getElementById('remoteVideos');
-    if (!grid) return;
-    slot = document.createElement('div');
-    slot.className = 'peer-slot aspect-video bg-slate-800 rounded-xl overflow-hidden relative cursor-pointer ring-0 hover:ring-2 hover:ring-emerald-400 transition';
-    slot.title = 'Click to enlarge';
-    slot.onclick = () => focusPeer(peerId);
-    grid.appendChild(slot);
+    const slots = document.querySelectorAll('.peer-slot[data-empty="1"]');
+    slot = slots[0];
+    if (!slot) {
+      // create extra slot
+      const grid = document.getElementById('remoteVideos');
+      if (!grid) return;
+      slot = document.createElement('div');
+      slot.className = 'peer-slot aspect-video bg-slate-800 rounded-xl overflow-hidden relative';
+      grid.appendChild(slot);
+    }
     peerSlotMap[peerId] = slot;
+    slot.dataset.empty = '0';
   }
-  slot.dataset.empty = '0';
   slot.innerHTML = '';
   const video = document.createElement('video');
   video.autoplay = true;
   video.playsInline = true;
-  video.muted = false; // hear remote audio
   video.srcObject = stream;
   video.className = 'w-full h-full object-cover';
-  video.play().catch(() => {});
   slot.appendChild(video);
   const label = document.createElement('div');
-  label.className = 'absolute bottom-1 left-1 px-2 py-0.5 rounded bg-black/60 text-white text-[10px] pointer-events-none';
+  label.className = 'absolute bottom-1 left-1 px-2 py-0.5 rounded bg-black/60 text-white text-[10px]';
   label.textContent = name || 'Participant';
   slot.appendChild(label);
-  updateParticipantUI();
-
-  if (focusedPeerId === peerId) {
-    const fv = document.getElementById('focusVideo');
-    if (fv) { fv.srcObject = stream; fv.play().catch(() => {}); }
-  }
-}
-
-function focusPeer(peerId) {
-  const meta = peerMeta[peerId];
-  if (!meta || !meta.stream) return;
-  focusedPeerId = peerId;
-  const lv = document.getElementById('localVideo');
-  const fv = document.getElementById('focusVideo');
-  const label = document.getElementById('mainStageLabel');
-  const btn = document.getElementById('btnClearFocus');
-  const card = document.getElementById('focusedStudentCard');
-  if (lv) lv.classList.add('hidden');
-  if (fv) {
-    fv.classList.remove('hidden');
-    fv.srcObject = meta.stream;
-    fv.muted = false;
-    fv.play().catch(() => {});
-  }
-  if (label) label.textContent = meta.name || 'Participant';
-  if (btn) btn.classList.remove('hidden');
-  if (card) {
-    card.classList.remove('hidden');
-    document.getElementById('fsName').textContent = meta.name || 'Participant';
-    const bits = [];
-    if (meta.isHost) bits.push('Role: Host');
-    else bits.push('Role: Student / participant');
-    bits.push('Socket: ' + String(peerId).slice(0, 8) + '…');
-    if (meta.email) bits.push('Email: ' + meta.email);
-    if (meta.username) bits.push('Username: ' + meta.username);
-    bits.push(meta.stream.getVideoTracks().some(t => t.enabled) ? 'Camera: on' : 'Camera: off');
-    bits.push(meta.stream.getAudioTracks().some(t => t.enabled) ? 'Mic: on' : 'Mic: off');
-    document.getElementById('fsMeta').textContent = bits.join(' · ');
-    const hostAct = document.getElementById('fsHostActions');
-    if (hostAct) hostAct.classList.toggle('hidden', !isClassHost || !!meta.isHost);
-  }
-  Object.keys(peerSlotMap).forEach(id => {
-    peerSlotMap[id].classList.toggle('ring-2', id === peerId);
-    peerSlotMap[id].classList.toggle('ring-emerald-400', id === peerId);
-  });
-}
-
-function clearFocusPeer() {
-  focusedPeerId = null;
-  const lv = document.getElementById('localVideo');
-  const fv = document.getElementById('focusVideo');
-  const label = document.getElementById('mainStageLabel');
-  const btn = document.getElementById('btnClearFocus');
-  const card = document.getElementById('focusedStudentCard');
-  if (fv) { fv.classList.add('hidden'); fv.srcObject = null; }
-  if (lv) lv.classList.remove('hidden');
-  if (label) label.textContent = isScreenSharing ? 'Your screen' : 'You';
-  if (btn) btn.classList.add('hidden');
-  if (card) card.classList.add('hidden');
-  Object.values(peerSlotMap).forEach(s => s.classList.remove('ring-2', 'ring-emerald-400'));
-}
-
-function kickFocusedStudent() {
-  if (!isClassHost || !focusedPeerId || !activeClassCode) return;
-  const meta = peerMeta[focusedPeerId] || {};
-  if (meta.isHost) return;
-  if (!confirm('Remove ' + (meta.name || 'this student') + ' from this class? They will not be able to rejoin this code.')) return;
-  if (socket) {
-    socket.emit('kick-participant', {
-      code: activeClassCode,
-      targetId: focusedPeerId,
-      name: meta.name || ''
-    });
-  }
-  // Local cleanup; server will notify room
-  clearFocusPeer();
 }
 
 function removePeer(peerId) {
   const pc = peers[peerId];
-  if (pc) { try { pc.close(); } catch (e) {} delete peers[peerId]; }
+  if (pc) {
+    try { pc.close(); } catch (e) {}
+    delete peers[peerId];
+  }
   const slot = peerSlotMap[peerId];
-  if (slot) { slot.remove(); delete peerSlotMap[peerId]; }
-  delete peerMeta[peerId];
+  if (slot) {
+    slot.dataset.empty = '1';
+    slot.innerHTML = '<div class="placeholder text-center text-slate-500 text-xs"><i class="fas fa-user text-2xl mb-1"></i><br>Waiting…</div>';
+    delete peerSlotMap[peerId];
+  }
 }
 
 function closeAllPeers() {
   Object.keys(peers).forEach(removePeer);
 }
 
-async function replaceVideoTrackForAll(newTrack) {
-  const jobs = Object.values(peers).map(async (pc) => {
-    const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-    if (sender && newTrack) await sender.replaceTrack(newTrack);
-  });
-  await Promise.all(jobs);
-}
-
-async function toggleScreenShare() {
-  if (!activeClassCode) { alert('Start or join a class first'); return; }
-  try {
-    if (!isScreenSharing) {
-      screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-      const screenTrack = screenStream.getVideoTracks()[0];
-      if (!screenTrack) return;
-      await replaceVideoTrackForAll(screenTrack);
-      const lv = document.getElementById('localVideo');
-      if (lv) { lv.srcObject = screenStream; lv.play().catch(() => {}); }
-      isScreenSharing = true;
-      document.getElementById('screenShareBadge')?.classList.remove('hidden');
-      document.getElementById('mainStageLabel').textContent = 'Your screen';
-      document.getElementById('btnScreenShare').innerHTML = '<i class="fas fa-stop mr-1"></i>Stop Share';
-      screenTrack.onended = () => { if (isScreenSharing) toggleScreenShare(); };
-    } else {
-      if (screenStream) screenStream.getTracks().forEach(t => t.stop());
-      screenStream = null;
-      isScreenSharing = false;
-      document.getElementById('screenShareBadge')?.classList.add('hidden');
-      document.getElementById('btnScreenShare').innerHTML = '<i class="fas fa-desktop mr-1"></i>Share Screen';
-      if (mediaStream) {
-        const camTrack = mediaStream.getVideoTracks()[0];
-        if (camTrack) await replaceVideoTrackForAll(camTrack);
-        const lv = document.getElementById('localVideo');
-        if (lv) { lv.srcObject = mediaStream; lv.play().catch(() => {}); }
-      }
-      document.getElementById('mainStageLabel').textContent = 'You';
-    }
-  } catch (err) {
-    console.error(err);
-    alert('Screen share cancelled or not allowed by the browser.');
-  }
-}
-
 function joinSocketRoom(code, asHost) {
   const s = ensureSocket();
-  if (!s) return;
   const name = (user && (user.name || user.username)) || 'Participant';
   isClassHost = !!asHost;
-  canDrawBoard = isClassHost; // host can always draw
-  updateBoardLockUI();
-  const btnPerm = document.getElementById('btnBoardPerm');
-  if (btnPerm) btnPerm.classList.toggle('hidden', !isClassHost);
-  const doJoin = () => s.emit('join-room', {
-    code: String(code).toUpperCase(),
-    name,
-    isHost: isClassHost,
-    userId: user && user.id,
-    email: user && user.email,
-    username: user && user.username
-  });
-  if (s.connected) doJoin();
-  else s.once('connect', doJoin);
+  s.emit('join-room', { code: code.toUpperCase(), name, isHost: isClassHost });
 }
 
 function leaveSocketRoom() {
-  if (socket) socket.emit('leave-room');
+  if (socket) {
+    socket.emit('leave-room');
+  }
   closeAllPeers();
 }
 
@@ -1621,7 +1268,10 @@ async function startClassWithCode() {
   if (!canHostClass()) { alert('Only approved staff and administrators can start a class.'); return; }
   let code = (document.getElementById('hostClassCode').value || '').trim().toUpperCase();
   const title = (document.getElementById('hostClassTitle').value || 'Olympiad Class').trim();
-  if (!code) { generateClassCode(); code = document.getElementById('hostClassCode').value; }
+  if (!code) {
+    generateClassCode();
+    code = document.getElementById('hostClassCode').value;
+  }
   try {
     const res = await fetch('/api/classes/start', {
       method: 'POST',
@@ -1632,14 +1282,16 @@ async function startClassWithCode() {
     if (!res.ok) throw new Error(data.msg || 'Could not start class');
     activeClassCode = data.code;
     const badge = document.getElementById('classCodeBadge');
-    if (badge) { badge.textContent = 'Code: ' + data.code; badge.classList.remove('hidden'); }
+    if (badge) {
+      badge.textContent = 'Code: ' + data.code;
+      badge.classList.remove('hidden');
+    }
     document.getElementById('classStatus').textContent = 'Live · ' + (title || 'Class');
     document.getElementById('codeSetupPanel')?.classList.add('hidden');
     document.getElementById('waitingAfterStart')?.classList.remove('hidden');
     const hint = document.getElementById('shareCodeHint');
     if (hint) hint.textContent = data.code;
-    // Media FIRST, then signaling — critical for remote peers to receive tracks
-    await getLocalMedia();
+    await initClassroomMedia();
     joinSocketRoom(data.code, true);
   } catch (err) {
     alert(err.message);
@@ -1647,32 +1299,41 @@ async function startClassWithCode() {
 }
 
 async function initClassroomMedia() {
-  await getLocalMedia();
+  const video = document.getElementById('localVideo');
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    if (video) video.srcObject = mediaStream;
+    // Add tracks to existing peer connections
+    Object.values(peers).forEach((pc) => {
+      mediaStream.getTracks().forEach((track) => {
+        const already = pc.getSenders().some((s) => s.track && s.track.kind === track.kind);
+        if (!already) pc.addTrack(track, mediaStream);
+      });
+    });
+  } catch (err) {
+    document.getElementById('classStatus').textContent = 'Camera unavailable — whiteboard still works';
+  }
+  initWhiteboard();
 }
 
 async function initClassroom() {
   document.getElementById('codeSetupPanel')?.classList.remove('hidden');
   document.getElementById('waitingAfterStart')?.classList.add('hidden');
   document.getElementById('sharedFilePanel')?.classList.add('hidden');
-  if (!activeClassCode) document.getElementById('classStatus').textContent = 'Set a class code to start';
-  whiteboardOpen = false;
-  document.getElementById('whiteboardPanel')?.classList.add('hidden');
+  if (!activeClassCode) {
+    document.getElementById('classStatus').textContent = 'Set a class code to start';
+  }
+  setTimeout(() => { try { initWhiteboard(); } catch (e) {} }, 100);
 }
 
 function joinClass() {
   const code = (document.getElementById('joinCode').value || '').trim().toUpperCase();
   if (!code) { alert('Please enter a class code'); return; }
-  try {
-    if (localStorage.getItem('noa_banned_' + code) === '1') {
-      alert('You were removed from this class and cannot rejoin this code.');
-      return;
-    }
-  } catch (e) {}
   const name = (user.name || user.username || 'Participant');
   fetch('/api/classes/' + encodeURIComponent(code) + '/join', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, email: user.email || '', userId: user.id || '' })
+    body: JSON.stringify({ name })
   }).then(async (res) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.msg || 'Class not found');
@@ -1685,147 +1346,39 @@ function joinClass() {
       if (ov) ov.style.display = 'none';
       const badge = document.getElementById('classCodeBadge');
       if (badge) { badge.textContent = 'Code: ' + code; badge.classList.remove('hidden'); }
-      document.getElementById('classStatus').textContent = 'Joined · Host: ' + (data.host || '—');
-      await getLocalMedia();
+      document.getElementById('classStatus').textContent = 'Joined as participant · Host: ' + (data.host || '—');
+      const titleEl = document.getElementById('pageTitle');
+      const subEl = document.getElementById('pageSubtitle');
+      if (titleEl) titleEl.textContent = 'Live Class · Participant';
+      if (subEl) subEl.textContent = 'Connected with code ' + code;
+      await initClassroomMedia();
       joinSocketRoom(code, false);
-    }, 200);
+    }, 300);
   }).catch((err) => alert(err.message));
 }
 
 function endClass() {
   leaveSocketRoom();
-  if (isScreenSharing && screenStream) {
-    screenStream.getTracks().forEach(t => t.stop());
-    screenStream = null;
-    isScreenSharing = false;
-  }
   if (mediaStream) {
-    mediaStream.getTracks().forEach(t => t.stop());
+    mediaStream.getTracks().forEach((t) => t.stop());
     mediaStream = null;
   }
   const lv = document.getElementById('localVideo');
   if (lv) lv.srcObject = null;
-  clearFocusPeer();
   const ov = document.getElementById('waitingOverlay');
   if (ov) ov.style.display = 'flex';
   document.getElementById('classStatus').textContent = 'Class ended';
   document.getElementById('classCodeBadge')?.classList.add('hidden');
   document.getElementById('sharedFilePanel')?.classList.add('hidden');
-  if (activeClassCode && isClassHost) {
-    fetch('/api/classes/' + activeClassCode, { method: 'DELETE' }).catch(() => {});
+  if (activeClassCode) {
+    if (isClassHost) {
+      fetch('/api/classes/' + activeClassCode, { method: 'DELETE' }).catch(() => {});
+    }
+    activeClassCode = null;
   }
-  activeClassCode = null;
   isClassHost = false;
-  boardUnlockedForStudents = false;
-  canDrawBoard = false;
   if (document.fullscreenElement) document.exitFullscreen?.();
   showSection('overview');
-}
-
-function dismissWaiting() {
-  const ov = document.getElementById('waitingOverlay');
-  if (ov) ov.style.display = 'none';
-}
-
-function toggleCamera() {
-  if (!mediaStream) return;
-  const track = mediaStream.getVideoTracks()[0];
-  if (!track) return;
-  camOn = !camOn;
-  track.enabled = camOn;
-  document.getElementById('btnToggleCam').innerHTML = camOn
-    ? '<i class="fas fa-video mr-1"></i>Cam' : '<i class="fas fa-video-slash mr-1"></i>Cam Off';
-}
-
-function toggleMic() {
-  if (!mediaStream) return;
-  const track = mediaStream.getAudioTracks()[0];
-  if (!track) return;
-  micOn = !micOn;
-  track.enabled = micOn;
-  document.getElementById('btnToggleMic').innerHTML = micOn
-    ? '<i class="fas fa-microphone mr-1"></i>Mic' : '<i class="fas fa-microphone-slash mr-1"></i>Mic Off';
-}
-
-function toggleWhiteboardPanel(force) {
-  const panel = document.getElementById('whiteboardPanel');
-  const handle = document.getElementById('boardResizeHandle');
-  if (!panel) return;
-  const open = force === false ? false : force === true ? true : panel.classList.contains('hidden');
-  whiteboardOpen = open;
-  panel.classList.toggle('hidden', !open);
-  if (handle) handle.classList.toggle('hidden', !open);
-  if (open) {
-    if (!panel.style.width) panel.style.width = '360px';
-    setTimeout(() => { try { initWhiteboard(); initBoardResize(); } catch (e) {} }, 50);
-    updateBoardLockUI();
-  }
-}
-
-function setBoardWidthPct(pct) {
-  const row = document.getElementById('classLayoutRow');
-  const panel = document.getElementById('whiteboardPanel');
-  if (!row || !panel) return;
-  if (panel.classList.contains('hidden')) toggleWhiteboardPanel(true);
-  const w = Math.max(180, Math.min(row.clientWidth - 200, Math.round(row.clientWidth * pct)));
-  panel.style.width = w + 'px';
-  panel.style.flex = '0 0 auto';
-  setTimeout(() => { try { initWhiteboard(); } catch (e) {} }, 30);
-}
-
-function initBoardResize() {
-  const handle = document.getElementById('boardResizeHandle');
-  const panel = document.getElementById('whiteboardPanel');
-  const row = document.getElementById('classLayoutRow');
-  if (!handle || !panel || !row || handle.dataset.ready === '1') return;
-  handle.dataset.ready = '1';
-  let dragging = false;
-  handle.addEventListener('mousedown', (e) => {
-    e.preventDefault();
-    dragging = true;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  });
-  window.addEventListener('mousemove', (e) => {
-    if (!dragging) return;
-    const rect = row.getBoundingClientRect();
-    // Board is on the right: width = right edge - mouse
-    const newW = Math.max(160, Math.min(rect.width - 220, rect.right - e.clientX));
-    panel.style.width = newW + 'px';
-    panel.style.flex = '0 0 auto';
-  });
-  window.addEventListener('mouseup', () => {
-    if (!dragging) return;
-    dragging = false;
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-    try { initWhiteboard(); } catch (e) {}
-  });
-}
-
-function updateBoardLockUI() {
-  const hint = document.getElementById('boardLockHint');
-  const canvas = document.getElementById('whiteboardCanvas');
-  if (isClassHost) {
-    canDrawBoard = true;
-    if (hint) hint.textContent = boardUnlockedForStudents ? 'Students may draw' : 'Students locked';
-  } else {
-    if (hint) hint.textContent = canDrawBoard ? 'Drawing allowed' : 'View only — ask host';
-  }
-  if (canvas) canvas.style.cursor = canDrawBoard ? 'crosshair' : 'not-allowed';
-  const btn = document.getElementById('btnBoardPerm');
-  if (btn && isClassHost) {
-    btn.innerHTML = boardUnlockedForStudents
-      ? '<i class="fas fa-lock mr-1"></i>Lock Draw'
-      : '<i class="fas fa-pen-fancy mr-1"></i>Allow Draw';
-  }
-}
-
-function toggleBoardPermission() {
-  if (!isClassHost || !activeClassCode) return;
-  boardUnlockedForStudents = !boardUnlockedForStudents;
-  if (socket) socket.emit('board-permission', { code: activeClassCode, allowed: boardUnlockedForStudents });
-  updateBoardLockUI();
 }
 
 function applyRemoteStroke(stroke) {
@@ -1841,171 +1394,27 @@ function applyRemoteStroke(stroke) {
   ctx.stroke();
 }
 
-function initWhiteboard() {
-  const canvas = document.getElementById('whiteboardCanvas');
-  if (!canvas) return;
-  if (canvas.dataset.ready === '1') {
-    // resize if needed
-    const parent = canvas.parentElement;
-    if (parent) {
-      const rect = parent.getBoundingClientRect();
-      if (canvas.width !== Math.max(200, rect.width - 8)) {
-        canvas.dataset.ready = '0';
-      }
-    }
-  }
-  if (canvas.dataset.ready === '1') return;
-  canvas.dataset.ready = '1';
-  const ctx = canvas.getContext('2d');
-  const parent = canvas.parentElement;
-  if (parent) {
-    const rect = parent.getBoundingClientRect();
-    canvas.width = Math.max(200, rect.width - 8);
-    canvas.height = Math.max(240, (rect.height || 280) - 60);
-  }
-  ctx.fillStyle = '#020617';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  const getPos = (e) => {
-    const r = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return { x: clientX - r.left, y: clientY - r.top };
-  };
-  const start = (e) => {
-    if (!canDrawBoard) return;
-    drawing = true;
-    const p = getPos(e);
-    lastX = p.x; lastY = p.y;
-  };
-  const move = (e) => {
-    if (!drawing || !canDrawBoard) return;
-    e.preventDefault();
-    const p = getPos(e);
-    const strokeColor = tool === 'eraser' ? '#020617' : color;
-    const strokeWidth = tool === 'eraser' ? 24 : 3;
-    ctx.beginPath();
-    ctx.moveTo(lastX, lastY);
-    ctx.lineTo(p.x, p.y);
-    ctx.strokeStyle = strokeColor;
-    ctx.lineWidth = strokeWidth;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-    if (socket && activeClassCode) {
-      socket.emit('wb-draw', {
-        code: activeClassCode,
-        stroke: { x0: lastX, y0: lastY, x1: p.x, y1: p.y, color: strokeColor, width: strokeWidth }
-      });
-    }
-    lastX = p.x; lastY = p.y;
-  };
-  const stop = () => { drawing = false; };
-  canvas.onmousedown = start;
-  canvas.onmousemove = move;
-  canvas.onmouseup = stop;
-  canvas.onmouseleave = stop;
-  canvas.ontouchstart = start;
-  canvas.ontouchmove = move;
-  canvas.ontouchend = stop;
-  document.querySelectorAll('.tool-btn').forEach((b) => {
-    b.onclick = () => {
-      document.querySelectorAll('.tool-btn').forEach(x => x.classList.remove('active'));
-      b.classList.add('active');
-      tool = b.dataset.tool;
-    };
-  });
-  document.querySelectorAll('.color-btn').forEach((b) => {
-    b.onclick = () => {
-      color = b.dataset.color;
-      tool = 'pen';
-      document.querySelectorAll('.tool-btn').forEach(x => x.classList.remove('active'));
-      document.querySelector('[data-tool="pen"]')?.classList.add('active');
-    };
-  });
-}
-
-function clearBoard() {
-  if (!canDrawBoard) { alert('Drawing is locked'); return; }
-  const canvas = document.getElementById('whiteboardCanvas');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#020617';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  if (socket && activeClassCode) socket.emit('wb-clear', { code: activeClassCode });
-}
-
-function triggerShareFile() {
-  if (!activeClassCode) { alert('Start or join a class first'); return; }
-  document.getElementById('shareFileInput').click();
-}
-
-function onShareFileSelected(e) {
-  const file = e.target.files && e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    const payload = { name: file.name, type: file.type || 'application/octet-stream', dataUrl: reader.result };
-    showSharedFileFromData(payload);
-    if (socket && activeClassCode) {
-      // Share smaller files inline; large files still show locally with download
-      if (file.size < 4 * 1024 * 1024) {
-        socket.emit('file-share', { code: activeClassCode, file: payload });
-      } else {
-        alert('File is large — shown on your screen. For class-wide share use a file under 4MB or Share Screen.');
-      }
-    }
-  };
-  reader.readAsDataURL(file);
-  e.target.value = '';
-}
-
 function showSharedFileFromData(file) {
-  if (!file) return;
-  const panel = document.getElementById('sharedFilePanel');
+  document.getElementById('sharedFileName').textContent = file.name || 'Shared file';
   const img = document.getElementById('sharedFileImg');
   const frame = document.getElementById('sharedFileFrame');
-  const vid = document.getElementById('sharedFileVideo');
-  const fallback = document.getElementById('sharedFileFallback');
-  const nameEl = document.getElementById('sharedFileName');
   const link = document.getElementById('sharedFileLink');
-  const link2 = document.getElementById('sharedFileFallbackLink');
-  if (nameEl) nameEl.textContent = file.name || 'Shared file';
-  [img, frame, vid, fallback].forEach(el => el && el.classList.add('hidden'));
-  if (link) { link.href = file.dataUrl || '#'; link.download = file.name || 'file'; }
-  if (link2) { link2.href = file.dataUrl || '#'; link2.download = file.name || 'file'; }
-  const type = (file.type || '').toLowerCase();
-  const name = (file.name || '').toLowerCase();
-  if (type.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg)$/.test(name)) {
+  if (file.dataUrl && file.type && file.type.startsWith('image/')) {
     img.src = file.dataUrl;
     img.classList.remove('hidden');
-  } else if (type.startsWith('video/') || /\.(mp4|webm|ogg)$/.test(name)) {
-    vid.src = file.dataUrl;
-    vid.classList.remove('hidden');
-  } else if (type === 'application/pdf' || name.endsWith('.pdf') || type.startsWith('text/')) {
+    frame.classList.add('hidden');
+  } else if (file.dataUrl) {
     frame.src = file.dataUrl;
     frame.classList.remove('hidden');
-  } else {
-    // try iframe anyway, plus fallback download
-    frame.src = file.dataUrl;
-    frame.classList.remove('hidden');
-    fallback.classList.remove('hidden');
+    img.classList.add('hidden');
   }
-  panel.classList.remove('hidden');
+  if (link && file.dataUrl) {
+    link.href = file.dataUrl;
+    link.download = file.name || 'file';
+  }
+  document.getElementById('sharedFilePanel').classList.remove('hidden');
 }
 
-function closeSharedFile() {
-  document.getElementById('sharedFilePanel')?.classList.add('hidden');
-  const frame = document.getElementById('sharedFileFrame');
-  const vid = document.getElementById('sharedFileVideo');
-  if (frame) frame.src = '';
-  if (vid) vid.removeAttribute('src');
-}
-
-function toggleClassFullscreen() {
-  const shell = document.getElementById('liveClassShell');
-  if (!shell) return;
-  if (!document.fullscreenElement) shell.requestFullscreen?.();
-  else document.exitFullscreen?.();
-}
 
 
 function openPersonDetail(key) {

@@ -140,13 +140,39 @@
           "role": "assistant",
           "text": "You're in the moderator queue. A moderator will reply here soon. You can keep adding details.",
           "at": "2026-08-11T14:02:56.808Z"
+        },
+        {
+          "role": "user",
+          "text": "hi",
+          "at": "2026-08-11T17:54:03.066Z"
+        },
+        {
+          "role": "assistant",
+          "text": "You're in the moderator queue. A moderator will reply here soon. You can keep adding details.",
+          "at": "2026-08-11T17:54:03.067Z"
+        },
+        {
+          "role": "user",
+          "text": "hi",
+          "at": "2026-08-12T16:50:31.140Z"
+        },
+        {
+          "role": "assistant",
+          "text": "You're in the moderator queue. A moderator will reply here soon. You can keep adding details.",
+          "at": "2026-08-12T16:50:31.141Z"
+        },
+        {
+          "role": "moderator",
+          "text": "okay lets see within 24 hours. time 5;59pm",
+          "at": "2026-08-12T16:59:57.556Z",
+          "by": "superadmin"
         }
       ],
-      "summary": "User: whats the lates exam now\nAI: You're in the moderator queue. A moderator will reply here soon. You can keep adding details.\nUser: tell me news on simcc\nAI: You're in the moderator queue. A moderator will reply here soon. You can keep adding details.\nAI: A moderator has been notified. They will continue this conversation with you shortly.\nUser: hi\nAI: You're in the moderator queue. A moderator will reply here soon. You can keep adding details.\nModerator: I am success. Nice knowing you. Are you contended with the ai conversation?\nUser: tell me about\nAI: You're in the moderator queue. A moderator will reply here soon. You can keep adding details.\nUser: hi\nAI: You're in the moderator queue. A moderator will reply here soon. You can keep adding details.",
+      "summary": "User: hi\nAI: You're in the moderator queue. A moderator will reply here soon. You can keep adding details.\nModerator: I am success. Nice knowing you. Are you contended with the ai conversation?\nUser: tell me about\nAI: You're in the moderator queue. A moderator will reply here soon. You can keep adding details.\nUser: hi\nAI: You're in the moderator queue. A moderator will reply here soon. You can keep adding details.\nUser: hi\nAI: You're in the moderator queue. A moderator will reply here soon. You can keep adding details.\nUser: hi\nAI: You're in the moderator queue. A moderator will reply here soon. You can keep adding details.\nModerator: okay lets see within 24 hours. time 5;59pm",
       "status": "open",
-      "unreadModerator": true,
+      "unreadModerator": false,
       "createdAt": "2026-08-10T16:21:36.264Z",
-      "updatedAt": "2026-08-11T14:02:56.808Z"
+      "updatedAt": "2026-08-12T16:59:57.556Z"
     }
   ]
 }
