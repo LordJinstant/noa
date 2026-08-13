@@ -127,27 +127,16 @@
             <div class="relative h-72"><canvas id="performanceChart"></canvas></div>
           </div>
           <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-            <div class="flex flex-col gap-3 mb-4">
-              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                  <h3 class="font-bold text-lg">Recent Assessments</h3>
-                  <p class="text-xs text-slate-500 mt-0.5">Chart &amp; scores follow subject, grade, and name filters</p>
-                </div>
-                <button type="button" onclick="openMyCertificate()" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#19A975] text-white text-sm font-semibold hover:bg-[#158a5f] shadow-sm">
-                  <i class="fas fa-certificate"></i> Performance Certificate
-                </button>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <div>
+                <h3 class="font-bold text-lg">Recent Assessments</h3>
+                <p class="text-xs text-slate-500 mt-0.5">Chart &amp; scores above follow this subject filter</p>
               </div>
-              <div class="flex flex-wrap items-center gap-2">
-                <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Subject</label>
-                <select id="subjectFilter" class="px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-green-300 min-w-[140px] bg-white">
+              <div class="flex items-center gap-2">
+                <label for="subjectFilter" class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Subject</label>
+                <select id="subjectFilter" class="px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-green-300 min-w-[160px] bg-white">
                   <option value="">All subjects</option>
                 </select>
-                <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide ml-1">Grade</label>
-                <select id="gradeFilter" class="px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-green-300 min-w-[120px] bg-white">
-                  <option value="">All grades</option>
-                </select>
-                <label class="text-xs font-semibold text-slate-500 uppercase tracking-wide ml-1">Name</label>
-                <input id="nameFilter" type="search" placeholder="Search name…" class="px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-green-300 min-w-[140px] bg-white" />
               </div>
             </div>
             <div class="overflow-x-auto">
@@ -202,9 +191,6 @@
                 <button id="btnToggleMic" type="button" onclick="toggleMic()" class="px-3 py-2 rounded-xl bg-slate-700 text-white text-sm hover:bg-slate-600" title="Microphone"><i class="fas fa-microphone mr-1"></i><span class="hidden sm:inline">Mic</span></button>
                 <button id="btnScreenShare" type="button" onclick="toggleScreenShare()" class="px-3 py-2 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-400 shadow-lg shadow-indigo-900/40 ring-2 ring-indigo-300/40" title="Share your screen with the class">
                   <i class="fas fa-desktop mr-1"></i><span>Screen</span>
-                </button>
-                <button id="btnRecordClass" type="button" onclick="toggleClassRecording()" class="px-3 py-2 rounded-xl bg-rose-600 text-white text-sm font-semibold hover:bg-rose-500" title="Record this classroom session">
-                  <i class="fas fa-circle mr-1 text-xs"></i><span>Record</span>
                 </button>
                 <button type="button" onclick="triggerShareFile()" class="px-3 py-2 rounded-xl bg-slate-700 text-white text-sm hover:bg-slate-600" title="Share a file"><i class="fas fa-file-upload mr-1"></i><span class="hidden sm:inline">File</span></button>
                 <button id="btnToggleBoard" type="button" onclick="toggleWhiteboardPanel()" class="px-3 py-2 rounded-xl bg-slate-700 text-white text-sm hover:bg-slate-600" title="Show or hide whiteboard"><i class="fas fa-chalkboard mr-1"></i><span class="hidden sm:inline">Board</span></button>
@@ -472,9 +458,7 @@ document.getElementById('avatarCircle').textContent = (user.name || 'S').charAt(
   nav.style.display = canHostClass() ? '' : 'none';
 })();
 
-let performanceChart = null, currentPeriod = 'week', currentSubject = '', currentGrade = '', currentNameQ = '', allPerformanceData = [], allStudents = [], currentModalStudent = null;
-let classMediaRecorder = null, classRecordChunks = [], isClassRecording = false;
-let lastCertificatePayload = null;
+let performanceChart = null, currentPeriod = 'week', currentSubject = '', allPerformanceData = [], allStudents = [], currentModalStudent = null;
 let mediaStream = null, camOn = true, micOn = true;
 let drawing = false, tool = 'pen', color = '#ffffff', lastX = 0, lastY = 0;
 
@@ -528,52 +512,18 @@ document.querySelectorAll('.period-btn').forEach(btn => {
 });
 document.getElementById('subjectFilter')?.addEventListener('change', (e) => {
   currentSubject = (e.target.value || '').trim();
-  applyOverviewFilters();
-});
-document.getElementById('gradeFilter')?.addEventListener('change', (e) => {
-  currentGrade = (e.target.value || '').trim();
-  applyOverviewFilters();
-});
-document.getElementById('nameFilter')?.addEventListener('input', (e) => {
-  currentNameQ = (e.target.value || '').trim();
-  applyOverviewFilters();
-});
-
-function applyOverviewFilters() {
+  // Re-filter without full reload when we already have period data
   if (allPerformanceData.length) {
-    renderPerformanceView(filterPerformanceRows(allPerformanceData));
+    let filtered = allPerformanceData;
+    if (currentSubject) {
+      const sub = currentSubject.toLowerCase();
+      filtered = allPerformanceData.filter(d => String(d.subject || '').toLowerCase() === sub);
+    }
+    renderPerformanceView(filtered);
   } else {
     loadPerformance(currentPeriod);
   }
-}
-
-function filterPerformanceRows(rows) {
-  let filtered = Array.isArray(rows) ? rows.slice() : [];
-  if (currentSubject) {
-    const sub = currentSubject.toLowerCase();
-    filtered = filtered.filter(d => String(d.subject || '').toLowerCase() === sub);
-  }
-  if (currentGrade) {
-    const g = currentGrade.toLowerCase();
-    filtered = filtered.filter(d => String(d.grade || '').toLowerCase() === g);
-  }
-  if (currentNameQ) {
-    const q = currentNameQ.toLowerCase();
-    filtered = filtered.filter(d =>
-      String(d.student_name || d.name || '').toLowerCase().includes(q)
-    );
-  }
-  return filtered;
-}
-
-function performanceBand(pct) {
-  const p = Number(pct) || 0;
-  if (p >= 95) return { label: 'Outstanding', color: '#7c3aed' };
-  if (p >= 85) return { label: 'Excellent', color: '#19A975' };
-  if (p >= 70) return { label: 'Good', color: '#0ea5e9' };
-  if (p >= 50) return { label: 'Average', color: '#f59e0b' };
-  return { label: 'Needs Improvement', color: '#94a3b8' };
-}
+});
 
 async function loadPerformance(period) {
   try {
@@ -611,10 +561,15 @@ async function loadPerformance(period) {
     }
     allPerformanceData = periodAll;
 
-    allPerformanceData = periodAll;
+    // Apply subject filter for chart + table + stats
+    let filtered = periodAll;
+    if (currentSubject) {
+      const sub = currentSubject.toLowerCase();
+      filtered = periodAll.filter(d => String(d.subject || '').toLowerCase() === sub);
+    }
+
     populateSubjectFilter(periodAll);
-    populateGradeFilter(periodAll);
-    renderPerformanceView(filterPerformanceRows(periodAll));
+    renderPerformanceView(filtered);
   } catch (err) { console.error(err); }
 }
 
@@ -631,29 +586,12 @@ function populateSubjectFilter(rows) {
     const match = subjects.find(s => s.toLowerCase() === prev.toLowerCase());
     sel.value = match;
     currentSubject = match;
+  } else if (prev && !subjects.length) {
+    sel.innerHTML = '<option value="">All subjects</option><option value="' + prev.replace(/"/g, '&quot;') + '">' + prev + '</option>';
+    sel.value = prev;
   } else {
-    sel.value = currentSubject || '';
-  }
-}
-
-function populateGradeFilter(rows) {
-  const sel = document.getElementById('gradeFilter');
-  if (!sel) return;
-  const grades = [...new Set(
-    (rows || []).map(r => String(r.grade || '').trim()).filter(Boolean)
-  )].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-  // also include student own grade
-  if (user && user.grade) grades.unshift(String(user.grade).trim());
-  const unique = [...new Set(grades.filter(Boolean))];
-  const prev = currentGrade || sel.value || '';
-  sel.innerHTML = '<option value="">All grades</option>' +
-    unique.map(g => '<option value="' + g.replace(/"/g, '&quot;') + '">' + g + '</option>').join('');
-  if (prev && unique.some(g => g.toLowerCase() === prev.toLowerCase())) {
-    const match = unique.find(g => g.toLowerCase() === prev.toLowerCase());
-    sel.value = match;
-    currentGrade = match;
-  } else {
-    sel.value = currentGrade || '';
+    sel.value = '';
+    if (prev && !subjects.some(s => s.toLowerCase() === prev.toLowerCase())) currentSubject = '';
   }
 }
 
@@ -731,11 +669,13 @@ async function loadStaffRecentAssessments(tbody) {
     const topRes = await fetch(url);
     let top = topRes.ok ? await topRes.json() : [];
     if (!Array.isArray(top)) top = [];
-    top = filterPerformanceRows(top);
+    if (currentSubject) {
+      const sub = currentSubject.toLowerCase();
+      top = top.filter(d => String(d.subject || '').toLowerCase() === sub);
+    }
+    // Populate subject options from top list if student data empty
     if (!allPerformanceData.length && top.length) {
-      allPerformanceData = top;
       populateSubjectFilter(top);
-      populateGradeFilter(top);
     }
     const thead = tbody.closest('table')?.querySelector('thead tr');
     if (thead) {
@@ -1610,56 +1550,6 @@ async function replaceVideoTrackForAll(newTrack) {
   await Promise.all(jobs);
 }
 
-
-async function toggleClassRecording() {
-  const btn = document.getElementById('btnRecordClass');
-  if (isClassRecording && classMediaRecorder) {
-    classMediaRecorder.stop();
-    return;
-  }
-  const shell = document.getElementById('liveClassShell');
-  if (!shell) return;
-  try {
-    let stream;
-    if (shell.captureStream) {
-      stream = shell.captureStream(30);
-    } else if (shell.mozCaptureStream) {
-      stream = shell.mozCaptureStream(30);
-    } else {
-      // Fallback: record local camera + mic
-      stream = mediaStream || await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    }
-    // Prefer adding mic audio if captureStream has no audio
-    if (mediaStream && stream.getAudioTracks().length === 0) {
-      mediaStream.getAudioTracks().forEach(t => stream.addTrack(t));
-    }
-    classRecordChunks = [];
-    const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
-      ? 'video/webm;codecs=vp9,opus'
-      : (MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : '');
-    classMediaRecorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
-    classMediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size) classRecordChunks.push(e.data); };
-    classMediaRecorder.onstop = () => {
-      isClassRecording = false;
-      if (btn) btn.innerHTML = '<i class="fas fa-circle mr-1 text-xs"></i><span>Record</span>';
-      const blob = new Blob(classRecordChunks, { type: 'video/webm' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'NOA-class-' + (activeClassCode || 'session') + '-' + Date.now() + '.webm';
-      a.click();
-      URL.revokeObjectURL(url);
-      classMediaRecorder = null;
-    };
-    classMediaRecorder.start(1000);
-    isClassRecording = true;
-    if (btn) btn.innerHTML = '<i class="fas fa-stop mr-1"></i><span>Stop</span>';
-  } catch (err) {
-    console.error(err);
-    alert('Could not start recording. Use Chrome/Edge and allow permissions.');
-  }
-}
-
 async function toggleScreenShare() {
   if (!activeClassCode) { alert('Start or join a class first'); return; }
   try {
@@ -2167,140 +2057,6 @@ function closePersonDetail() {
 }
 
 
-
-async function openMyCertificate() {
-  try {
-    const headers = token ? { Authorization: 'Bearer ' + token } : {};
-    const res = await fetch('/api/certificate/me', { headers });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.msg || 'Could not build certificate');
-    lastCertificatePayload = data;
-    renderCertificateDocument(data);
-    document.getElementById('certificateModal').classList.remove('hidden');
-  } catch (err) {
-    alert(err.message);
-  }
-}
-
-function closeCertificateModal() {
-  document.getElementById('certificateModal')?.classList.add('hidden');
-}
-
-function renderCertificateDocument(data) {
-  const mount = document.getElementById('certificateMount');
-  if (!mount || !data) return;
-  const s = data.student || {};
-  const scores = data.scores || [];
-  const overall = data.overall != null ? data.overall : 0;
-  const band = performanceBand(overall);
-  const verifyUrl = data.verifyUrl || (location.origin + '/certificate.html?v=' + encodeURIComponent(data.token || ''));
-  const qrSrc = 'https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=' + encodeURIComponent(verifyUrl);
-  const barcodeBars = String(data.token || 'NOA').split('').map((ch, i) => {
-    const h = 20 + (ch.charCodeAt(0) % 30);
-    return '<span style="display:inline-block;width:3px;height:' + h + 'px;background:#0f172a;margin:0 1px;vertical-align:bottom"></span>';
-  }).join('');
-
-  const rows = scores.map(r => {
-    const b = performanceBand(r.percentage);
-    return '<tr><td style="padding:8px 10px;border-bottom:1px solid #e2e8f0">' + escapeHtml(r.subject || '—') +
-      '</td><td style="padding:8px 10px;border-bottom:1px solid #e2e8f0">' + (r.score ?? '—') + ' / ' + (r.supposed_score ?? '—') +
-      '</td><td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;font-weight:700;color:#19A975">' + (r.percentage ?? '—') + '%</td>' +
-      '<td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;color:' + b.color + ';font-weight:600">' + b.label + '</td>' +
-      '<td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;color:#64748b">' + escapeHtml(r.assessed_at || '') + '</td></tr>';
-  }).join('') || '<tr><td colspan="5" style="padding:16px;text-align:center;color:#94a3b8">No assessment scores yet</td></tr>';
-
-  mount.innerHTML = `
-  <div id="certificatePrintArea" style="font-family:Georgia,serif;color:#0f172a;background:#fff">
-    <div style="border:10px solid #19A975;outline:2px solid #0f766e;outline-offset:6px;padding:28px 32px;border-radius:4px;position:relative">
-      <div style="text-align:center;margin-bottom:18px">
-        <div style="letter-spacing:4px;font-size:11px;color:#19A975;font-weight:700;text-transform:uppercase">Nigeria Olympiad Academy</div>
-        <h1 style="font-size:28px;margin:8px 0 4px;font-weight:800">Certificate of Performance</h1>
-        <p style="margin:0;color:#64748b;font-size:13px">This certifies the academic progress of the student named below</p>
-      </div>
-      <div style="text-align:center;margin:22px 0">
-        <p style="margin:0;font-size:13px;color:#64748b">Awarded to</p>
-        <p style="margin:6px 0;font-size:26px;font-weight:800;color:#0f172a;border-bottom:2px solid #19A975;display:inline-block;padding:0 16px 4px">${escapeHtml(s.name || s.username || 'Student')}</p>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;font-size:13px;margin:16px 0 20px;max-width:560px;margin-left:auto;margin-right:auto">
-        <div><span style="color:#64748b">Username</span><br><strong>${escapeHtml(s.username || '—')}</strong></div>
-        <div><span style="color:#64748b">Email</span><br><strong>${escapeHtml(s.email || '—')}</strong></div>
-        <div><span style="color:#64748b">School</span><br><strong>${escapeHtml(s.school || '—')}</strong></div>
-        <div><span style="color:#64748b">Grade</span><br><strong>${escapeHtml(s.grade || '—')}</strong></div>
-        <div><span style="color:#64748b">Overall average</span><br><strong style="color:#19A975;font-size:18px">${overall}%</strong></div>
-        <div><span style="color:#64748b">Performance</span><br><strong style="color:${band.color};font-size:16px">${band.label}</strong></div>
-      </div>
-      <p style="text-align:center;font-size:13px;color:#334155;line-height:1.5;max-width:520px;margin:0 auto 18px">
-        In recognition of consistent effort and measured achievement on the NOA platform.
-        Performance bands: Average · Good · Excellent · <strong>Outstanding (95%+)</strong>.
-      </p>
-      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-top:24px;flex-wrap:wrap">
-        <div style="text-align:center">
-          <div style="border-top:1px solid #94a3b8;width:140px;margin:0 auto;padding-top:6px;font-size:12px">Director, NOA</div>
-        </div>
-        <div style="text-align:center">
-          <img src="${qrSrc}" alt="QR verify" width="88" height="88" style="image-rendering:pixelated" />
-          <div style="margin-top:4px">${barcodeBars}</div>
-          <div style="font-size:9px;color:#64748b;margin-top:4px;max-width:140px;word-break:break-all">Scan to verify</div>
-        </div>
-        <div style="text-align:center">
-          <div style="border-top:1px solid #94a3b8;width:140px;margin:0 auto;padding-top:6px;font-size:12px">Date: ${escapeHtml(data.issuedAt || '')}</div>
-        </div>
-      </div>
-      <p style="text-align:center;font-size:10px;color:#94a3b8;margin-top:14px">Verify: ${escapeHtml(verifyUrl)}</p>
-    </div>
-    <div style="margin-top:28px;border-top:3px double #19A975;padding-top:18px">
-      <h2 style="font-size:16px;margin:0 0 4px;font-family:system-ui,sans-serif">Academic Report Card</h2>
-      <p style="margin:0 0 12px;font-size:12px;color:#64748b;font-family:system-ui,sans-serif">Detailed assessment scores for ${escapeHtml(s.name || 'student')}</p>
-      <table style="width:100%;border-collapse:collapse;font-size:13px;font-family:system-ui,sans-serif">
-        <thead>
-          <tr style="background:#f0fdf4;text-align:left">
-            <th style="padding:8px 10px">Subject</th>
-            <th style="padding:8px 10px">Score</th>
-            <th style="padding:8px 10px">%</th>
-            <th style="padding:8px 10px">Band</th>
-            <th style="padding:8px 10px">Date</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-      <p style="margin-top:14px;font-size:11px;color:#94a3b8;font-family:system-ui,sans-serif">Nigeria Olympiad Academy · Higher Move · Official performance record</p>
-    </div>
-  </div>`;
-}
-
-function escapeHtml(str) {
-  return String(str || '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
-}
-
-function printCertificate() {
-  const area = document.getElementById('certificatePrintArea');
-  if (!area) return;
-  const w = window.open('', '_blank', 'width=900,height=1000');
-  w.document.write('<html><head><title>NOA Certificate</title></head><body>' + area.outerHTML + '<script>window.onload=()=>window.print()<\/script></body></html>');
-  w.document.close();
-}
-
-function downloadCertificatePdf() {
-  // Print-to-PDF friendly: open print dialog (user can save as PDF)
-  printCertificate();
-}
-
-
 document.addEventListener('DOMContentLoaded', () => { loadPerformance('week'); });
 </script>
-
-<!-- Certificate preview modal -->
-<div id="certificateModal" class="hidden fixed inset-0 z-[600] bg-black/60 flex items-center justify-center p-4">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] overflow-auto">
-    <div class="sticky top-0 bg-white border-b px-4 py-3 flex flex-wrap gap-2 items-center justify-between z-10">
-      <p class="font-bold text-slate-800"><i class="fas fa-certificate text-[#19A975] mr-2"></i>Performance Certificate &amp; Report</p>
-      <div class="flex gap-2">
-        <button type="button" onclick="printCertificate()" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-semibold"><i class="fas fa-print mr-1"></i>Print</button>
-        <button type="button" onclick="downloadCertificatePdf()" class="px-4 py-2 rounded-xl bg-[#19A975] text-white text-sm font-semibold"><i class="fas fa-download mr-1"></i>Download</button>
-        <button type="button" onclick="closeCertificateModal()" class="px-4 py-2 rounded-xl border text-sm font-semibold">Close</button>
-      </div>
-    </div>
-    <div id="certificateMount" class="p-4 sm:p-8"></div>
-  </div>
-</div>
 </body>

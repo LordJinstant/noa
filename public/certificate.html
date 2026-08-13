@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NOA Certificate Verification</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <style>
+    @media print {
+      .no-print { display: none !important; }
+      body { background: white !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+  <header class="no-print bg-white border-b sticky top-0 z-20">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <a href="index.html" class="font-black text-[#19A975] text-lg">NOA · Higher Move</a>
+      <div class="flex gap-2">
+        <button onclick="window.print()" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-semibold"><i class="fas fa-print mr-1"></i>Print / Save PDF</button>
+        <button onclick="closeCertView()" class="px-4 py-2 rounded-xl border text-sm font-semibold">Close · Visit website</button>
+      </div>
+    </div>
+  </header>
+  <main class="max-w-4xl mx-auto p-4 sm:p-8">
+    <div id="status" class="text-center text-slate-500 py-16">Loading certificate…</div>
+    <div id="certBox" class="hidden bg-white rounded-2xl shadow-xl p-4 sm:p-8"></div>
+  </main>
+  <script>
+    function band(pct) {
+      const p = Number(pct) || 0;
+      if (p >= 95) return { label: 'Outstanding', color: '#7c3aed' };
+      if (p >= 85) return { label: 'Excellent', color: '#19A975' };
+      if (p >= 70) return { label: 'Good', color: '#0ea5e9' };
+      if (p >= 50) return { label: 'Average', color: '#f59e0b' };
+      return { label: 'Needs Improvement', color: '#94a3b8' };
+    }
+    function esc(s) {
+      return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    function closeCertView() {
+      window.location.href = 'index.html';
+    }
+    async function main() {
+      const params = new URLSearchParams(location.search);
+      const v = params.get('v');
+      const status = document.getElementById('status');
+      if (!v) {
+        status.innerHTML = '<p class="mb-4">No certificate code in this link.</p><a class="text-[#19A975] font-semibold underline" href="index.html">Go to website</a>';
+        return;
+      }
+      try {
+        const res = await fetch('/api/certificate/' + encodeURIComponent(v));
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.msg || 'Not found');
+        const s = data.student || {};
+        const overall = data.overall || 0;
+        const b = band(overall);
+        const verifyUrl = data.verifyUrl || location.href;
+        const qr = 'https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=' + encodeURIComponent(verifyUrl);
+        const rows = (data.scores || []).map(r => {
+          const bb = band(r.percentage);
+          return `<tr><td class="py-2 border-b">${esc(r.subject)}</td><td class="py-2 border-b">${r.score}/${r.supposed_score}</td><td class="py-2 border-b font-bold text-emerald-600">${r.percentage}%</td><td class="py-2 border-b" style="color:${bb.color}">${bb.label}</td><td class="py-2 border-b text-slate-500">${esc(r.assessed_at)}</td></tr>`;
+        }).join('') || '<tr><td colspan="5" class="py-6 text-center text-slate-400">No scores</td></tr>';
+        status.classList.add('hidden');
+        const box = document.getElementById('certBox');
+        box.classList.remove('hidden');
+        box.innerHTML = `
+          <div style="border:10px solid #19A975;outline:2px solid #0f766e;outline-offset:6px;padding:28px;text-align:center">
+            <div style="letter-spacing:3px;font-size:11px;color:#19A975;font-weight:700">NIGERIA OLYMPIAD ACADEMY</div>
+            <h1 class="text-3xl font-black mt-2 mb-1">Certificate of Performance</h1>
+            <p class="text-slate-500 text-sm">Verified official record</p>
+            <p class="mt-6 text-slate-500 text-sm">Awarded to</p>
+            <p class="text-2xl font-black border-b-2 border-emerald-500 inline-block px-4 pb-1">${esc(s.name)}</p>
+            <div class="grid sm:grid-cols-2 gap-3 text-left max-w-lg mx-auto mt-6 text-sm">
+              <div><span class="text-slate-500">School</span><br><strong>${esc(s.school)}</strong></div>
+              <div><span class="text-slate-500">Grade</span><br><strong>${esc(s.grade)}</strong></div>
+              <div><span class="text-slate-500">Overall</span><br><strong class="text-emerald-600 text-lg">${overall}%</strong></div>
+              <div><span class="text-slate-500">Performance</span><br><strong style="color:${b.color}">${b.label}</strong></div>
+            </div>
+            <div class="flex justify-center mt-6"><img src="${qr}" width="100" height="100" alt="QR" /></div>
+            <p class="text-xs text-slate-400 mt-2 break-all">${esc(verifyUrl)}</p>
+            <p class="text-xs text-slate-500 mt-2">Issued ${esc(data.issuedAt)}</p>
+          </div>
+          <div class="mt-8 border-t-4 border-double border-emerald-600 pt-6">
+            <h2 class="font-bold text-lg mb-3">Report Card</h2>
+            <table class="w-full text-sm text-left"><thead class="bg-emerald-50"><tr><th class="p-2">Subject</th><th class="p-2">Score</th><th class="p-2">%</th><th class="p-2">Band</th><th class="p-2">Date</th></tr></thead><tbody>${rows}</tbody></table>
+          </div>`;
+      } catch (e) {
+        status.innerHTML = '<p class="text-red-500 mb-4">' + esc(e.message) + '</p><a href="index.html" class="text-[#19A975] underline">Go to website</a>';
+      }
+    }
+    main();
+  </script>
+</body>
+</html>

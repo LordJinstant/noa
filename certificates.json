@@ -1,0 +1,109 @@
+{
+  "certificates": {
+    "NOA-MJATBXNYDZVXZ3E": {
+      "token": "NOA-MJATBXNYDZVXZ3E",
+      "issuedAt": "2026-08-13",
+      "student": {
+        "id": 20,
+        "name": "Aladine Mech",
+        "username": "aladin",
+        "email": "jinmaladine@gmail.com",
+        "school": "Green Hills Secondary School, Aba",
+        "grade": "Grade 12 / Junior College 2"
+      },
+      "scores": [
+        {
+          "subject": "Mathematics",
+          "score": 38,
+          "supposed_score": 100,
+          "percentage": 38,
+          "assessed_at": "2026-08-10",
+          "grade": "Grade 12 / Junior College 2"
+        },
+        {
+          "subject": "Mathematics",
+          "score": 77,
+          "supposed_score": 100,
+          "percentage": 77,
+          "assessed_at": "2026-08-10",
+          "grade": "Grade 12 / Junior College 2"
+        },
+        {
+          "subject": "Mathematics",
+          "score": 22,
+          "supposed_score": 100,
+          "percentage": 22,
+          "assessed_at": "2026-08-10",
+          "grade": "Grade 12 / Junior College 2"
+        },
+        {
+          "subject": "Mathematics",
+          "score": 88,
+          "supposed_score": 100,
+          "percentage": 88,
+          "assessed_at": "2026-08-10",
+          "grade": "Grade 12 / Junior College 2"
+        },
+        {
+          "subject": "Mathematics",
+          "score": 100,
+          "supposed_score": 100,
+          "percentage": 100,
+          "assessed_at": "2026-08-10",
+          "grade": "Grade 12 / Junior College 2"
+        },
+        {
+          "subject": "Mathematics",
+          "score": 100,
+          "supposed_score": 100,
+          "percentage": 100,
+          "assessed_at": "2026-08-10",
+          "grade": "Grade 12 / Junior College 2"
+        },
+        {
+          "subject": "Mathematics",
+          "score": 90,
+          "supposed_score": 100,
+          "percentage": 90,
+          "assessed_at": "2026-08-10",
+          "grade": "Grade 12 / Junior College 2"
+        },
+        {
+          "subject": "Mathematics",
+          "score": 88,
+          "supposed_score": 100,
+          "percentage": 88,
+          "assessed_at": "2026-08-10",
+          "grade": "Grade 12 / Junior College 2"
+        },
+        {
+          "subject": "Mathematics",
+          "score": 100,
+          "supposed_score": 100,
+          "percentage": 100,
+          "assessed_at": "2026-08-10",
+          "grade": "Grade 12 / Junior College 2"
+        },
+        {
+          "subject": "Science",
+          "score": 55,
+          "supposed_score": 100,
+          "percentage": 55,
+          "assessed_at": "2026-08-10",
+          "grade": "Grade 12 / Junior College 2"
+        },
+        {
+          "subject": "Science",
+          "score": 100,
+          "supposed_score": 100,
+          "percentage": 100,
+          "assessed_at": "2026-08-10",
+          "grade": "Grade 12 / Junior College 2"
+        }
+      ],
+      "overall": 78,
+      "band": "Good"
+    },
+    "latest:20": "NOA-MJATBXNYDZVXZ3E"
+  }
+}

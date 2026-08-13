@@ -1906,6 +1906,107 @@ app.get('/api/gallery/:name', (req, res) => {
 
 
 
+
+// ===================== PERFORMANCE CERTIFICATES =====================
+const CERT_FILE = path.join(__dirname, 'certificates.json');
+
+function readCerts() {
+  try { return JSON.parse(fs.readFileSync(CERT_FILE, 'utf8')); }
+  catch (e) { return { certificates: {} }; }
+}
+function writeCerts(data) {
+  fs.writeFileSync(CERT_FILE, JSON.stringify(data, null, 2));
+}
+
+function bandFromPct(pct) {
+  const p = Number(pct) || 0;
+  if (p >= 95) return 'Outstanding';
+  if (p >= 85) return 'Excellent';
+  if (p >= 70) return 'Good';
+  if (p >= 50) return 'Average';
+  return 'Needs Improvement';
+}
+
+function buildCertificateForStudent(studentRow) {
+  if (!studentRow) return null;
+  const scores = usersDb.prepare(`
+    SELECT subject, score, supposed_score, percentage, assessed_at, grade
+    FROM assessments
+    WHERE student_id = ? OR lower(student_name) = lower(?)
+    ORDER BY assessed_at DESC
+  `).all(studentRow.id, studentRow.name || studentRow.username || '');
+
+  const pcts = scores.map(s => Number(s.percentage) || 0);
+  const overall = pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : 0;
+
+  const token = 'NOA-' + Buffer.from(String(studentRow.id) + '-' + Date.now().toString(36)).toString('base64url').slice(0, 16).toUpperCase();
+  const payload = {
+    token,
+    issuedAt: new Date().toISOString().split('T')[0],
+    student: {
+      id: studentRow.id,
+      name: studentRow.name,
+      username: studentRow.username,
+      email: studentRow.email,
+      school: studentRow.school,
+      grade: studentRow.grade
+    },
+    scores: scores.slice(0, 40),
+    overall,
+    band: bandFromPct(overall)
+  };
+
+  const store = readCerts();
+  store.certificates = store.certificates || {};
+  store.certificates[token] = payload;
+  // Also map latest by student id for refresh
+  store.certificates['latest:' + studentRow.id] = token;
+  writeCerts(store);
+  return payload;
+}
+
+app.get('/api/certificate/me', (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ msg: 'Login required' });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (String(decoded.role || '').toLowerCase() !== 'student' && decoded.type === 'admin') {
+      // staff may still view if they have student id? only students for personal cert
+    }
+    let student = null;
+    if (decoded.id && decoded.type !== 'admin') {
+      student = usersDb.prepare(`SELECT id, name, username, email, school, grade FROM users WHERE id = ?`).get(decoded.id);
+    }
+    if (!student && decoded.username) {
+      student = usersDb.prepare(`SELECT id, name, username, email, school, grade FROM users WHERE username = ? OR email = ?`).get(decoded.username, decoded.username);
+    }
+    if (!student) return res.status(404).json({ msg: 'Student profile not found' });
+
+    const cert = buildCertificateForStudent(student);
+    const host = req.get('x-forwarded-host') || req.get('host') || 'localhost';
+    const proto = req.get('x-forwarded-proto') || req.protocol || 'https';
+    cert.verifyUrl = `${proto}://${host}/certificate.html?v=${encodeURIComponent(cert.token)}`;
+    return res.json(cert);
+  } catch (err) {
+    return res.status(401).json({ msg: 'Invalid token' });
+  }
+});
+
+app.get('/api/certificate/:token', (req, res) => {
+  try {
+    const store = readCerts();
+    const cert = (store.certificates || {})[req.params.token];
+    if (!cert) return res.status(404).json({ msg: 'Certificate not found or expired' });
+    const host = req.get('x-forwarded-host') || req.get('host') || 'localhost';
+    const proto = req.get('x-forwarded-proto') || req.protocol || 'https';
+    cert.verifyUrl = `${proto}://${host}/certificate.html?v=${encodeURIComponent(cert.token)}`;
+    return res.json(cert);
+  } catch (err) {
+    return res.status(500).json({ msg: err.message });
+  }
+});
+
+
 setInterval(() => { try { pruneExpiredConversations(readAiConv()); } catch (e) {} }, 60 * 60 * 1000);
 
 server.listen(PORT, '0.0.0.0', () => {
