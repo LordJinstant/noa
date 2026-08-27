@@ -67,10 +67,38 @@ function createOrUpdateDoughnut(id, value, color) {
 function updateRing(id, percent) {
   const ring = document.getElementById(id);
   if (!ring) return;
+  // admin.html rings use stroke-dasharray="100,100" + stroke-dashoffset
+  const safePercent = Math.max(0, Math.min(100, Number(percent) || 0));
+  const offset = 100 - safePercent;
+  ring.setAttribute('stroke-dasharray', '100,100');
+  ring.style.strokeDashoffset = String(offset);
+  // Matching glow path if present (id + "Glow")
+  const glow = document.getElementById(id + 'Glow');
+  if (glow) {
+    glow.setAttribute('stroke-dasharray', '100,100');
+    glow.style.strokeDashoffset = String(offset);
+  }
+}
 
-  // Clamp percent between 0–100
-  const safePercent = Math.max(0, Math.min(100, percent));
-  ring.setAttribute('stroke-dasharray', `${safePercent},100`);
+/** Set a count element to the exact value (for admin.html live observer) */
+function setStatCount(elId, value, percentForRing) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const n = Math.max(0, Math.floor(Number(value) || 0));
+  el.setAttribute('data-count', String(n));
+  if (percentForRing != null && !isNaN(percentForRing)) {
+    el.setAttribute('data-percent', String(Math.max(0, Math.min(100, Math.round(percentForRing)))));
+  }
+  el.textContent = String(n);
+}
+
+/** Visual ring fill from a raw count (not treated as a percent) */
+function countAsRingPercent(count) {
+  count = Math.max(0, Number(count) || 0);
+  if (count <= 0) return 0;
+  if (count <= 10) return Math.min(100, count * 8);
+  if (count <= 50) return Math.min(100, 40 + Math.round((count - 10) * 1.2));
+  return 100;
 }
 
 
@@ -84,12 +112,8 @@ function updateMiniCharts(stats = {}) {
 
 // ===================== DASHBOARD STATS =====================
 // ===================== DASHBOARD STATS (Fixed) =====================
-let dashboardLoaded = false;
-
 async function loadDashboard() {
   console.log("loadDashboard called"); // debug
-  if (dashboardLoaded) return;
-  dashboardLoaded = true;
 
   const token = localStorage.getItem('token');
   if (!token) {
@@ -110,58 +134,65 @@ async function loadDashboard() {
     const stats = await res.json();
 
 function updateMiniChart(values = []) {
+  const line = document.getElementById('chartLine');
+  const fill = document.getElementById('chartFill');
+  if (!line || !fill) return; // not present on current admin UI
   const maxVal = Math.max(...values, 1);
   const points = values.map((v, i) => {
-    const x = (i / (values.length - 1)) * 100;
-    const y = 40 - (v / maxVal) * 30; // scale vertically
+    const x = values.length === 1 ? 50 : (i / (values.length - 1)) * 100;
+    const y = 40 - (v / maxVal) * 30;
     return `${x},${y}`;
   }).join(' L');
-
-  document.getElementById('chartLine').setAttribute('d', `M${points}`);
-  document.getElementById('chartFill').setAttribute('d', `M${points} L100,40 L0,40 Z`);
+  line.setAttribute('d', `M${points}`);
+  fill.setAttribute('d', `M${points} L100,40 L0,40 Z`);
 }
 
 function animateMiniChart(values = []) {
+  const line = document.getElementById('chartLine');
+  const fill = document.getElementById('chartFill');
+  if (!line || !fill) return;
   const maxVal = Math.max(...values, 1);
   const targetPoints = values.map((v, i) => {
-    const x = (i / (values.length - 1)) * 100;
+    const x = values.length === 1 ? 50 : (i / (values.length - 1)) * 100;
     const y = 40 - (v / maxVal) * 30;
     return { x, y };
   });
-
-  const line = document.getElementById('chartLine');
-  const fill = document.getElementById('chartFill');
-
-  // Get current path points (fallback to target if none)
-  const currentPath = line.getAttribute('d') || `M0,40`;
-  // For simplicity, just replace with target smoothly
   const pointsStr = targetPoints.map(p => `${p.x},${p.y}`).join(' L');
-
   line.setAttribute('d', `M${pointsStr}`);
   fill.setAttribute('d', `M${pointsStr} L100,40 L0,40 Z`);
 }
 
-document.getElementById('ticketsCount').textContent = stats.tickets || 0;
-updateRing('ticketsRing', stats.tickets || 0); updateMiniChart([stats.tickets]);
+const ticketN = Number(stats.tickets) || 0;
+    const pendingN = Number(stats.pendingUsers) || 0;
+    const adminN = Number(stats.admins) || 0;
+    const postN = Number(stats.posts) || 0;
 
-document.getElementById('pendingUsersCount').textContent = stats.pendingUsers || 0;
-updateRing('pendingUsersRing', stats.pendingUsers || 0); updateMiniChart([stats.pendingUsers]);
+    // Exact counts — admin.html observer animates from data-count
+    setStatCount('ticketsCount', ticketN, countAsRingPercent(ticketN));
+    setStatCount('pendingUsersCount', pendingN, countAsRingPercent(pendingN));
+    setStatCount('adminsCount', adminN, countAsRingPercent(adminN));
+    setStatCount('postsCount', postN, countAsRingPercent(postN));
 
-document.getElementById('adminsCount').textContent = stats.admins || 0;
-updateRing('adminsRing', stats.admins || 0); updateMiniChart([stats.admins]); 
+    // Rings (dashoffset style used by admin.html SVG)
+    updateRing('ticketsRing', countAsRingPercent(ticketN));
+    updateRing('pendingUsersRing', countAsRingPercent(pendingN));
+    updateRing('adminsRing', countAsRingPercent(adminN));
+    updateRing('postsRing', countAsRingPercent(postN));
 
-document.getElementById('postsCount').textContent = stats.posts || 0;
-updateRing('postsRing', stats.posts || 0); updateMiniChart([stats.posts]);
+    const postsCount2 = document.getElementById('postsCount2');
+    if (postsCount2) postsCount2.textContent = postN + ' posts';
 
-animateMiniChart([stats.tickets, stats.pendingUsers, stats.admins, stats.posts]);
-
-    // document.getElementById('ticketsCount').textContent = stats.tickets || 0;
-    // document.getElementById('pendingUsersCount').textContent = stats.pendingUsers || 0;
-    // document.getElementById('adminsCount').textContent = stats.admins || 0;
-    // document.getElementById('postsCount').textContent = stats.posts || 0;
-    // document.getElementById('postsCount2').textContent = `${stats.posts || 0} posts`;
-
-    updateMiniCharts(stats);
+    try {
+      if (typeof updateMiniChart === 'function') {
+        updateMiniChart([ticketN, pendingN, adminN, postN]);
+      }
+      if (typeof animateMiniChart === 'function') {
+        animateMiniChart([ticketN, pendingN, adminN, postN]);
+      }
+      if (typeof updateMiniCharts === 'function') {
+        updateMiniCharts({ tickets: ticketN, pendingUsers: pendingN, admins: adminN, posts: postN });
+      }
+    } catch (e) { /* optional chart helpers may be absent in UI */ }
   } catch (err) {
     console.error('Dashboard load error:', err);
   }
@@ -192,14 +223,26 @@ async function renderAdmins() {
     }
 
     if (data.admins && data.admins.length > 0) {
+      const canPromote = currentUserRole === 'super_admin' || currentUserRole === 'admin';
       data.admins.forEach(admin => {
+        const role = String(admin.role || 'staff').toLowerCase();
+        const canEdit = canPromote && role !== 'super_admin';
+        const safeRole = String(role).replace(/'/g, '');
         html += `
-          <div class="admin-card text-center p-6 rounded-3xl bg-white shadow-sm">
-            <img src="${admin.img || 'https://i.pravatar.cc/150'}" class="w-20 h-20 rounded-2xl mx-auto object-cover border-4 border-white shadow">
+          <div class="admin-card text-center p-6 rounded-3xl bg-white shadow-sm${canEdit ? ' cursor-pointer hover:ring-2 hover:ring-[#19A975]/40 transition' : ''}"
+               ${canEdit ? `onclick="changeMemberRole('${admin.id}', '${safeRole}')"` : ''}
+               title="${canEdit ? 'Click to promote or demote' : ''}">
+            <img src="${admin.img || admin.avatar || 'https://i.pravatar.cc/150'}" class="w-20 h-20 rounded-2xl mx-auto object-cover border-4 border-white shadow" alt="">
             <h4 class="font-semibold mt-4">${escapeHtml(admin.name)}</h4>
             <p class="text-sm text-gray-500 capitalize">${escapeHtml(admin.role)}</p>
-            ${currentUserRole === 'super_admin' && admin.role!== 'super_admin'? `
-              <button onclick="deleteAdmin(${admin.id})" class="mt-4 text-xs bg-red-100 text-red-600 hover:bg-red-200 px-5 py-2 rounded-xl">
+            ${canEdit ? `
+              <p class="text-[11px] text-[#19A975] font-semibold mt-2"><i class="fas fa-exchange-alt mr-1"></i>Click to change role</p>
+              <button type="button" onclick="event.stopPropagation(); changeMemberRole('${admin.id}', '${safeRole}')"
+                class="mt-3 text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-4 py-2 rounded-xl font-semibold">
+                Promote / Demote
+              </button>` : ''}
+            ${currentUserRole === 'super_admin' && role !== 'super_admin' ? `
+              <button type="button" onclick="event.stopPropagation(); deleteAdmin(${admin.id})" class="mt-2 text-xs bg-red-100 text-red-600 hover:bg-red-200 px-5 py-2 rounded-xl">
                 Delete
               </button>` : ''}
           </div>`;
@@ -222,6 +265,11 @@ async function renderAdmins() {
 
 document.getElementById('createAdminForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
+  const role = getAdminRole();
+  if (role === 'moderator') {
+    alert('Only administrators can create admin accounts.');
+    return;
+  }
   const token = localStorage.getItem('token');
   if (!token) {
     alert('Please login as admin first');
@@ -300,6 +348,11 @@ async function deleteAdmin(id) {
 
 // ===================== MANAGE USERS POPUP - FIXED =====================
 async function toggleManageUsers() {
+  const role = getAdminRole();
+  if (role === 'moderator') {
+    alert('Manage Users is only available to administrators.');
+    return;
+  }
   const modal = document.getElementById('manageUsersModal');
   if (!modal) return;
   modal.classList.toggle('hidden');
@@ -362,10 +415,14 @@ async function loadUsersTable() {
           <span class="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">Active</span>
         </td>
         <td class="p-4">
-          <div class="flex gap-2">
+          <div class="flex flex-wrap gap-2">
             <button onclick="showUserModalById(${user.id})" class="px-3 py-1 text-xs bg-[#19A975] text-white rounded-lg hover:bg-[#158a5f]">
               View
             </button>
+            ${(user.role === 'staff' || user.role === 'staff_pending' || user.role === 'student') ? `
+            <button onclick="changeMemberRole(${user.id}, '${String(user.role || '').replace(/'/g, '')}')" class="px-3 py-1 text-xs bg-violet-100 text-violet-700 rounded-lg hover:bg-violet-200" title="Promote or demote">
+              Role
+            </button>` : ''}
             <button onclick="deleteUserFromTable(${user.id})" class="px-3 py-1 text-xs bg-red-100 text-red-600 rounded-lg hover:bg-red-200">
               Delete
             </button>
@@ -446,19 +503,50 @@ function showUserModalById(id) {
 
   const modal = document.getElementById('userDetailModal');
   const content = document.getElementById('userDetailContent');
-  if (!modal ||!content) return;
+  if (!modal || !content) return;
 
-  const avatar = user.avatar
-   ? `<img src="${user.avatar}" class="w-24 h-24 rounded-full object-cover border-4 border-white shadow">`
-    : `<div class="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-5xl relative border-4 border-white shadow">
+  window.__viewingUserId = user.id;
+
+  const hasPic = !!(user.avatar && String(user.avatar).trim());
+  const avatarInner = hasPic
+    ? `<img id="userDetailAvatarImg" src="${escapeHtml(user.avatar)}" alt="Profile" class="w-full h-full object-cover">`
+    : `<div id="userDetailAvatarPlaceholder" class="w-full h-full flex items-center justify-center text-gray-400 text-5xl bg-gray-100">
          <i class="fas fa-user"></i>
        </div>`;
 
+  const roleLower = String(user.role || '').toLowerCase();
+  const showStudentsBtn = roleLower === 'staff' || roleLower === 'admin' || roleLower === 'moderator' || roleLower === 'super_admin';
+
   content.innerHTML = `
     <div class="flex flex-col items-center text-center">
-      ${avatar}
-      <h4 class="text-2xl font-bold mt-4">${escapeHtml(user.name || user.username || 'Unnamed User')}</h4>
-      <p class="text-gray-500">${escapeHtml(user.role || 'user')}</p>
+      <div class="relative group inline-block">
+        <button type="button" id="userAvatarBtn" onclick="toggleAvatarMenu()"
+          class="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg ring-2 ring-emerald-100 hover:ring-[#19A975] transition focus:outline-none"
+          title="Profile picture">
+          ${avatarInner}
+        </button>
+        <span class="pointer-events-none absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#19A975] text-white flex items-center justify-center text-xs shadow-md border-2 border-white group-hover:scale-110 transition">
+          <i class="fas fa-camera"></i>
+        </span>
+        <div id="avatarMenu" class="hidden absolute left-1/2 -translate-x-1/2 top-full mt-2 z-20 w-52 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 text-left">
+          <button type="button" onclick="pickUserAvatar()" class="w-full px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-emerald-50 hover:text-[#19A975] flex items-center gap-2">
+            <i class="fas fa-image text-emerald-500 w-4 text-center"></i>
+            ${hasPic ? 'Change profile picture' : 'Add profile picture'}
+          </button>
+          ${hasPic ? `<button type="button" onclick="removeUserAvatar()" class="w-full px-4 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2">
+            <i class="fas fa-trash w-4 text-center"></i> Remove picture
+          </button>` : ''}
+        </div>
+      </div>
+      <input type="file" id="userAvatarFileInput" accept="image/*" class="hidden" onchange="uploadUserAvatar(event)" />
+      <p id="avatarUploadStatus" class="text-xs text-gray-400 mt-2 min-h-[1rem]"></p>
+      ${showStudentsBtn ? `
+      <button type="button" onclick="openStaffStudentsList(${user.id})"
+        class="mt-3 px-4 py-2 rounded-xl text-sm font-semibold bg-emerald-50 text-emerald-800 border border-emerald-100 hover:bg-emerald-100 transition">
+        <i class="fas fa-user-graduate mr-1.5"></i>List of staff's students
+      </button>` : ''}
+      <h4 class="text-2xl font-bold mt-2">${escapeHtml(user.name || user.username || 'Unnamed User')}</h4>
+      <p class="text-gray-500 capitalize">${escapeHtml(user.role || 'user')}</p>
     </div>
 
     <div class="mt-6 space-y-3">
@@ -469,14 +557,174 @@ function showUserModalById(id) {
       <div class="flex justify-between py-2 border-b"><span class="text-gray-600">Joined</span><span class="font-semibold">${escapeHtml(user.joined || 'N/A')}</span></div>
       <div class="flex justify-between py-2 border-b"><span class="text-gray-600">School</span><span class="font-semibold">${escapeHtml(user.school || 'N/A')}</span></div>
     </div>
+    <button type="button" onclick="changeMemberRole(${user.id}, '${String(user.role || 'staff').replace(/'/g, '')}')"
+      class="mt-5 w-full py-3 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white font-semibold text-sm flex items-center justify-center gap-2">
+      <i class="fas fa-exchange-alt"></i> Promote / Demote role
+    </button>
   `;
 
   modal.classList.remove('hidden');
 }
 
+async function openStaffStudentsList(staffId) {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    alert('Please login as admin');
+    return;
+  }
+  staffId = Number(staffId);
+  if (!staffId) {
+    alert('Invalid member id');
+    return;
+  }
+
+  let existing = document.getElementById('staffStudentsModal');
+  if (existing) existing.remove();
+
+  const wrap = document.createElement('div');
+  wrap.id = 'staffStudentsModal';
+  wrap.className = 'fixed inset-0 z-[820] bg-black/50 flex items-center justify-center p-4';
+  wrap.onclick = function (e) { if (e.target === wrap) wrap.remove(); };
+  wrap.innerHTML = `
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden" onclick="event.stopPropagation()">
+      <div class="px-5 py-4 border-b flex items-center justify-between gap-2">
+        <div>
+          <h3 class="text-lg font-bold text-gray-800">Staff's students</h3>
+          <p class="text-xs text-gray-500" id="staffStudentsSub">Loading…</p>
+        </div>
+        <button type="button" onclick="document.getElementById('staffStudentsModal')?.remove()" class="w-9 h-9 rounded-xl hover:bg-gray-100 text-gray-500"><i class="fas fa-times"></i></button>
+      </div>
+      <div id="staffStudentsBody" class="px-5 py-4 overflow-y-auto flex-1 text-sm text-gray-500">Loading list…</div>
+    </div>`;
+  document.body.appendChild(wrap);
+
+  try {
+    // Prefer /api/users/:id/students (admin-friendly alias), fall back to /api/staff/:id/students
+    let res = await fetch('/api/users/' + staffId + '/students', {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    let data = await res.json().catch(function () { return {}; });
+    if (!res.ok) {
+      res = await fetch('/api/staff/' + staffId + '/students', {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      data = await res.json().catch(function () { return {}; });
+    }
+    if (!res.ok) {
+      throw new Error(data.msg || ('Failed to load students (HTTP ' + res.status + ')'));
+    }
+    const sub = document.getElementById('staffStudentsSub');
+    const body = document.getElementById('staffStudentsBody');
+    const list = data.students || [];
+    if (sub) {
+      sub.textContent = (data.staff && data.staff.name ? data.staff.name + ' · ' : '') +
+        list.length + ' student' + (list.length === 1 ? '' : 's');
+    }
+    if (!body) return;
+    if (!list.length) {
+      body.innerHTML = '<p class="text-center text-gray-400 py-8">No students added or following this member yet.</p>';
+      return;
+    }
+    body.innerHTML = '<ol class="space-y-2 list-none">' + list.map(function (s, i) {
+      const n = i + 1;
+      const link = s.link === 'follower' ? 'Follower' : 'Added';
+      return (
+        '<li class="flex items-center gap-3 p-3 rounded-2xl border border-gray-100 bg-gray-50/80">' +
+          '<span class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-bold shrink-0">' + n + '</span>' +
+          '<div class="min-w-0 flex-1">' +
+            '<p class="font-semibold text-gray-800 truncate">' + escapeHtml(s.name || s.username || 'Student') + '</p>' +
+            '<p class="text-xs text-gray-500 truncate">' + escapeHtml(s.username || '') +
+              (s.grade ? ' · ' + escapeHtml(s.grade) : '') +
+              ' · <span class="text-emerald-700">' + link + '</span></p>' +
+          '</div>' +
+        '</li>'
+      );
+    }).join('') + '</ol>';
+  } catch (e) {
+    const body = document.getElementById('staffStudentsBody');
+    if (body) {
+      body.innerHTML = '<p class="text-center text-rose-500 py-6">' +
+        escapeHtml(e.message || 'Error loading list') +
+        '</p><p class="text-center text-xs text-gray-400">Restart the server after updating server.js, then try again.</p>';
+    }
+  }
+}
+
+function toggleAvatarMenu() {
+  const menu = document.getElementById('avatarMenu');
+  if (!menu) return;
+  menu.classList.toggle('hidden');
+}
+
+function pickUserAvatar() {
+  const menu = document.getElementById('avatarMenu');
+  if (menu) menu.classList.add('hidden');
+  const input = document.getElementById('userAvatarFileInput');
+  if (input) {
+    input.value = '';
+    input.click();
+  }
+}
+
+async function uploadUserAvatar(ev) {
+  const file = ev.target && ev.target.files && ev.target.files[0];
+  if (!file) return;
+  const userId = window.__viewingUserId;
+  if (!userId) return;
+
+  const token = localStorage.getItem('token');
+  if (!token) {
+    alert('Please login as admin first');
+    return;
+  }
+
+  const status = document.getElementById('avatarUploadStatus');
+  if (status) status.textContent = 'Uploading…';
+
+  try {
+    const fd = new FormData();
+    fd.append('image', file);
+    const res = await fetch('/api/users/' + userId + '/avatar', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token },
+      body: fd
+    });
+    const data = await res.json().catch(function () { return {}; });
+    if (!res.ok) throw new Error(data.msg || 'Upload failed');
+
+    // Update cache + table row
+    const u = usersCache.find(function (x) { return String(x.id) === String(userId); });
+    if (u) u.avatar = data.avatar;
+    if (status) {
+      status.textContent = 'Profile picture saved';
+      status.className = 'text-xs text-emerald-600 mt-2 min-h-[1rem] font-medium';
+    }
+    showUserModalById(userId);
+    try { await loadUsersTable(); } catch (e) {}
+  } catch (err) {
+    if (status) {
+      status.textContent = err.message || 'Upload failed';
+      status.className = 'text-xs text-rose-600 mt-2 min-h-[1rem] font-medium';
+    } else {
+      alert(err.message || 'Upload failed');
+    }
+  }
+}
+
+async function removeUserAvatar() {
+  const menu = document.getElementById('avatarMenu');
+  if (menu) menu.classList.add('hidden');
+  // Optional: clear by uploading empty not supported — hide menu only for now
+  // Could POST without file; skip unless backend supports clear
+  alert('To replace a picture, choose “Change profile picture” and pick a new image.');
+}
+
 function closeUserModal() {
+  const menu = document.getElementById('avatarMenu');
+  if (menu) menu.classList.add('hidden');
   document.getElementById('userDetailModal')?.classList.add('hidden');
 }
+
 
 // ===================== TICKETS =====================
 function renderTickets() {
@@ -511,8 +759,10 @@ function renderTickets() {
         <button onclick="approveTicket(${ticket.id})" 
                 class="w-full mt-4 bg-[#19A975] hover:bg-[#158a5f] text-white py-3 rounded-2xl font-semibold transition flex items-center justify-center gap-2">
           <i class="fas fa-check"></i>
-          Approve Staff Application
+          Approve as Admin / Moderator / Staff
         </button>
+      ` : ticket.status === 'approved' && ticket.approvedRole ? `
+        <p class="text-xs text-emerald-600 mt-3 font-medium">Approved as ${escapeHtml(ticket.approvedRole)}</p>
       ` : ''}
 
       <p class="text-xs text-gray-400 mt-4">${escapeHtml(ticket.time || '')}</p>
@@ -554,34 +804,307 @@ function loadTickets() {
 }
 
 // ===================== APPROVE TICKET =====================
+/** Ask how to approve: Admin / Moderator / Staff */
+function pickApproveRole() {
+  return new Promise((resolve) => {
+    const existing = document.getElementById('rolePickModal');
+    if (existing) existing.remove();
+
+    const wrap = document.createElement('div');
+    wrap.id = 'rolePickModal';
+    wrap.className = 'fixed inset-0 z-[800] bg-black/50 flex items-center justify-center p-4';
+    wrap.innerHTML = `
+      <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6" onclick="event.stopPropagation()">
+        <h3 class="text-xl font-bold text-gray-800 mb-1">Choose role</h3>
+        <p class="text-sm text-gray-500 mb-5">Approve or change this person to one of the following roles.</p>
+        <div class="space-y-2">
+          <button type="button" data-role="admin" class="role-pick-btn w-full text-left px-4 py-3 rounded-2xl border border-violet-100 hover:bg-violet-50 flex items-center gap-3">
+            <span class="w-10 h-10 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center"><i class="fas fa-user-shield"></i></span>
+            <span><span class="font-semibold text-gray-800 block">Admin</span><span class="text-xs text-gray-500">Full platform management</span></span>
+          </button>
+          <button type="button" data-role="moderator" class="role-pick-btn w-full text-left px-4 py-3 rounded-2xl border border-sky-100 hover:bg-sky-50 flex items-center gap-3">
+            <span class="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center"><i class="fas fa-user-check"></i></span>
+            <span><span class="font-semibold text-gray-800 block">Moderator</span><span class="text-xs text-gray-500">Community moderation tools</span></span>
+          </button>
+          <button type="button" data-role="staff" class="role-pick-btn w-full text-left px-4 py-3 rounded-2xl border border-emerald-100 hover:bg-emerald-50 flex items-center gap-3">
+            <span class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center"><i class="fas fa-chalkboard-teacher"></i></span>
+            <span><span class="font-semibold text-gray-800 block">Staff</span><span class="text-xs text-gray-500">Host classes &amp; assessments</span></span>
+          </button>
+        </div>
+        <button type="button" id="rolePickCancel" class="mt-4 w-full py-2.5 text-sm text-gray-500 hover:text-gray-800">Cancel</button>
+      </div>`;
+    document.body.appendChild(wrap);
+
+    const finish = (role) => {
+      wrap.remove();
+      resolve(role);
+    };
+    wrap.addEventListener('click', (e) => {
+      if (e.target === wrap) finish(null);
+    });
+    wrap.querySelector('#rolePickCancel').onclick = () => finish(null);
+    wrap.querySelectorAll('.role-pick-btn').forEach((btn) => {
+      btn.onclick = () => finish(btn.getAttribute('data-role'));
+    });
+  });
+}
+
+const STAFF_SUBJECT_OPTIONS = [
+  'Mathematics', 'Further Mathematics', 'Physics', 'Chemistry', 'Biology',
+  'English Language', 'Literature', 'Civic Education', 'Computer Science',
+  'Economics', 'Geography', 'Government', 'Accounting', 'Technical Drawing'
+];
+
+/** Multi-select subjects for staff */
+function pickStaffSubjects(selected) {
+  selected = Array.isArray(selected) ? selected.slice() : [];
+  return new Promise((resolve) => {
+    const existing = document.getElementById('subjectsPickModal');
+    if (existing) existing.remove();
+
+    const wrap = document.createElement('div');
+    wrap.id = 'subjectsPickModal';
+    wrap.className = 'fixed inset-0 z-[820] bg-black/50 flex items-center justify-center p-4';
+    const chips = STAFF_SUBJECT_OPTIONS.map(function (s) {
+      const on = selected.indexOf(s) >= 0;
+      return '<label class="subject-chip flex items-center gap-2 px-3 py-2 rounded-xl border text-sm cursor-pointer transition ' +
+        (on ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-white border-gray-200 text-gray-700 hover:border-emerald-200') +
+        '"><input type="checkbox" value="' + s.replace(/"/g, '&quot;') + '" class="subject-cb accent-emerald-600" ' +
+        (on ? 'checked' : '') + ' /><span>' + s + '</span></label>';
+    }).join('');
+
+    wrap.innerHTML = `
+      <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+        <h3 class="text-xl font-bold text-gray-800 mb-1">Select subjects for staff</h3>
+        <p class="text-sm text-gray-500 mb-4">Choose the subjects this staff will teach / be listed under on the platform.</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">${chips}</div>
+        <p id="subjectsPickCount" class="text-xs text-gray-400 mb-3">${selected.length} selected</p>
+        <div class="flex gap-2">
+          <button type="button" id="subjectsCancel" class="flex-1 py-2.5 rounded-2xl border text-gray-600 text-sm font-semibold">Cancel</button>
+          <button type="button" id="subjectsDone" class="flex-1 py-2.5 rounded-2xl bg-[#19A975] hover:bg-[#158a5f] text-white text-sm font-semibold">Done</button>
+        </div>
+      </div>`;
+    document.body.appendChild(wrap);
+
+    function current() {
+      return Array.from(wrap.querySelectorAll('.subject-cb:checked')).map(function (el) { return el.value; });
+    }
+    function refreshChips() {
+      wrap.querySelectorAll('.subject-chip').forEach(function (lab) {
+        const on = lab.querySelector('.subject-cb').checked;
+        lab.className = 'subject-chip flex items-center gap-2 px-3 py-2 rounded-xl border text-sm cursor-pointer transition ' +
+          (on ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-white border-gray-200 text-gray-700 hover:border-emerald-200');
+      });
+      const c = document.getElementById('subjectsPickCount');
+      if (c) c.textContent = current().length + ' selected';
+    }
+    wrap.querySelectorAll('.subject-cb').forEach(function (cb) {
+      cb.addEventListener('change', refreshChips);
+    });
+
+    const finish = (val) => {
+      wrap.remove();
+      resolve(val);
+    };
+    wrap.addEventListener('click', (e) => {
+      if (e.target === wrap) finish(null);
+    });
+    wrap.querySelector('#subjectsCancel').onclick = () => finish(null);
+    wrap.querySelector('#subjectsDone').onclick = () => finish(current());
+  });
+}
+
+/** Ask admin for login username + password for the new member */
+function pickLoginCredentials(defaults) {
+  defaults = defaults || {};
+  return new Promise((resolve) => {
+    const existing = document.getElementById('credsPickModal');
+    if (existing) existing.remove();
+
+    const suggestedUser = defaults.username || defaults.email || '';
+    let chosenSubjects = Array.isArray(defaults.subjects) ? defaults.subjects.slice() : [];
+
+    const wrap = document.createElement('div');
+    wrap.id = 'credsPickModal';
+    wrap.className = 'fixed inset-0 z-[810] bg-black/50 flex items-center justify-center p-4';
+    wrap.innerHTML = `
+      <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6" onclick="event.stopPropagation()">
+        <h3 class="text-xl font-bold text-gray-800 mb-1">Set login credentials</h3>
+        <p class="text-sm text-gray-500 mb-5">Give this person a username and password. They will use these to sign in after approval.</p>
+        <label class="block text-xs font-semibold text-gray-500 mb-1">Username</label>
+        <input id="credUsername" type="text" autocomplete="off"
+          class="w-full mb-3 px-4 py-2.5 rounded-2xl border border-gray-200 focus:ring-2 focus:ring-emerald-300 outline-none"
+          value="${String(suggestedUser).replace(/"/g, '&quot;')}" placeholder="e.g. john.doe" />
+        <label class="block text-xs font-semibold text-gray-500 mb-1">Password</label>
+        <input id="credPassword" type="text" autocomplete="off"
+          class="w-full mb-1 px-4 py-2.5 rounded-2xl border border-gray-200 focus:ring-2 focus:ring-emerald-300 outline-none"
+          placeholder="At least 6 characters" />
+        <p class="text-[11px] text-gray-400 mb-3">Share these credentials with them securely.</p>
+        <button type="button" id="credSubjectsBtn"
+          class="w-full mb-2 py-2.5 rounded-2xl border-2 border-dashed border-emerald-300 text-emerald-800 text-sm font-semibold hover:bg-emerald-50 flex items-center justify-center gap-2">
+          <i class="fas fa-book-open"></i> Subjects
+          <span id="credSubjectsBadge" class="text-[11px] font-bold text-emerald-600"></span>
+        </button>
+        <p id="credSubjectsPreview" class="text-[11px] text-gray-500 mb-4 min-h-[1rem]"></p>
+        <div class="flex gap-2">
+          <button type="button" id="credCancel" class="flex-1 py-2.5 rounded-2xl border text-gray-600 text-sm font-semibold">Cancel</button>
+          <button type="button" id="credSave" class="flex-1 py-2.5 rounded-2xl bg-[#19A975] hover:bg-[#158a5f] text-white text-sm font-semibold">Save &amp; Approve</button>
+        </div>
+      </div>`;
+    document.body.appendChild(wrap);
+
+    function updateSubjectsUi() {
+      const badge = wrap.querySelector('#credSubjectsBadge');
+      const prev = wrap.querySelector('#credSubjectsPreview');
+      if (badge) badge.textContent = chosenSubjects.length ? '(' + chosenSubjects.length + ')' : '';
+      if (prev) prev.textContent = chosenSubjects.length ? chosenSubjects.join(' · ') : 'No subjects selected yet';
+    }
+    updateSubjectsUi();
+
+    wrap.querySelector('#credSubjectsBtn').onclick = async () => {
+      const picked = await pickStaffSubjects(chosenSubjects);
+      if (picked) {
+        chosenSubjects = picked;
+        updateSubjectsUi();
+      }
+    };
+
+    const finish = (val) => {
+      wrap.remove();
+      resolve(val);
+    };
+    wrap.addEventListener('click', (e) => {
+      if (e.target === wrap) finish(null);
+    });
+    wrap.querySelector('#credCancel').onclick = () => finish(null);
+    wrap.querySelector('#credSave').onclick = () => {
+      const username = (wrap.querySelector('#credUsername').value || '').trim();
+      const password = (wrap.querySelector('#credPassword').value || '').trim();
+      if (!username) {
+        alert('Username is required');
+        return;
+      }
+      if (password.length < 6) {
+        alert('Password must be at least 6 characters');
+        return;
+      }
+      finish({ username: username, password: password, subjects: chosenSubjects.slice() });
+    };
+    setTimeout(() => {
+      const pw = wrap.querySelector('#credPassword');
+      if (pw) pw.focus();
+    }, 50);
+  });
+}
+
 async function approveTicket(ticketId) {
-  if (!confirm("Approve this staff application?")) return;
+  const role = await pickApproveRole();
+  if (!role) return;
+
+  // Prefill username from the ticket if available
+  const ticket = (typeof tickets !== 'undefined' && Array.isArray(tickets))
+    ? tickets.find(function (t) { return String(t.id) === String(ticketId); })
+    : null;
+  const suggested = {
+    username: (ticket && (ticket.email || ticket.name)) ? String(ticket.email || ticket.name).split('@')[0].replace(/\s+/g, '.').toLowerCase() : '',
+    email: ticket && ticket.email ? ticket.email : ''
+  };
+
+  const creds = await pickLoginCredentials(suggested);
+  if (!creds) return;
 
   const token = localStorage.getItem('token');
   if (!token) {
-    alert("Please login as admin");
+    alert('Please login as admin');
     return;
   }
 
   try {
-    const res = await fetch(`/api/tickets/${ticketId}/approve`, {
+    const res = await fetch('/api/tickets/' + ticketId + '/approve', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: {
+        Authorization: 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        role: role,
+        username: creds.username,
+        password: creds.password,
+        subjects: Array.isArray(creds.subjects) ? creds.subjects : []
+      })
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(function () { return {}; });
 
     if (res.ok) {
-      alert("✅ Staff approved successfully!");
-      loadTickets();        // Refresh tickets
-      loadUsersTable();     // Refresh users list
-      loadDashboard();      // Refresh stats
+      const u = data.username || creds.username;
+      alert(
+        'Approved as ' + (data.role || role) + '\n\n' +
+        'Login credentials:\n' +
+        'Username: ' + u + '\n' +
+        'Password: ' + creds.password + '\n\n' +
+        'Share these with the new member securely.'
+      );
+      loadTickets();
+      try { await loadUsersTable(); } catch (e) {}
+      try { await renderAdmins(); } catch (e) {}
+      try { await loadDashboard(); } catch (e) {}
     } else {
-      alert(data.msg || "Failed to approve");
+      alert(data.msg || 'Failed to approve');
     }
   } catch (err) {
     console.error(err);
-    alert("Connection error");
+    alert('Connection error');
+  }
+}
+
+/** Promote / demote any team member (staff list card or users table) */
+async function changeMemberRole(memberId, currentRole) {
+  const actor = String(getAdminRole() || currentUserRole || '').toLowerCase();
+  if (!(actor === 'super_admin' || actor === 'admin')) {
+    alert('Only admins can promote or demote team members.');
+    return;
+  }
+
+  const cur = String(currentRole || 'staff').toLowerCase();
+  const role = await pickApproveRole();
+  if (!role) return;
+  if (role === cur) {
+    alert('Already has this role.');
+    return;
+  }
+
+  const labels = { admin: 'Admin', moderator: 'Moderator', staff: 'Staff' };
+  const label = labels[role] || role;
+  if (!confirm('Change this person to ' + label + '?')) return;
+
+  const token = localStorage.getItem('token');
+  if (!token) {
+    alert('Please login as admin');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/users/' + memberId + '/role', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ role: role })
+    });
+    const data = await res.json().catch(function () { return {}; });
+    if (!res.ok) {
+      alert(data.msg || 'Could not change role');
+      return;
+    }
+    alert(data.msg || ('Now ' + label));
+    try { await renderAdmins(); } catch (e) {}
+    try { await loadUsersTable(); } catch (e) {}
+    try { await loadDashboard(); } catch (e) {}
+  } catch (err) {
+    console.error(err);
+    alert('Connection error');
   }
 }
 
@@ -792,14 +1315,234 @@ document.getElementById('editPostForm')?.addEventListener('submit', async (e) =>
   }
 });
 
+
+
+// ===================== ROLE UI (moderator vs admin) =====================
+function getAdminRole() {
+  try {
+    if (window.__adminRole) return String(window.__adminRole).toLowerCase();
+    const u = JSON.parse(localStorage.getItem('user') || '{}');
+    return String(u.role || '').toLowerCase();
+  } catch (e) {
+    return '';
+  }
+}
+
+function applyAdminRoleUi() {
+  const role = getAdminRole();
+  currentUserRole = role || currentUserRole;
+  window.__adminRole = role;
+
+  // Moderators must NOT see Manage Users or Create New Admin
+  // Admins and super_admins can see them (create still API-restricted for super where applicable)
+  const isModerator = role === 'moderator';
+  const canManageUsers = role === 'super_admin' || role === 'admin';
+  const canCreateAdmin = role === 'super_admin' || role === 'admin';
+
+  const navUsers = document.getElementById('navManageUsers');
+  if (navUsers) navUsers.classList.toggle('hidden', isModerator || !canManageUsers);
+
+  const createCard = document.getElementById('createAdminCard');
+  if (createCard) createCard.classList.toggle('hidden', isModerator || !canCreateAdmin);
+
+  // Also hide by heading text if card id missing
+  if (isModerator) {
+    document.querySelectorAll('h2, h3').forEach(function (h) {
+      const t = (h.textContent || '').toLowerCase();
+      if (t.includes('create new admin') || (t.includes('create') && t.includes('admin'))) {
+        const wrap = h.closest('.bg-white, section, .rounded-3xl') || h.parentElement;
+        if (wrap) wrap.classList.add('hidden');
+      }
+    });
+  }
+
+  const label = document.getElementById('adminRoleLabel');
+  if (label && role) {
+    label.textContent = 'Role: ' + role.replace(/_/g, ' ');
+  }
+}
+
+// Guard actions if someone calls them anyway
+const _toggleManageUsers = typeof toggleManageUsers === 'function' ? toggleManageUsers : null;
+
+// ===================== LIVE PLATFORM ACTIVITY CHART =====================
+let activityPeriod = 'week';
+let activityChartInstance = null;
+let activityPollTimer = null;
+
+function setActivityPeriod(period) {
+  activityPeriod = String(period || 'week');
+  document.querySelectorAll('.activity-period-btn').forEach(function (btn) {
+    const on = btn.getAttribute('data-period') === activityPeriod;
+    btn.classList.toggle('border-emerald-500', on);
+    btn.classList.toggle('bg-emerald-50', on);
+    btn.classList.toggle('text-emerald-700', on);
+    btn.classList.toggle('border-gray-200', !on);
+    btn.classList.toggle('text-gray-600', !on);
+  });
+  const customBox = document.getElementById('activityCustomRange');
+  if (customBox) {
+    if (activityPeriod === 'custom') {
+      customBox.classList.remove('hidden');
+      customBox.classList.add('flex');
+      // default last 14 days if empty
+      const from = document.getElementById('activityFrom');
+      const to = document.getElementById('activityTo');
+      if (from && !from.value) {
+        const d = new Date(); d.setDate(d.getDate() - 13);
+        from.value = d.toISOString().slice(0, 10);
+      }
+      if (to && !to.value) {
+        to.value = new Date().toISOString().slice(0, 10);
+      }
+    } else {
+      customBox.classList.add('hidden');
+      customBox.classList.remove('flex');
+      loadActivityChart();
+    }
+  } else {
+    loadActivityChart();
+  }
+}
+
+async function loadActivityChart() {
+  const token = localStorage.getItem('token');
+  const canvas = document.getElementById('activityChart');
+  if (!canvas || typeof Chart === 'undefined') return;
+  if (!token) return;
+
+  let url = '/api/dashboard-activity?period=' + encodeURIComponent(activityPeriod || 'week');
+  if (activityPeriod === 'custom') {
+    const from = (document.getElementById('activityFrom') || {}).value;
+    const to = (document.getElementById('activityTo') || {}).value;
+    if (!from || !to) return;
+    url += '&from=' + encodeURIComponent(from) + '&to=' + encodeURIComponent(to);
+  }
+
+  try {
+    const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+    if (!res.ok) return;
+    const data = await res.json();
+    const labels = data.labels || [];
+    const active = data.active || [];
+    const signups = data.signups || [];
+
+    const sub = document.getElementById('activityChartSubtitle');
+    if (sub) {
+      const map = {
+        week: 'Last 7 days',
+        month: 'Last 30 days',
+        '3months': 'Last 3 months',
+        '6months': 'Last 6 months',
+        year: 'Last 12 months',
+        custom: ((data.from || '') + ' → ' + (data.to || ''))
+      };
+      sub.textContent = (map[activityPeriod] || 'Selected range') + ' · live platform data';
+    }
+    const totals = document.getElementById('activityTotals');
+    if (totals && data.totals) {
+      totals.textContent = '· ' + (data.totals.signups || 0) + ' signups · peak active ' + (data.totals.activePeak || 0);
+    }
+
+    const ctx = canvas.getContext('2d');
+    const gradient = ctx.createLinearGradient(0, 0, 0, 180);
+    gradient.addColorStop(0, 'rgba(25, 169, 117, 0.28)');
+    gradient.addColorStop(1, 'rgba(25, 169, 117, 0)');
+
+    const config = {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Active Users',
+          data: active,
+          borderColor: '#19A975',
+          backgroundColor: gradient,
+          borderWidth: 3,
+          pointBackgroundColor: '#fff',
+          pointBorderColor: '#19A975',
+          pointBorderWidth: 2,
+          pointRadius: labels.length > 40 ? 0 : 3,
+          pointHoverRadius: 5,
+          fill: true,
+          tension: 0.35
+        }, {
+          label: 'New Signups',
+          data: signups,
+          borderColor: '#8b5cf6',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          borderDash: [5, 5],
+          pointRadius: labels.length > 40 ? 0 : 2,
+          pointHoverRadius: 4,
+          fill: false,
+          tension: 0.35
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(31, 41, 55, 0.92)',
+            padding: 12,
+            cornerRadius: 12,
+            usePointStyle: true
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: {
+              color: '#9ca3af',
+              font: { size: 10 },
+              maxRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: 12
+            }
+          },
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(0,0,0,0.04)' },
+            ticks: {
+              color: '#9ca3af',
+              font: { size: 10 },
+              precision: 0
+            }
+          }
+        },
+        interaction: { intersect: false, mode: 'index' }
+      }
+    };
+
+    if (activityChartInstance) {
+      activityChartInstance.data.labels = labels;
+      activityChartInstance.data.datasets[0].data = active;
+      activityChartInstance.data.datasets[1].data = signups;
+      activityChartInstance.data.datasets[0].pointRadius = labels.length > 40 ? 0 : 3;
+      activityChartInstance.data.datasets[1].pointRadius = labels.length > 40 ? 0 : 2;
+      activityChartInstance.update('none');
+    } else {
+      activityChartInstance = new Chart(ctx, config);
+    }
+  } catch (err) {
+    console.error('Activity chart error:', err);
+  }
+}
+
 // ===================== INIT =====================
 document.getElementById('postForm')?.addEventListener('submit', submitPostForm);
 
 document.addEventListener('DOMContentLoaded', () => {
+  applyAdminRoleUi();
   renderAdmins();
   loadTickets();
   loadDashboard();
   loadPostsPreview();
+  loadActivityChart();
+  if (activityPollTimer) clearInterval(activityPollTimer);
+  activityPollTimer = setInterval(loadActivityChart, 60000); // refresh live every minute
 });
 
 // ===================== AI INBOX + TRAIN =====================

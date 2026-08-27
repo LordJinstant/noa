@@ -1,0 +1,48 @@
+{
+  "summaries": [
+    {
+      "id": "CS-MT6V74H0",
+      "topic": "checking del",
+      "date": "2026-08-24",
+      "details": "Del ongoing",
+      "fullSummary": "Del ongoing",
+      "classCode": "JU",
+      "hostName": "Dr. Mee Sim",
+      "authorId": 32,
+      "authorUsername": "Dr. Mee",
+      "authorRole": "staff",
+      "createdAt": "2026-08-24T06:38:15.396Z"
+    },
+    {
+      "id": "CS-MT2ACD3V",
+      "topic": "Super Admin",
+      "date": "2026-08-21",
+      "details": "Checking in",
+      "fullSummary": "Checking in",
+      "classCode": "F23",
+      "hostName": "Dr. Mercy",
+      "createdAt": "2026-08-21T01:43:23.228Z",
+      "updatedAt": "2026-08-23T21:47:33.408Z"
+    },
+    {
+      "id": "CS-MT04N86Q",
+      "topic": "Faith",
+      "date": "2026-08-19",
+      "details": "Faith is the substance of things hoped for and the evidence of things not seen",
+      "fullSummary": "Faith is the substance of things hoped for and the evidence of things not seen",
+      "classCode": "C1234",
+      "hostName": "Lord. Jinstant",
+      "createdAt": "2026-08-19T13:28:20.018Z"
+    },
+    {
+      "id": "CS-MT04FPBF",
+      "topic": "Spoon is Not Bread",
+      "date": "2026-08-19",
+      "details": "",
+      "fullSummary": "",
+      "classCode": "",
+      "hostName": "Lord. Jinstant",
+      "createdAt": "2026-08-19T13:22:28.971Z"
+    }
+  ]
+}

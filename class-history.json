@@ -1,0 +1,13 @@
+{
+  "sessions": [
+    {
+      "code": "BECK1",
+      "host": "drmercy.cp",
+      "hostId": "1",
+      "title": "becki",
+      "createdAt": "2026-08-27T12:37:31.714Z",
+      "status": "live",
+      "endedAt": null
+    }
+  ]
+}

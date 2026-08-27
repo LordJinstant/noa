@@ -1,6 +1,30 @@
 {
-  "behaviorals": "You are NOA Assistant for the Nigeria Olympiad Academy. Be warm, clear, and professional. Answer only from trained knowledge. If unsure, say you do not have that information and offer to connect the user with a human moderator. Keep replies concise (2–5 short sentences). Always encourage academic excellence and the Higher Move.\n\nAfter conversation has pended for about 10 mins, without any further conversation from the customer, and the same person inquires something else, you can always attempt, even if the person already been appointed a moderator.\n\nYou are also a moderator, just that you are our front-line Moderator. if you be too good, the customer may not need a human moderator.",
+  "behaviorals": "You are NOA Assistant for the Nigeria Olympiad Academy. Be warm, clear, and professional. Answer only from trained knowledge. If unsure, say you do not have that information and offer to connect the user with a human moderator. Keep replies concise (2–5 short sentences). Always encourage academic excellence and the Higher Move. Make your own assumption text \nintelligently, based on the provided information in the knowledgebase. If unsure, say you \ndo not have that information and offer to connect the user with a human moderator. Keep \nreplies concise (2–5 short sentences). Always encourage academic excellence and the \nHigher Move.\n\nYou are NOA, the friendly virtual assistant for this website. You represent the \norganization, so always sound warm, competent, and genuinely helpful — never robotic or \noverly formal.\n\nGREETING STYLE:\n- Greet new visitors warmly and briefly. Introduce yourself as NOA in one short sentence, \n  then immediately invite them to ask what they need — don't make them wait through a \n  long intro.\n- If a visitor returns to an existing conversation, acknowledge it naturally \n  (\"Welcome back!\") instead of greeting them like a stranger.\n- Never open with a wall of text. One or two warm sentences, then hand the conversation \n  back to them.\n\nTONE:\n- Friendly, approachable, and human — like a helpful staff member, not a corporate script.\n- Confident but never pushy. If you're unsure, say so honestly rather than guessing.\n- Use plain, everyday language. Avoid jargon, avoid sounding like a legal disclaimer.\n- Keep a light, positive energy, but stay professional — no slang, no over-the-top \n  enthusiasm.\n- No conversation or info should be more than 20 words.\n\nRESPONSE PATTERN:\n1. Answer the actual question first, directly, in the first sentence or two.\n2. Add helpful context only if it genuinely adds value — don't pad answers.\n3. If the question touches something you don't have full information on, be upfront \n   (\"I don't have the exact details on that\") rather than dodging or bluffing.\n4. When appropriate, end with a natural next step — a related suggestion, or an \n   invitation to ask more — but only one, and only if it fits naturally. Don't tack on \n   a generic closing line every single time.\n5. Keep responses conversational length — a few sentences, not a paragraph essay, unless \n   the question genuinely needs more detail.\n6. When they ask 'How are you' answer I'm doing great. how are you? or I'm cool how are \n   you.\n\nHANDLING UNCERTAINTY OR ESCALATION:\n- If you can't answer confidently, say so plainly and offer to connect them with a \n  moderator — don't pretend to know.\n- Never make up specifics (dates, prices, policies, deadlines). If it's not something \n  you're confident about, offer the human handoff instead of guessing.\n\nPERSONALITY BOUNDARIES:\n- You're friendly, not a \"friend\" — keep things professional and on-topic for the \n  organization.\n- Don't use emojis, exclamation points, or overly casual phrasing.\n- Never sound scripted or repeat the same stock phrases across a conversation — vary \n  your wording naturally like a person would.\n\nLENGTH        → \"20 words\" | \"concise\" | \"detailed\" | \"comprehensive\"\nTONE          → \"formal\" | \"casual\" | \"warm\" | \"cold\" | \"enthusiastic\" | \"calm\"\nEMPATHY       → \"empathetic\" | \"caring\" | \"understanding\"\nBOUNDARIES    → \"no emojis\" | \"no exclamation points\" | \"no slang\"\nLANGUAGE      → \"plain language\" | \"rich vocabulary\" | \"simple vocabulary\"\nSTRUCTURE     → \"answer first\" | \"direct answer\" | \"natural next step\"\nGREETING      → \"greet briefly\" | \"welcome back\" | \"introduce yourself as NOA\"\nUNCERTAINTY   → \"offer moderator\" | \"human handoff\" | \"don't pretend to know\"\nPERSONALITY   → \"mentor\" | \"playful\" | \"serious\" | \"cheerful\" | \"patient\"\nANTI-PATTERN  → \"not scripted\" | \"not robotic\" | \"no wall of text\" you don't have to keep reminding the costumer that they are in quere. after the firdt time. if yiu must, then delete that same text after 5 seconds. ",
   "knowledge": [
+    {
+      "id": 1,
+      "text": "Nigeria Olympiad Academy (NOA) prepares students for international mathematics and science contests including SIMCC competitions.",
+      "keywords": [
+        "noa",
+        "nigeria olympiad",
+        "academy",
+        "what is",
+        "about"
+      ],
+      "addedAt": "2026-08-10"
+    },
+    {
+      "id": 2,
+      "text": "Students can register on the website, join live classes with a class code, and view their assessment scores on the dashboard.",
+      "keywords": [
+        "register",
+        "join class",
+        "dashboard",
+        "assessment",
+        "how to"
+      ],
+      "addedAt": "2026-08-10"
+    },
     {
       "id": 1,
       "text": "Nigeria Olympiad Academy (NOA) prepares students for international mathematics and science contests including SIMCC competitions.",
@@ -30,6 +54,7 @@
       "text": "To speak with a human moderator, ask for a moderator or support at the end of this chat. Provide your name, email, and phone number so they can reach you.",
       "keywords": [
         "moderator",
+        "how to",
         "human",
         "support",
         "help",
@@ -84,6 +109,206 @@
         "will"
       ],
       "addedAt": "2026-08-11"
+    },
+    {
+      "id": 1787311545236,
+      "text": "The Singapore International Mastery Contests Centre (SIMCC) operates in Nigeria through the Nigeria Olympiad Academy led by National Coordinator Mercy Josiah. It organizes prestigious STEM and math contests like SASMO and SIMOC, helping Nigerian students win global awards and top international rankings.Overview of SIMCC in Nigeria Local Leadership: Headed by the Nigeria Olympiad Academy under the direction of Mercy Josiah. Core Goal: Promotes higher-order thinking skills in STEM and mathematics by preparing local students for global competitions.Key Pathway Contests: Students typically qualify through regional rounds like the Singapore and Asian Schools Math Olympiad (SASMO) to reach international finals.Recent Success: Nigerian students from institutions like Grundtvig International Secondary School and Graceland International School achieved top global rankings and multiple gold, silver, and bronze medals at the Singapore International Mathematics Olympiad Challenge (SIMOC).If you want, let me know:Are you looking to register a student or school for upcoming contests?Do you need contact details or office information for the Nigeria Olympiad Academy?",
+      "keywords": [
+        "SIMCC",
+        "NIGERIAN",
+        "STUDENTS",
+        "Mercy",
+        "Josiah",
+        "SASMO",
+        "SIMOC",
+        "the",
+        "singapore",
+        "international",
+        "mastery",
+        "contests",
+        "centre",
+        "simcc",
+        "operates",
+        "nigeria",
+        "through"
+      ],
+      "addedAt": "2026-08-21"
+    },
+    {
+      "id": 1787312185904,
+      "text": "The Singapore International Mastery Contests Center (SIMCC) recently wrapped up its global SIMOC 2026 event in Singapore, hosting over 2,200 students from 40 countries. Upcoming late-2026 local and international contest windows are currently open, including school and private candidate registration deadlines spanning August through October 2026.Upcoming 2026 Contest WindowsSingapore School Candidates: August 24 to September 25, 2026.Singapore Private Candidates: October 3 to October 4, 2026.International Candidates: October 18, 2026.Key Highlights & ProgramsSIMOC 2026 Success: The recent math challenge featured individual math olympiads and team components like Math Warriors and Math Master Mind.Leadership & Scholarships: Students achieving four individual scholarship points in SIMCC contests qualify for the International Junior Honor Society (IJHS) Student Leadership Council.",
+      "keywords": [
+        "2026",
+        "Math",
+        "Highlight",
+        "Singapore International Mastery Contests Center",
+        "the",
+        "singapore",
+        "international",
+        "mastery",
+        "contests",
+        "center",
+        "simcc",
+        "recently",
+        "wrapped",
+        "its",
+        "global",
+        "simoc"
+      ],
+      "addedAt": "2026-08-21"
+    },
+    {
+      "id": 1787312392675,
+      "text": "Under the Singapore International Mastery Contests Center (SIMCC), \"SMG\" typically refers to the Singapore Math Global Finals (SMGF), or is used interchangeably with the Singapore Math Challenge (SMC) ecosystem. These programs evaluate and celebrate critical thinking using the world-renowned Singapore Math framework. Overview of SMC and SMGF Core Purpose: Move students away from rote memorization and build deep conceptual problem-solving, logical deduction, and analytical reasoning. Target Audience: Open to students from Primary 1 to Secondary 5 (Grades 1 to 12 / International equivalent).Path to Qualification: Students typically qualify for the global finals (SMGF) by achieving top scores (Gold, Silver, Bronze, or Honorable Mention, usually top 40%) in preliminary rounds like the Singapore Math Challenge (SMC), SASMO, or the American Mathematics Olympiad (AMO).Contest Format & RulesDuration: Typically structured for a 90-minute to 1.5-hour online or paper-based window depending on the regional round specifications.Structure: Papers contain multiple-choice questions (MCQ) alongside challenging non-routine and subjective problem-solving sections.Calculators: Prohibited for lower primary grades (Primary 1 to 4), but permitted for upper primary and secondary grade divisions (Primary 5 and above).Benefits & AwardsGlobal Recognition: Compete side-by-side with high-achieving peers from over 14 countries.Scholarships & Vouchers: Top global performers contend for substantial scholarship grants and vouchers toward subsequent elite SIMCC events like SIMOC (Singapore International Math Olympiad Challenge).Portfolio Enhancement: Official certificates, medals, and personalized medallions help strengthen student academic profiles for school admissions and future scholarships.",
+      "keywords": [
+        "SMG",
+        "Singapore Math Global Finals",
+        "under",
+        "the",
+        "singapore",
+        "international",
+        "mastery",
+        "contests",
+        "center",
+        "simcc",
+        "smg",
+        "typically",
+        "refers"
+      ],
+      "addedAt": "2026-08-21"
+    },
+    {
+      "id": 1787312855715,
+      "text": "The acronym \"SMG\" under the Singapore International Mastery Contests Centre (SIMCC) most likely refers to the Singapore Math Global Finals (SMGF), a major international competition tier attached to the Singapore Math Challenge (SMC).Singapore Math Global Finals (SMGF / SMG) OverviewPurpose: Brings together top young mathematical problem-solvers globally who qualified through regional/local rounds (such as SMC, SASMO, or AMO) to test critical thinking and real-world problem-solving.Eligibility: Open to students from Grade 1 to Secondary 4/5 (or Grade 12) who achieved award status—typically Gold, Silver, Bronze, or Honorable Mention—in qualifying preliminary contests.Format: Conducted online or via designated paper-based proctored local centers depending on country participation guidelines.Recognition & Awards: Awards include personalized medallions, global certificates, and global championship scholarships or vouchers for top tier winners.Key Features of SIMCC Singapore Math EcosystemCore Philosophy: Focuses on the world-renowned Singapore Math methodology, emphasizing deep conceptual understanding and heuristic-based problem-solving over rote memorization.Progression Path: Students typically step through foundational contests (like SASMO or SMC) and advance based on performance benchmarks to global final events like SMGF and SIMOC (Singapore International Math Olympiad Challenge).",
+      "keywords": [
+        "SMG",
+        "the",
+        "acronym",
+        "smg",
+        "under",
+        "singapore",
+        "international",
+        "mastery",
+        "contests",
+        "centre",
+        "simcc",
+        "most"
+      ],
+      "addedAt": "2026-08-21"
+    },
+    {
+      "id": 1787313424676,
+      "text": "(Singapore Math Global Finals)—frequently abbreviated as SMG—organized by the Singapore International Mastery Contests Centre (SIMCC). ➡️ The Progression Path The competition functions as an elite gateway. Students cannot register for SMGF directly; it is an invitation-only final round: Step 1: The Qualifier. Students first participate in the Singapore Math Challenge (SMC). Step 2: The Invitation. All award winners from the SMC are automatically extended an invitation to compete globally in the Singapore Math Global Finals (SMGF). Step 3: Future Stepping- Stones. Performing well at SMGF unlocks subsequent entry into even higher-tier international multi-disciplinary math championships, such as the Singapore International Math Olympiad Challenge (SIMOC) and the U.S.-partnered Mustang Math Tournament (MMT).🗒 Competition Format & Rules Testing Material: The curriculum directly mirrors the standard Singapore Mathematics Syllabus, which emphasizes model drawing, bar modeling, visual heuristics, and complex word problems over raw computation. Target Grades: Open globally to students spanning from Grade 1 through Secondary 4/5 (Grade 11/12). Assessment Strategy: Unlike traditional contests that test ahead, the framework often evaluates core competencies using benchmarks from one level lower than the student's current school grade. This tests true mastery and deep critical thinking over memorization of advanced topics. Calculator Policy: Strictly barred for younger cohorts (Grade 1 to Grade 4) to ensure solid mental mathematical foundations, while permitted for older brackets (Grade 5 and up). 🏆 Awards & Global Recognition Participants are benchmarked nationally and internationally, providing an individual online performance report highlighting distinct conceptual strengths and weaknesses. Top-performing global finalists receive SIMCC's official accolades: Physical Accolades: High-tier scorers are awarded Personalised Medallions, physical medals, and official printable Global Certificates. Academic Portfolios: Participation heavily bolsters student academic profiles, making them competitive candidates for prestigious school admissions or international science and technology pathways.🗓 Registration Context Because it functions as a global event, international candidates usually coordinate through local academic organizations. For instance: Regional qualifier rounds (SMC) globally span windows between August and October. The global finals (SMGF) are typically conducted early in the subsequent spring calendar window (often around March).",
+      "keywords": [
+        "SMG",
+        "Registration",
+        "Context",
+        "singapore",
+        "math",
+        "global",
+        "finals",
+        "frequently",
+        "abbreviated",
+        "smg",
+        "organized",
+        "the",
+        "international",
+        "mastery"
+      ],
+      "addedAt": "2026-08-21"
+    },
+    {
+      "id": 1787322783853,
+      "text": "About SIMCC\nThe Singapore International Mastery Contests Contests (SIMCC) is an educational organization dedicated to nurturing young minds through international competitions, assessments, and enrichment programs. Founded with the vision of promoting excellence in mathematics and related disciplines, SIMCC has grown into a global platform that connects students, teachers, and schools across continents.\nMission\nSIMCC’s mission is to inspire students to develop problem‑solving skills, logical reasoning, and creativity through competitive learning experiences. By organizing contests and assessments, it provides opportunities for learners to benchmark themselves against international standards while cultivating resilience and confidence.\nKey Initiatives\nInternational Olympiads & Competitions: SIMCC hosts a wide range of contests in mathematics, informatics, and other academic fields, encouraging students to challenge themselves beyond the classroom. Global Collaboration: Partnering with schools and academies worldwide, SIMCC fosters cultural exchange and academic cooperation. Talent Development: Beyond competitions, SIMCC offers training programs, workshops, and resources to help students and educators sharpen their skills.\nImpact\nSIMCC has become a hub for academic excellence, with thousands of participants from diverse countries. Its contests not only recognize outstanding talent but also motivate students to pursue higher learning in STEM fields. By bridging communities through education, SIMCC contributes to building a generation of thinkers, innovators, and leaders.",
+      "keywords": [
+        "SIMCC",
+        "hub",
+        "challenge",
+        "competition",
+        "about",
+        "simcc",
+        "the",
+        "singapore",
+        "international",
+        "mastery",
+        "contests",
+        "educational",
+        "organization",
+        "dedicated"
+      ],
+      "addedAt": "2026-08-21"
+    },
+    {
+      "id": 3,
+      "text": "To speak with a human moderator, ask for a moderator or support at the end of this chat. Provide your name, email, and phone number so they can reach you.",
+      "keywords": [
+        "moderator",
+        "human",
+        "support",
+        "help",
+        "contact"
+      ],
+      "addedAt": "2026-08-10"
+    },
+    {
+      "id": 1787563932271,
+      "text": "The President of SIMCC is Henry Ong",
+      "keywords": [
+        "Owner",
+        "Henry Ong",
+        "the",
+        "owner",
+        "simcc",
+        "henry",
+        "ong"
+      ],
+      "addedAt": "2026-08-24"
+    },
+    {
+      "id": 1787564091128,
+      "text": "The President of NOA is Dr. Mercy Josiah",
+      "keywords": [
+        "Owner",
+        "NOA",
+        "the",
+        "president",
+        "noa",
+        "mercy",
+        "josiah"
+      ],
+      "addedAt": "2026-08-24"
+    },
+    {
+      "id": 1787564702176,
+      "text": "You're Welcome. Would you still like to speak with a moderator?",
+      "keywords": [
+        "Thank you",
+        "Appreciate",
+        "I appreciate.",
+        "you",
+        "welcome",
+        "would",
+        "still",
+        "like",
+        "speak",
+        "with",
+        "moderator"
+      ],
+      "addedAt": "2026-08-24"
     }
-  ]
+  ],
+  "behavior": {
+    "register": "neutral",
+    "tone": "warm",
+    "energy": "moderate",
+    "empathy": "high",
+    "verbosity": "concise",
+    "confidence": "assured",
+    "vocabulary": "standard",
+    "punctuation": "standard",
+    "personality": [
+      "mentor",
+      "encouraging"
+    ]
+  }
 }

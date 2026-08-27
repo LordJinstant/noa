@@ -1,3 +1,58 @@
 {
-  "conversations": []
+  "conversations": [
+    {
+      "id": "c1787783712187hobny",
+      "visitorId": "v1786378393738cu8k49",
+      "name": "",
+      "email": "",
+      "phone": "",
+      "messages": [
+        {
+          "role": "user",
+          "text": "hello",
+          "at": "2026-08-26T22:35:12.187Z"
+        },
+        {
+          "role": "assistant",
+          "text": "Welcome! I'm here to answer your questions.",
+          "at": "2026-08-26T22:35:12.195Z"
+        },
+        {
+          "role": "user",
+          "text": "callme john",
+          "at": "2026-08-26T22:35:35.949Z"
+        },
+        {
+          "role": "assistant",
+          "text": "I'm not equipped to answer that fully. Want me to bring in a moderator?",
+          "at": "2026-08-26T22:35:35.954Z"
+        },
+        {
+          "role": "user",
+          "text": "no",
+          "at": "2026-08-26T22:35:47.401Z"
+        },
+        {
+          "role": "assistant",
+          "text": "I don't have that information yet. A moderator can help. Please share your contact details.",
+          "at": "2026-08-26T22:35:47.402Z"
+        },
+        {
+          "role": "user",
+          "text": "tell me all aboutsimcc",
+          "at": "2026-08-26T22:36:33.758Z"
+        },
+        {
+          "role": "assistant",
+          "text": "Singapore International Mastery Contests Centre (SIMCC) – Finish Guide About SIMCC The Singapore International Mastery Contests Centre (SIMCC) is an educational services organization that organizes international academic competitions in mathematics. Also, And related disciplines. Also, Its mission is to inspire excellence. I'm here if you need anything else. You've got this! Need a moderator? Click below anytime.",
+          "at": "2026-08-26T22:36:33.798Z"
+        }
+      ],
+      "summary": "User: hello\nAI: Welcome! I'm here to answer your questions.\nUser: callme john\nAI: I'm not equipped to answer that fully. Want me to bring in a moderator?\nUser: no\nAI: I don't have that information yet. A moderator can help. Please share your contact details.\nUser: tell me all aboutsimcc\nAI: Singapore International Mastery Contests Centre (SIMCC) – Finish Guide About SIMCC The Singapore International Mastery Contests Centre (SIMCC) is an educational",
+      "status": "ai",
+      "unreadModerator": false,
+      "createdAt": "2026-08-26T22:35:12.187Z",
+      "updatedAt": "2026-08-26T22:36:33.798Z"
+    }
+  ]
 }

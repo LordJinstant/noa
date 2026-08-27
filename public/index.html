@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
-<head    <meta charset="UTF-8"> 
+<head>
+  <meta charset="UTF-8"> 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NOA | Nigeria Olympiad Academy / WIHM</title>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -10,6 +11,7 @@
 
   <!-- Custom CSS -->
   <link rel="stylesheet" href="style.css">
+
 </head>
 <body class="bg-white overflow-x-hidden">
 
@@ -184,6 +186,13 @@
           </div>
         </div>
       </div>
+          <!-- Continuous scrolling posts marquee -->
+    <div id="noaPostMarquee" class="noa-post-marquee hidden" aria-label="Latest posts">
+      <div class="noa-post-marquee-label"><i class="fas fa-bolt"></i> Latest</div>
+      <div class="noa-post-marquee-viewport">
+        <div class="noa-post-marquee-track" id="noaPostMarqueeTrack"></div>
+      </div>
+    </div>
     </section>
   </div>
 </div>
@@ -928,6 +937,7 @@ The most recent SIMCC examinations in Singapore underscored the organization’s
 </div>
 
 
+
 <!-- NOA AI Assistant Widget -->
 <div id="noaAiRoot" class="fixed bottom-5 right-5 z-[300] font-sans">
   <button id="noaAiFab" onclick="toggleNoaAi()" class="w-14 h-14 rounded-full bg-[#19A975] text-white shadow-lg shadow-green-600/30 flex items-center justify-center text-xl hover:scale-105 transition">
@@ -981,15 +991,27 @@ The most recent SIMCC examinations in Singapore underscored the organization’s
       }
     }
   };
-  function appendAiMsg(role, text) {
+  function appendAiMsg(role, text, opts) {
     const box = document.getElementById('noaAiMessages');
+    if (!box) return null;
     const div = document.createElement('div');
     const isUser = role === 'user';
     const isMod = role === 'moderator';
-    div.className = (isUser ? 'ml-6 bg-emerald-600 text-white' : isMod ? 'mr-6 bg-amber-50 border border-amber-200' : 'mr-6 bg-white border') + ' rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap';
+    const ephemeral = opts && opts.ephemeral;
+    div.className = (isUser ? 'ml-6 bg-emerald-600 text-white' : isMod ? 'mr-6 bg-amber-50 border border-amber-200' : ephemeral ? 'mr-6 bg-amber-50/90 border border-amber-200 text-amber-950' : 'mr-6 bg-white border') + ' rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap transition-opacity duration-500';
     div.textContent = text;
+    if (ephemeral) div.setAttribute('data-ephemeral', '1');
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
+    if (ephemeral) {
+      setTimeout(function () {
+        div.style.opacity = '0';
+        setTimeout(function () {
+          if (div.parentNode) div.parentNode.removeChild(div);
+        }, 500);
+      }, 5000);
+    }
+    return div;
   }
   window.sendNoaAi = async function() {
     const input = document.getElementById('noaAiInput');
@@ -1018,7 +1040,7 @@ The most recent SIMCC examinations in Singapore underscored the organization’s
         appendAiMsg('assistant', 'Previous chat expired after 24 hours of inactivity. Starting a fresh conversation.');
       }
       if (data.conversationId) localStorage.setItem(CONV_KEY, data.conversationId);
-      appendAiMsg('assistant', data.reply);
+      appendAiMsg('assistant', data.reply, { ephemeral: !!data.ephemeral });
       loadMyAiHistory();
     } catch (e) {
       appendAiMsg('assistant', 'Sorry, I could not reach the server. Please try again.');
@@ -1081,6 +1103,7 @@ The most recent SIMCC examinations in Singapore underscored the organization’s
   };
 })();
 </script>
+
 
 
 <script src="function.js"></script>

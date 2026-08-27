@@ -501,6 +501,113 @@ async function completeStudentRegistration() {
   }
 }
 
+
+// ----- Post share link + print-with-image (keeps all existing post UI) -----
+function getPostShareLink(postId) {
+  const path = (window.location.pathname || '/index.html').split('?')[0].split('#')[0] || '/index.html';
+  return window.location.origin + path + '?post=' + encodeURIComponent(postId) + '#post-' + postId;
+}
+
+function copyPostLink(postId, btn) {
+  const url = getPostShareLink(postId);
+  const done = () => { if (btn) btn.innerHTML = '<i class="fas fa-check"></i> Copied!'; };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(done).catch(() => { prompt('Copy this post link:', url); done(); });
+  } else {
+    prompt('Copy this post link:', url);
+    done();
+  }
+}
+
+async function printPostDocument(postId) {
+  try {
+    const res = await fetch('/api/posts');
+    const posts = await res.json();
+    const list = Array.isArray(posts) ? posts : (posts.posts || []);
+    const post = list.find(p => String(p.id) === String(postId));
+    if (!post) { alert('Post not found'); return; }
+    const share = getPostShareLink(post.id);
+    const imgHtml = post.image
+      ? '<img src="' + post.image + '" alt="" style="width:100%;max-height:360px;object-fit:cover;border-radius:12px;margin:0 0 24px">'
+      : '';
+    const bodyParas = String(post.content || '').split(/\n\n+/).map(function (p) {
+      return '<p style="margin:0 0 16px;line-height:1.7">' + String(p).replace(/</g, '&lt;') + '</p>';
+    }).join('');
+    const w = window.open('', '_blank', 'width=900,height=1000');
+    if (!w) { alert('Please allow pop-ups to print this post.'); return; }
+    w.document.write(
+      '<!DOCTYPE html><html><head><title>' + String(post.title || 'Post').replace(/</g, '') + '</title>' +
+      '<style>body{font-family:Georgia,serif;color:#0f172a;max-width:720px;margin:32px auto;padding:0 20px}' +
+      'h1{font-size:28px;margin:0 0 8px}.meta{color:#64748b;font-size:13px;margin-bottom:20px}' +
+      '.excerpt{border-left:4px solid #19A975;padding-left:16px;color:#475569;font-size:17px;margin-bottom:24px}' +
+      '.foot{margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8}' +
+      '@media print{body{margin:0}}</style></head><body>' +
+      imgHtml +
+      '<h1>' + String(post.title || '').replace(/</g, '&lt;') + '</h1>' +
+      '<div class="meta">' + String(post.date || '') + ' · ' + String(post.author || '') + '</div>' +
+      '<div class="excerpt">' + String(post.excerpt || '').replace(/</g, '&lt;') + '</div>' +
+      bodyParas +
+      '<div class="foot">Nigeria Olympiad Academy · ' + share.replace(/</g, '') + '</div>' +
+      '<script>window.onload=function(){window.print()}<\/script></body></html>'
+    );
+    w.document.close();
+  } catch (e) {
+    console.error(e);
+    alert('Could not prepare print document.');
+  }
+}
+
+
+
+// ===================== CONTINUOUS POSTS MARQUEE =====================
+function buildNoaPostMarquee(posts) {
+  const root = document.getElementById('noaPostMarquee');
+  const track = document.getElementById('noaPostMarqueeTrack');
+  if (!root || !track) return;
+
+  if (!posts || !posts.length) {
+    root.classList.add('hidden');
+    track.innerHTML = '';
+    return;
+  }
+
+  root.classList.remove('hidden');
+  const list = posts.slice(0, 16);
+
+  function pill(post) {
+    const id = String(post.id).replace(/'/g, "\\'");
+    const title = String(post.title || 'Update').replace(/</g, '&lt;');
+    const date = String(post.date || '').replace(/</g, '&lt;');
+    const thumb = post.image
+      ? '<img class="noa-post-marquee-thumb" src="' + post.image + '" alt="">'
+      : '<span class="noa-post-marquee-thumb-fallback"><i class="fas fa-newspaper"></i></span>';
+    return (
+      '<button type="button" class="noa-post-marquee-item" onclick="goToPostFromMarquee(\'' + id + '\')">' +
+        thumb +
+        '<span class="noa-post-marquee-dot"></span>' +
+        (date ? '<span class="noa-post-marquee-date">' + date + '</span>' : '') +
+        '<span class="noa-post-marquee-title">' + title + '</span>' +
+        '<span class="noa-post-marquee-go"><i class="fas fa-arrow-right"></i></span>' +
+      '</button>'
+    );
+  }
+
+  // Duplicate list for seamless infinite scroll (translateX -50%)
+  const htmlItems = list.map(pill).join('');
+  track.innerHTML = htmlItems + htmlItems;
+}
+
+function goToPostFromMarquee(postId) {
+  const section = document.getElementById('postsGrid');
+  if (section) {
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  // Open the post after a short delay so the page scrolls first
+  setTimeout(function () {
+    if (typeof openPost === 'function') openPost(postId);
+  }, 450);
+}
+
 // ===================== FETCH AND DISPLAY POSTS =====================
 async function loadPosts() {
   try {
@@ -514,6 +621,7 @@ async function loadPosts() {
         <div class="text-center col-span-full py-12">
           <p class="text-gray-500 text-lg">No posts yet. Check back soon for updates!</p>
         </div>`;
+      if (typeof buildNoaPostMarquee === 'function') buildNoaPostMarquee([]);
       return;
     }
 
@@ -544,6 +652,18 @@ async function loadPosts() {
       </article>
     `).join('');
 
+    buildNoaPostMarquee(posts);
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      let deepId = params.get('post');
+      if (!deepId && window.location.hash) {
+        const m = window.location.hash.match(/#post-([A-Za-z0-9_-]+)/i);
+        if (m) deepId = m[1];
+      }
+      if (deepId) setTimeout(() => openPost(deepId), 200);
+    } catch (e) {}
+
   } catch (error) {
     console.error('Error loading posts:', error);
     document.getElementById('postsGrid').innerHTML = `
@@ -559,7 +679,7 @@ async function openPost(postId) {
   try {
     const res = await fetch('/api/posts');
     const posts = await res.json();
-    const post = posts.find(p => p.id === postId);
+    const post = posts.find(p => String(p.id) === String(postId));
 
     if (!post) return;
 
@@ -611,11 +731,11 @@ async function openPost(postId) {
           <!-- Share bar -->
           <div class="mt-12 pt-8 border-t flex items-center justify-between flex-wrap gap-4">
             <div class="flex gap-3">
-              <button onclick="navigator.clipboard.writeText(window.location.href + '#post-${post.id}'); this.innerHTML='<i class=\\'fas fa-check\\'></i> Copied!'"
+              <button type="button" onclick="copyPostLink('${post.id}', this)"
                 class="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-2xl font-semibold transition flex items-center gap-2">
                 <i class="fas fa-link"></i> Share
               </button>
-              <button onclick="window.print()" class="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-2xl font-semibold transition flex items-center gap-2">
+              <button onclick="printPostDocument('${post.id}')" class="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-2xl font-semibold transition flex items-center gap-2">
                 <i class="fas fa-print"></i> Print
               </button>
             </div>
@@ -884,10 +1004,15 @@ async function loadPosts() {
   try {
     const res = await fetch('/api/posts');
     const posts = await res.json();
+    const list = Array.isArray(posts) ? posts : (posts && posts.posts) || [];
+
+    // Spotlight under navbar (must run even if postsGrid is missing)
+    if (typeof buildNoaPostMarquee === 'function') buildNoaPostMarquee(list);
 
     const grid = document.getElementById('postsGrid');
+    if (!grid) return;
 
-    if (!posts || posts.length === 0) {
+    if (!list.length) {
       grid.innerHTML = `
         <div class="text-center col-span-full py-12">
           <p class="text-gray-500 text-lg">No posts available yet.</p>
@@ -896,7 +1021,7 @@ async function loadPosts() {
       return;
     }
 
-    grid.innerHTML = posts.map(post => {
+    grid.innerHTML = list.map(post => {
       const image = post.image
         ? `<img src="${post.image}" alt="${post.title}" class="w-full h-48 object-cover rounded-2xl">`
         : `<div class="w-full h-48 bg-gradient-to-br from-[#19A975] to-emerald-500 rounded-2xl flex items-center justify-center"><i class="fas fa-newspaper text-white text-5xl"></i></div>`;
@@ -927,14 +1052,27 @@ async function loadPosts() {
       `;
     }).join('');
 
+    // Deep link support for shared posts
+    try {
+      const params = new URLSearchParams(window.location.search);
+      let deepId = params.get('post');
+      if (!deepId && window.location.hash) {
+        const m = window.location.hash.match(/#post-([A-Za-z0-9_-]+)/i);
+        if (m) deepId = m[1];
+      }
+      if (deepId) setTimeout(() => openPost(deepId), 200);
+    } catch (e) {}
+
   } catch (err) {
     console.error(err);
     const grid = document.getElementById('postsGrid');
-    grid.innerHTML = `
-      <div class="text-center col-span-full py-12">
-        <p class="text-red-500 text-lg">Failed to load posts.</p>
-      </div>
-    `;
+    if (grid) {
+      grid.innerHTML = `
+        <div class="text-center col-span-full py-12">
+          <p class="text-red-500 text-lg">Failed to load posts.</p>
+        </div>
+      `;
+    }
   }
 }
 

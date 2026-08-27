@@ -1916,3 +1916,233 @@
   .shift-gallery::before, .shift-gallery::after { width: 50px; }
   .shift-gallery-head h2 { font-size: 1.4rem; }
 }
+
+
+
+  /* Continuous scrolling posts strip — under navbar, in-flow */
+  .noa-post-marquee {
+    position: absolute;
+    z-index: 1;
+    display: flex;
+    align-items: stretch;
+    width: 86%;
+    margin: 0;
+    margin-top: 38.25rem; /* clear fixed top nav */
+    min-height: 2.75rem;
+    background: linear-gradient(105deg, #064e3b 0%, #0f766e 28%, #19A975 55%, #0d9488 78%, #115e59 100%);
+    background-size: 200% 100%;
+    animation: noaMarqueeBg 14s ease-in-out infinite alternate;
+    box-shadow: 0 6px 24px rgba(6, 78, 59, 0.22);
+    color: #fff;
+    overflow: hidden;
+  }
+  .noa-post-marquee.hidden { display: none !important; }
+  @keyframes noaMarqueeBg {
+    from { background-position: 0% 50%; }
+    to { background-position: 100% 50%; }
+  }
+  .noa-post-marquee-label {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0 1rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    background: rgba(0,0,0,0.22);
+    border-right: 1px solid rgba(255,255,255,0.18);
+    position: relative;
+    z-index: 2;
+  }
+  .noa-post-marquee-label i {
+    color: #fde047;
+    filter: drop-shadow(0 0 6px rgba(253, 224, 71, 0.7));
+  }
+  .noa-post-marquee-viewport {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    mask-image: linear-gradient(90deg, transparent, #000 2.5%, #000 97.5%, transparent);
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 2.5%, #000 97.5%, transparent);
+  }
+  .noa-post-marquee-track {
+    display: flex;
+    width: max-content;
+    gap: 0.65rem;
+    padding: 0.5rem 0.75rem;
+    animation: noaPostMarqueeScroll 38s linear infinite;
+  }
+  .noa-post-marquee-viewport:hover .noa-post-marquee-track {
+    animation-play-state: paused;
+  }
+  @keyframes noaPostMarqueeScroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  .noa-post-marquee-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-shrink: 0;
+    max-width: 340px;
+    padding: 0.35rem 0.9rem 0.35rem 0.4rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.22);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    color: #fff;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+    text-align: left;
+  }
+  .noa-post-marquee-item:hover {
+    background: rgba(255,255,255,0.24);
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+  }
+  .noa-post-marquee-thumb {
+    width: 1.65rem;
+    height: 1.65rem;
+    border-radius: 999px;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 1.5px solid rgba(255,255,255,0.45);
+    background: rgba(255,255,255,0.15);
+  }
+  .noa-post-marquee-thumb-fallback {
+    width: 1.65rem;
+    height: 1.65rem;
+    border-radius: 999px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    background: rgba(253, 224, 71, 0.25);
+    border: 1.5px solid rgba(253, 224, 71, 0.5);
+    color: #fde047;
+  }
+  .noa-post-marquee-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #fde047;
+    flex-shrink: 0;
+    box-shadow: 0 0 8px #fde047;
+    animation: noaDotPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes noaDotPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.55; transform: scale(0.85); }
+  }
+  .noa-post-marquee-date {
+    opacity: 0.88;
+    font-size: 0.68rem;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+  .noa-post-marquee-title {
+    font-weight: 650;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+  }
+  .noa-post-marquee-go {
+    opacity: 0.75;
+    font-size: 0.62rem;
+    margin-left: 0.15rem;
+  }
+  /* Shine line across the bar */
+  .noa-post-marquee::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.12) 50%, transparent 60%);
+    background-size: 220% 100%;
+    animation: noaMarqueeShine 5.5s ease-in-out infinite;
+  }
+  @keyframes noaMarqueeShine {
+    from { background-position: 100% 0; }
+    to { background-position: -100% 0; }
+  }
+  .noa-post-marquee:not(.hidden) + section.hero-bg {
+    padding-top: 2.25rem !important;
+  }
+
+
+  /* ============================================================
+   TABLETS & SMALL LAPTOPS (down to ~768px)
+   ============================================================ */
+@media (max-width: 1024px) {
+    .noa-post-marquee {
+        margin-top: 0;
+        position: relative;
+        min-height: 3rem;
+        font-size: 0.9375rem;
+        box-shadow: 0 4px 18px rgba(6, 78, 59, 0.2);
+    }
+}
+
+/* ============================================================
+   LARGE PHONES / SMALL TABLETS (down to ~480px)
+   ============================================================ */
+@media (max-width: 768px) {
+    .noa-post-marquee {
+        min-height: 3.25rem;
+        font-size: 0.875rem;
+        box-shadow: 0 3px 14px rgba(6, 78, 59, 0.18);
+    }
+}
+
+/* ============================================================
+   STANDARD PHONES (down to ~360px)
+   ============================================================ */
+@media (max-width: 480px) {
+    .noa-post-marquee {
+        min-height: 3rem;
+        font-size: 0.8125rem;
+        padding: 0 0.75rem;
+        box-shadow: 0 3px 12px rgba(6, 78, 59, 0.16);
+    }
+}
+
+/* ============================================================
+   SMALL PHONES (down to ~320px)
+   ============================================================ */
+@media (max-width: 360px) {
+    .noa-post-marquee {
+        min-height: 2.75rem;
+        font-size: 0.75rem;
+        padding: 0 0.5rem;
+    }
+}
+
+/* ============================================================
+   VERY SMALL / OLD PHONES (240px - 320px)
+   ============================================================ */
+@media (max-width: 320px) {
+    .noa-post-marquee {
+        min-height: 2.5rem;
+        font-size: 0.6875rem;
+        padding: 0 0.375rem;
+        box-shadow: 0 2px 8px rgba(6, 78, 59, 0.14);
+    }
+}
+
+/* ============================================================
+   EXTREMELY SMALL SCREENS (below 240px)
+   ============================================================ */
+@media (max-width: 240px) {
+    .noa-post-marquee {
+        min-height: 2.25rem;
+        font-size: 0.625rem;
+        padding: 0 0.25rem;
+        box-shadow: 0 2px 6px rgba(6, 78, 59, 0.12);
+    }
+}

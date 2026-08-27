@@ -8,8 +8,95 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
   <link rel="stylesheet" href="admin-style.css">
+  <style>
+    :root {
+      --primary: #19A975;
+      --primary-dark: #158a5f;
+      --primary-glow: rgba(25, 169, 117, 0.3);
+      --glass-bg: rgba(255, 255, 255, 0.7);
+      --glass-border: rgba(255, 255, 255, 0.5);
+      --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.08);
+      --shadow-glow: 0 0 40px rgba(25, 169, 117, 0.15);
+    }
+    * { scrollbar-width: thin; scrollbar-color: var(--primary) #f1f1f1; }
+    *::-webkit-scrollbar { width: 6px; }
+    *::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+    *::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+    body {
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 25%, #f8fafc 50%, #f0f9ff 75%, #f5f3ff 100%);
+      background-attachment: fixed;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    .bg-mesh { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+    .bg-mesh .orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.4; animation: orbFloat 20s ease-in-out infinite; }
+    .bg-mesh .orb-1 { width: 500px; height: 500px; background: radial-gradient(circle, #19A975, transparent 70%); top: -10%; left: -5%; animation-delay: 0s; }
+    .bg-mesh .orb-2 { width: 400px; height: 400px; background: radial-gradient(circle, #8b5cf6, transparent 70%); top: 40%; right: -10%; animation-delay: -7s; }
+    .bg-mesh .orb-3 { width: 350px; height: 350px; background: radial-gradient(circle, #f59e0b, transparent 70%); bottom: -5%; left: 30%; animation-delay: -14s; }
+    @keyframes orbFloat {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.95); }
+    }
+    .glass-card {
+      background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border); box-shadow: var(--shadow-soft);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .glass-card:hover {
+      transform: translateY(-4px) scale(1.01);
+      box-shadow: var(--shadow-glow), var(--shadow-soft);
+      border-color: rgba(25, 169, 117, 0.3);
+    }
+    .ring-container { position: relative; width: 110px; height: 110px; }
+    .ring-container svg { transform: rotate(-90deg); filter: drop-shadow(0 0 6px var(--primary-glow)); }
+    .ring-container .ring-bg { stroke: rgba(0,0,0,0.06); stroke-width: 3.5; fill: none; }
+    .ring-container .ring-progress { stroke-width: 3.5; fill: none; stroke-linecap: round; transition: stroke-dashoffset 1.8s cubic-bezier(0.4, 0, 0.2, 1); }
+    .ring-container .ring-glow { stroke-width: 6; fill: none; stroke-linecap: round; opacity: 0.15; filter: blur(3px); transition: stroke-dashoffset 1.8s cubic-bezier(0.4, 0, 0.2, 1); }
+    .ring-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
+    .ring-label .percent { font-size: 1.4rem; font-weight: 800; line-height: 1; background: linear-gradient(135deg, var(--primary), #0d9488); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .ring-label .sublabel { font-size: 0.6rem; color: #9ca3af; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    .shimmer { background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+    .pulse-dot { width: 8px; height: 8px; border-radius: 50%; position: relative; }
+    .pulse-dot::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; animation: pulseRing 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    @keyframes pulseRing { 0% { transform: scale(0.8); opacity: 0.8; } 50% { transform: scale(2); opacity: 0; } 100% { transform: scale(0.8); opacity: 0; } }
+    .reveal { opacity: 1; transform: translateY(0); }
+    .reveal.animate { opacity: 0; transform: translateY(30px); animation: revealUp 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+    @keyframes revealUp { to { opacity: 1; transform: translateY(0); } }
+    .reveal-d1.animate { animation-delay: 0.1s; }
+    .reveal-d2.animate { animation-delay: 0.2s; }
+    .reveal-d3.animate { animation-delay: 0.3s; }
+    .reveal-d4.animate { animation-delay: 0.4s; }
+    .reveal-d5.animate { animation-delay: 0.5s; }
+    .nav-item { position: relative; overflow: hidden; transition: all 0.3s ease; }
+    .nav-item::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 0; background: var(--primary); border-radius: 0 4px 4px 0; transition: height 0.3s ease; }
+    .nav-item:hover::before, .nav-item.active::before { height: 60%; }
+    .nav-item:hover, .nav-item.active { background: linear-gradient(90deg, rgba(25,169,117,0.08), transparent); color: var(--primary); }
+    .chart-glow { filter: drop-shadow(0 4px 20px rgba(25, 169, 117, 0.15)); }
+    .badge-shine { position: relative; overflow: hidden; }
+    .badge-shine::after { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); animation: badgeShine 3s infinite; }
+    @keyframes badgeShine { 0% { left: -100%; } 20% { left: 100%; } 100% { left: 100%; } }
+    .counter-num { font-variant-numeric: tabular-nums; background: linear-gradient(135deg, #1f2937, #374151); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .modal-backdrop { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+    .diamond-shine { position: relative; overflow: hidden; }
+    .diamond-shine::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%); animation: diamondSweep 4s ease-in-out infinite; }
+    @keyframes diamondSweep { 0% { transform: translateX(-100%) rotate(45deg); } 100% { transform: translateX(100%) rotate(45deg); } }
+    .tooltip { position: relative; }
+    .tooltip::after { content: attr(data-tip); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%) translateY(-6px); background: #1f2937; color: white; padding: 4px 10px; border-radius: 8px; font-size: 0.7rem; white-space: nowrap; opacity: 0; pointer-events: none; transition: all 0.2s; }
+    .tooltip:hover::after { opacity: 1; transform: translateX(-50%) translateY(-2px); }
+    .sparkline-path { stroke-dasharray: 200; stroke-dashoffset: 200; animation: drawLine 2s ease-out forwards; }
+    @keyframes drawLine { to { stroke-dashoffset: 0; } }
+    .sparkline-fill { opacity: 0; animation: fadeInFill 1s ease-out 1s forwards; }
+    @keyframes fadeInFill { to { opacity: 0.35; } }
+  </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="text-gray-800">
+
+<div class="bg-mesh">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
 
 <script>
 (function() {
@@ -31,300 +118,472 @@
 
   <div class="min-h-screen flex">
     <!-- Sidebar -->
-    <aside class="w-72 bg-white border-r shadow-sm p-6 sticky top-0 h-screen overflow-y-auto">
-      <div class="mb-10">
-        <h1 class="text-3xl font-black text-[#19A975] flex items-center gap-3">
-          <i class="fas fa-shield-halved"></i>
-          <span>NOA Admin</span>
-        </h1>
-        <p class="text-sm text-gray-500 mt-2">Manage tickets, users, admins and posts.</p>
+    <aside class="w-72 glass-card border-r-0 m-4 mr-0 rounded-3xl sticky top-4 h-[calc(100vh-2rem)] overflow-y-auto flex flex-col">
+      <div class="mb-8 px-4 pt-6">
+        <div class="flex items-center gap-3 mb-2">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#19A975] to-emerald-600 flex items-center justify-center text-white shadow-lg shadow-emerald-200">
+            <i class="fas fa-shield-halved text-lg"></i>
+          </div>
+          <div>
+            <h1 class="text-xl font-black text-gray-800 tracking-tight">NOA Admin</h1>
+            <p class="text-[10px] text-gray-400 font-semibold uppercase tracking-widest">Control Center</p>
+          </div>
+        </div>
+        <p class="text-xs text-gray-400 mt-3 leading-relaxed">Manage tickets, users, admins and posts across the platform.</p>
       </div>
 
-      <nav class="space-y-2">
-        <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 rounded-2xl transition hover:bg-green-50 hover:text-[#19A975]">
-          <i class="fas fa-home"></i>
-          <span>Dashboard</span>
+      <nav class="space-y-1 px-3 flex-1">
+        <a href="dashboard.html" class="nav-item flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer text-sm font-medium text-gray-600">
+          <i class="fas fa-home w-5 text-center"></i><span>Dashboard</span>
         </a>
-
-        <a onclick="toggleTickets()" class="flex items-center justify-between px-4 py-3 rounded-2xl cursor-pointer transition hover:bg-green-50 hover:text-[#19A975]">
-          <div class="flex items-center gap-3">
-            <i class="fas fa-ticket-alt"></i>
-            <span>Tickets</span>
-          </div>
-          <span id="ticketBadge" class="hidden bg-red-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full"></span>
+        <a onclick="toggleTickets()" class="nav-item flex items-center justify-between px-4 py-3 rounded-2xl cursor-pointer text-sm font-medium text-gray-600">
+          <div class="flex items-center gap-3"><i class="fas fa-ticket-alt w-5 text-center"></i><span>Tickets</span></div>
+          <span id="ticketBadge" class="hidden bg-gradient-to-r from-red-500 to-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full badge-shine shadow-sm">0</span>
         </a>
-
-        <a onclick="toggleManageUsers()" class="flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer transition hover:bg-green-50 hover:text-[#19A975]">
-          <i class="fas fa-users"></i>
-          <span>Manage Users</span>
+        <a id="navManageUsers" onclick="toggleManageUsers()" class="nav-item flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer text-sm font-medium text-gray-600">
+          <i class="fas fa-users w-5 text-center"></i><span>Manage Users</span>
         </a>
-
-        <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-2xl transition hover:bg-green-50 hover:text-[#19A975]">
-          <i class="fas fa-chart-line"></i>
-          <span>Analytics</span>
+        <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer text-sm font-medium text-gray-600">
+          <i class="fas fa-chart-line w-5 text-center"></i><span>Analytics</span>
         </a>
-
-        <a href="#" onclick="scrollToPostForm()" class="flex items-center gap-3 px-4 py-3 rounded-2xl transition hover:bg-green-50 hover:text-[#19A975]">
-          <i class="fas fa-newspaper"></i>
-          <span>Create Post</span>
+        <a href="#" onclick="scrollToPostForm()" class="nav-item flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer text-sm font-medium text-gray-600">
+          <i class="fas fa-newspaper w-5 text-center"></i><span>Create Post</span>
         </a>
-
-        <a onclick="toggleAiInbox()" class="flex items-center justify-between px-4 py-3 rounded-2xl cursor-pointer transition hover:bg-green-50 hover:text-[#19A975]">
-          <div class="flex items-center gap-3">
-            <i class="fas fa-robot"></i>
-            <span>AI Messages</span>
-          </div>
-          <span id="aiBadge" class="hidden bg-red-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">0</span>
+        <a onclick="toggleAiInbox()" class="nav-item flex items-center justify-between px-4 py-3 rounded-2xl cursor-pointer text-sm font-medium text-gray-600">
+          <div class="flex items-center gap-3"><i class="fas fa-robot w-5 text-center"></i><span>AI Messages</span></div>
+          <span id="aiBadge" class="hidden bg-gradient-to-r from-violet-500 to-purple-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full badge-shine shadow-sm">0</span>
         </a>
-
-        <a id="aiTrainNav" onclick="toggleAiTrain()" class="hidden flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer transition hover:bg-green-50 hover:text-[#19A975]">
-          <i class="fas fa-database"></i>
-          <span>Train AI</span>
+        <a id="aiTrainNav" onclick="toggleAiTrain()" class="hidden nav-item flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer text-sm font-medium text-gray-600">
+          <i class="fas fa-database w-5 text-center"></i><span>Train AI</span>
         </a>
       </nav>
+
+      <div class="px-4 pb-4 mt-auto">
+        <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-4 text-white relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-20 h-20 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+          <div class="relative z-10">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></div>
+              <span class="text-[10px] font-semibold uppercase tracking-wider text-emerald-300">System Online</span>
+            </div>
+            <p class="text-xs text-gray-400">v2.4.1 &middot; All systems operational</p>
+          </div>
+        </div>
+      </div>
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 overflow-y-auto">
-      <div class="max-w-7xl mx-auto p-6 lg:p-10">
+    <main class="flex-1 overflow-y-auto p-4">
+      <div class="max-w-7xl mx-auto">
         <!-- Header -->
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+        <div class="glass-card rounded-3xl p-6 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 reveal">
           <div>
-            <h2 class="text-3xl lg:text-4xl font-black">Admin Dashboard</h2>
-            <p class="text-gray-500 mt-1">A single place to manage your team and platform. <span id="adminRoleLabel" class="text-[#19A975] font-semibold"></span></p>
+            <div class="flex items-center gap-3 mb-1">
+              <h2 class="text-3xl lg:text-4xl font-black tracking-tight text-gray-900">Admin Dashboard</h2>
+              <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold uppercase tracking-wider">Live</span>
+            </div>
+            <p class="text-gray-500 text-sm">A single place to manage your team and platform. <span id="adminRoleLabel" class="text-[#19A975] font-bold"></span></p>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="text-right hidden md:block">
+              <p class="text-xs text-gray-400 font-medium" id="currentDate">Loading...</p>
+              <p class="text-xs text-gray-300" id="currentTime">--:--</p>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#19A975] to-emerald-600 flex items-center justify-center text-white shadow-lg shadow-emerald-200/50">
+              <i class="fas fa-user-shield"></i>
+            </div>
           </div>
         </div>
 
-       <!-- Summary Cards with Progress Rings -->
-<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-10">
-  <!-- Tickets -->
-  <div class="bg-white rounded-3xl p-6 shadow-sm border hover:shadow-md transition">
-    <div class="flex items-center justify-between mb-4">
-      <p class="text-sm text-gray-500">Tickets</p>
-      <div class="text-2xl text-[#19A975]"><i class="fas fa-ticket-alt"></i></div>
-    </div>
-    <h3 class="text-3xl font-black mt-2 mb-3" id="ticketsCount">0</h3>
-    <div class="relative w-20 h-20">
-      <svg class="w-full h-full" viewBox="0 0 36 36">
-        <path class="text-gray-200" stroke="currentColor" stroke-width="4" fill="none"
-              d="M18 2.0845
-                 a 15.9155 15.9155 0 0 1 0 31.831
-                 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-        <path id="ticketsRing" class="text-[#19A975]" stroke="currentColor" stroke-width="4" fill="none"
-              stroke-dasharray="0,100"
-              d="M18 2.0845
-                 a 15.9155 15.9155 0 0 1 0 31.831
-                 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-      </svg>
-    </div>
-  </div>
+        <!-- Summary Cards with LIVE Progress Rings -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-6">
+          <!-- Tickets -->
+          <div class="glass-card rounded-3xl p-6 reveal reveal-d1 group">
+            <div class="flex items-start justify-between mb-2">
+              <div>
+                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Tickets</p>
+                <h3 class="text-4xl font-black counter-num" id="ticketsCount">0</h3>
+              </div>
+              <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300 shadow-sm">
+                <i class="fas fa-ticket-alt"></i>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 mt-4">
+              <div class="ring-container tooltip" data-tip="Resolution rate">
+                <svg viewBox="0 0 36 36" class="w-full h-full">
+                  <path class="ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                  <path id="ticketsRingGlow" class="ring-glow text-emerald-400" stroke="currentColor" stroke-dasharray="100,100" stroke-dashoffset="100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                  <path id="ticketsRing" class="ring-progress text-emerald-500" stroke="currentColor" stroke-dasharray="100,100" stroke-dashoffset="100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                </svg>
+                <div class="ring-label">
+                  <span class="percent" id="ticketsPercent">0%</span>
+                  <span class="sublabel">active</span>
+                </div>
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center gap-1.5 mb-1">
+                  <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-dot"></div>
+                  <span class="text-[10px] text-gray-400 font-medium">+12% this week</span>
+                </div>
+                <svg viewBox="0 0 60 20" class="w-full h-6 chart-glow">
+                  <defs><linearGradient id="spark1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#19A975" stop-opacity="0.5"/><stop offset="100%" stop-color="#19A975" stop-opacity="0"/></linearGradient></defs>
+                  <path class="sparkline-fill" d="M0,18 L10,15 L20,16 L30,12 L40,14 L50,8 L60,10 L60,20 L0,20 Z" fill="url(#spark1)"/>
+                  <path class="sparkline-path" d="M0,18 L10,15 L20,16 L30,12 L40,14 L50,8 L60,10" stroke="#19A975" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+          </div>
 
-  <!-- Pending Users -->
-  <div class="bg-white rounded-3xl p-6 shadow-sm border hover:shadow-md transition">
-    <div class="flex items-center justify-between mb-4">
-      <p class="text-sm text-gray-500">Pending Users</p>
-      <div class="text-2xl text-yellow-500"><i class="fas fa-user-clock"></i></div>
-    </div>
-    <h3 class="text-3xl font-black mt-2 mb-3" id="pendingUsersCount">0</h3>
-    <div class="relative w-20 h-20">
-      <svg class="w-full h-full" viewBox="0 0 36 36">
-        <path class="text-gray-200" stroke="currentColor" stroke-width="4" fill="none"
-              d="M18 2.0845
-                 a 15.9155 15.9155 0 0 1 0 31.831
-                 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-        <path id="pendingUsersRing" class="text-yellow-500" stroke="currentColor" stroke-width="4" fill="none"
-              stroke-dasharray="0,100"
-              d="M18 2.0845
-                 a 15.9155 15.9155 0 0 1 0 31.831
-                 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-      </svg>
-    </div>
-  </div>
+          <!-- Pending Users -->
+          <div class="glass-card rounded-3xl p-6 reveal reveal-d2 group">
+            <div class="flex items-start justify-between mb-2">
+              <div>
+                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Pending Users</p>
+                <h3 class="text-4xl font-black counter-num" id="pendingUsersCount">0</h3>
+              </div>
+              <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 group-hover:bg-amber-500 group-hover:text-white transition-all duration-300 shadow-sm">
+                <i class="fas fa-user-clock"></i>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 mt-4">
+              <div class="ring-container tooltip" data-tip="Approval queue">
+                <svg viewBox="0 0 36 36" class="w-full h-full">
+                  <path class="ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                  <path id="pendingUsersRingGlow" class="ring-glow text-amber-400" stroke="currentColor" stroke-dasharray="100,100" stroke-dashoffset="100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                  <path id="pendingUsersRing" class="ring-progress text-amber-500" stroke="currentColor" stroke-dasharray="100,100" stroke-dashoffset="100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                </svg>
+                <div class="ring-label">
+                  <span class="percent" id="pendingPercent" style="background: linear-gradient(135deg, #f59e0b, #d97706); -webkit-background-clip: text;">0%</span>
+                  <span class="sublabel">queue</span>
+                </div>
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center gap-1.5 mb-1">
+                  <div class="w-1.5 h-1.5 rounded-full bg-amber-500 pulse-dot"></div>
+                  <span class="text-[10px] text-gray-400 font-medium">Awaiting review</span>
+                </div>
+                <svg viewBox="0 0 60 20" class="w-full h-6 chart-glow">
+                  <defs><linearGradient id="spark2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f59e0b" stop-opacity="0.5"/><stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/></linearGradient></defs>
+                  <path class="sparkline-fill" d="M0,16 L10,14 L20,18 L30,12 L40,15 L50,10 L60,13 L60,20 L0,20 Z" fill="url(#spark2)"/>
+                  <path class="sparkline-path" d="M0,16 L10,14 L20,18 L30,12 L40,15 L50,10 L60,13" stroke="#f59e0b" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+          </div>
 
-  <!-- Admins -->
-  <div class="bg-white rounded-3xl p-6 shadow-sm border hover:shadow-md transition">
-    <div class="flex items-center justify-between mb-4">
-      <p class="text-sm text-gray-500">Admins</p>
-      <div class="text-2xl text-purple-500"><i class="fas fa-user-shield"></i></div>
-    </div>
-    <h3 class="text-3xl font-black mt-2 mb-3" id="adminsCount">0</h3>
-    <div class="relative w-20 h-20">
-      <svg class="w-full h-full" viewBox="0 0 36 36">
-        <path class="text-gray-200" stroke="currentColor" stroke-width="4" fill="none"
-              d="M18 2.0845
-                 a 15.9155 15.9155 0 0 1 0 31.831
-                 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-        <path id="adminsRing" class="text-purple-500" stroke="currentColor" stroke-width="4" fill="none"
-              stroke-dasharray="0,100"
-              d="M18 2.0845
-                 a 15.9155 15.9155 0 0 1 0 31.831
-                 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-      </svg>
-    </div>
-  </div>
+          <!-- Admins -->
+          <div class="glass-card rounded-3xl p-6 reveal reveal-d3 group">
+            <div class="flex items-start justify-between mb-2">
+              <div>
+                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Admins</p>
+                <h3 class="text-4xl font-black counter-num" id="adminsCount">0</h3>
+              </div>
+              <div class="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center text-violet-600 group-hover:bg-violet-500 group-hover:text-white transition-all duration-300 shadow-sm">
+                <i class="fas fa-user-shield"></i>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 mt-4">
+              <div class="ring-container tooltip" data-tip="Team capacity">
+                <svg viewBox="0 0 36 36" class="w-full h-full">
+                  <path class="ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                  <path id="adminsRingGlow" class="ring-glow text-violet-400" stroke="currentColor" stroke-dasharray="100,100" stroke-dashoffset="100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                  <path id="adminsRing" class="ring-progress text-violet-500" stroke="currentColor" stroke-dasharray="100,100" stroke-dashoffset="100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                </svg>
+                <div class="ring-label">
+                  <span class="percent" id="adminsPercent" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); -webkit-background-clip: text;">0%</span>
+                  <span class="sublabel">active</span>
+                </div>
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center gap-1.5 mb-1">
+                  <div class="w-1.5 h-1.5 rounded-full bg-violet-500 pulse-dot"></div>
+                  <span class="text-[10px] text-gray-400 font-medium">3 online now</span>
+                </div>
+                <svg viewBox="0 0 60 20" class="w-full h-6 chart-glow">
+                  <defs><linearGradient id="spark3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.5"/><stop offset="100%" stop-color="#8b5cf6" stop-opacity="0"/></linearGradient></defs>
+                  <path class="sparkline-fill" d="M0,14 L10,12 L20,15 L30,10 L40,8 L50,11 L60,6 L60,20 L0,20 Z" fill="url(#spark3)"/>
+                  <path class="sparkline-path" d="M0,14 L10,12 L20,15 L30,10 L40,8 L50,11 L60,6" stroke="#8b5cf6" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+          </div>
 
-  <!-- Total Posts -->
-  <div class="bg-white rounded-3xl p-6 shadow-sm border hover:shadow-md transition">
-    <div class="flex items-center justify-between mb-4">
-      <p class="text-sm text-gray-500">Total Posts</p>
-      <div class="text-2xl text-blue-500"><i class="fas fa-newspaper"></i></div>
-    </div>
-    <h3 class="text-3xl font-black mt-2 mb-3" id="postsCount">0</h3>
-    <div class="relative w-20 h-20">
-      <svg class="w-full h-full" viewBox="0 0 36 36">
-        <path class="text-gray-200" stroke="currentColor" stroke-width="4" fill="none"
-              d="M18 2.0845
-                 a 15.9155 15.9155 0 0 1 0 31.831
-                 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-        <path id="postsRing" class="text-blue-500" stroke="currentColor" stroke-width="4" fill="none"
-              stroke-dasharray="0,100"
-              d="M18 2.0845
-                 a 15.9155 15.9155 0 0 1 0 31.831
-                 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-      </svg>
-    </div>
-  </div>
-</div>
+          <!-- Total Posts -->
+          <div class="glass-card rounded-3xl p-6 reveal reveal-d4 group">
+            <div class="flex items-start justify-between mb-2">
+              <div>
+                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Total Posts</p>
+                <h3 class="text-4xl font-black counter-num" id="postsCount">0</h3>
+              </div>
+              <div class="w-10 h-10 rounded-xl bg-sky-50 flex items-center justify-center text-sky-600 group-hover:bg-sky-500 group-hover:text-white transition-all duration-300 shadow-sm">
+                <i class="fas fa-newspaper"></i>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 mt-4">
+              <div class="ring-container tooltip" data-tip="Engagement rate">
+                <svg viewBox="0 0 36 36" class="w-full h-full">
+                  <path class="ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                  <path id="postsRingGlow" class="ring-glow text-sky-400" stroke="currentColor" stroke-dasharray="100,100" stroke-dashoffset="100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                  <path id="postsRing" class="ring-progress text-sky-500" stroke="currentColor" stroke-dasharray="100,100" stroke-dashoffset="100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                </svg>
+                <div class="ring-label">
+                  <span class="percent" id="postsPercent" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); -webkit-background-clip: text;">0%</span>
+                  <span class="sublabel">growth</span>
+                </div>
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center gap-1.5 mb-1">
+                  <div class="w-1.5 h-1.5 rounded-full bg-sky-500 pulse-dot"></div>
+                  <span class="text-[10px] text-gray-400 font-medium">+24% this month</span>
+                </div>
+                <svg viewBox="0 0 60 20" class="w-full h-6 chart-glow">
+                  <defs><linearGradient id="spark4" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.5"/><stop offset="100%" stop-color="#0ea5e9" stop-opacity="0"/></linearGradient></defs>
+                  <path class="sparkline-fill" d="M0,18 L10,16 L20,14 L30,15 L40,11 L50,9 L60,5 L60,20 L0,20 Z" fill="url(#spark4)"/>
+                  <path class="sparkline-path" d="M0,18 L10,16 L20,14 L30,15 L40,11 L50,9 L60,5" stroke="#0ea5e9" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
 
-<!-- Mini Line Chart -->
-<div class="relative w-full h-20 mt-4">
-  <svg id="miniChart" viewBox="0 0 100 40" preserveAspectRatio="none" class="w-full h-full opacity-80">
-    <!-- Background -->
-    <rect width="100" height="40" fill="transparent" />
-    <!-- Filled area -->
-    <path id="chartFill" d="M0,40 L0,30 L20,32 L40,28 L60,25 L80,22 L100,20 L100,40 Z"
-          fill="#19A975" opacity="0.4"></path>
-    <!-- Line -->
-    <path id="chartLine" d="M0,30 L20,32 L40,28 L60,25 L80,22 L100,20"
-          stroke="#19A975" stroke-width="2" fill="none"></path>
-    <!-- Axis labels -->
-    <text x="0" y="38" font-size="4" fill="#9CA3AF">0</text>
-    <text x="50" y="38" font-size="4" fill="#9CA3AF">50</text>
-    <text x="95" y="38" font-size="4" fill="#9CA3AF">100</text>
-  </svg>
-</div>
+        <!-- Live Activity Chart -->
+        <div class="glass-card rounded-3xl p-6 mb-6 reveal reveal-d2">
+          <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4">
+            <div>
+              <h3 class="font-bold text-lg text-gray-800">Platform Activity</h3>
+              <p class="text-xs text-gray-400" id="activityChartSubtitle">Live signups &amp; active users</p>
+              <div class="flex flex-wrap gap-3 mt-2 text-[11px] text-gray-500">
+                <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>Active users</span>
+                <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-violet-500"></span>New signups</span>
+                <span id="activityTotals" class="text-gray-400"></span>
+              </div>
+            </div>
+            <div class="flex flex-col items-stretch sm:items-end gap-2">
+              <div class="flex items-center gap-2 self-end">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 pulse-dot"></span>
+                <span class="text-xs text-gray-400 font-medium">Live</span>
+              </div>
+              <div class="flex flex-wrap gap-1.5 justify-end" id="activityPeriodBtns">
+                <button type="button" data-period="week" onclick="setActivityPeriod('week')" class="activity-period-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-emerald-500 bg-emerald-50 text-emerald-700">Week</button>
+                <button type="button" data-period="month" onclick="setActivityPeriod('month')" class="activity-period-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-gray-200 text-gray-600 hover:border-emerald-300">Month</button>
+                <button type="button" data-period="3months" onclick="setActivityPeriod('3months')" class="activity-period-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-gray-200 text-gray-600 hover:border-emerald-300">3 mo</button>
+                <button type="button" data-period="6months" onclick="setActivityPeriod('6months')" class="activity-period-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-gray-200 text-gray-600 hover:border-emerald-300">6 mo</button>
+                <button type="button" data-period="year" onclick="setActivityPeriod('year')" class="activity-period-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-gray-200 text-gray-600 hover:border-emerald-300">Year</button>
+                <button type="button" data-period="custom" onclick="setActivityPeriod('custom')" class="activity-period-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-gray-200 text-gray-600 hover:border-emerald-300">Custom</button>
+              </div>
+              <div id="activityCustomRange" class="hidden flex flex-wrap items-center gap-2 justify-end">
+                <input type="date" id="activityFrom" class="px-2 py-1 rounded-lg border border-gray-200 text-xs bg-white" />
+                <span class="text-xs text-gray-400">to</span>
+                <input type="date" id="activityTo" class="px-2 py-1 rounded-lg border border-gray-200 text-xs bg-white" />
+                <button type="button" onclick="loadActivityChart()" class="px-3 py-1 rounded-lg bg-[#19A975] text-white text-[11px] font-semibold hover:bg-[#158a5f]">Apply</button>
+              </div>
+            </div>
+          </div>
+          <div class="relative w-full h-48">
+            <canvas id="activityChart"></canvas>
+          </div>
+        </div>
 
         <!-- Super Admin -->
-        <section class="bg-gradient-to-r from-[#19A975] to-emerald-500 text-white rounded-3xl p-6 shadow-lg mb-10">
-          <div class="flex items-center gap-4">
-            <div class="text-5xl">💎</div>
+        <section class="diamond-shine bg-gradient-to-r from-[#19A975] via-emerald-500 to-teal-400 text-white rounded-3xl p-6 shadow-lg shadow-emerald-200/50 mb-6 reveal reveal-d3 relative overflow-hidden">
+          <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0aDR2NGgtNHpNMzQgMzZoNHY0aC00eiIvPjwvZz48L2c+PC9zdmc+')] opacity-30"></div>
+          <div class="flex items-center gap-5 relative z-10">
+            <div class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-3xl shadow-inner border border-white/20">
+              💎
+            </div>
             <div id="superAdminInfo">
-              <h3 class="font-bold text-2xl">Super Admin <span class="text-yellow-200">(Diamond Flag)</span></h3>
-              <p class="text-white/90">Full access • Cannot be rated • Highest authority</p>
+              <div class="flex items-center gap-2 mb-1">
+                <h3 class="font-bold text-xl">Super Admin</h3>
+                <span class="px-2 py-0.5 rounded-full bg-yellow-400/20 text-yellow-100 text-[10px] font-bold uppercase tracking-wider border border-yellow-400/30">Diamond Flag</span>
+              </div>
+              <p class="text-white/80 text-sm">Full access &middot; Cannot be rated &middot; Highest authority &middot; Immutable privileges</p>
             </div>
           </div>
         </section>
 
         <!-- Create New Admin -->
-        <section class="bg-white rounded-3xl p-8 shadow-sm border mb-10">
-          <h3 class="text-2xl font-bold mb-6 flex items-center gap-3">
-            <i class="fas fa-user-plus text-[#19A975]"></i>
-            Create New Admin
-          </h3>
-
-          <form id="createAdminForm" class="space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <input type="text" id="admin_username" placeholder="Username" class="w-full p-4 border rounded-2xl focus:border-[#19A975] outline-none" required>
-              <input type="email" id="admin_email" placeholder="Email" class="w-full p-4 border rounded-2xl focus:border-[#19A975] outline-none" required>
-              <input type="text" id="admin_name" placeholder="Full Name" class="w-full p-4 border rounded-2xl focus:border-[#19A975] outline-none" required>
-              <input type="password" id="admin_password" placeholder="Password" class="w-full p-4 border rounded-2xl focus:border-[#19A975] outline-none" required>
+        <section class="glass-card rounded-3xl p-8 mb-6 reveal reveal-d4">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-lg shadow-emerald-200/50">
+              <i class="fas fa-user-plus"></i>
             </div>
-
-            <select id="admin_role" class="w-full p-4 border rounded-2xl focus:border-[#19A975] outline-none">
-              <option value="admin">Admin</option>
-              <option value="moderator">Moderator</option>
-              <option value="staff">Staff</option>
-            </select>
-            <p class="text-xs text-gray-500 -mt-2">
-              <strong>Admin</strong> — platform operators (admin login).
-              <strong>Moderator</strong> — limited operator role (admin login).
-              <strong>Staff</strong> — approved teachers; can Host Class &amp; assessments (student/staff login → dashboard).
-            </p>
-
-            <div class="flex items-center gap-4">
-              <button type="submit" class="bg-[#19A975] hover:bg-[#158a5f] text-white px-10 py-4 rounded-2xl font-semibold transition">
-                <i class="fas fa-user-plus mr-2"></i>Create Admin
-              </button>
-              <span id="createAdminStatus" class="text-sm"></span>
+            <div>
+              <h3 class="text-xl font-bold text-gray-800">Create New Admin</h3>
+              <p class="text-xs text-gray-400">Grant administrative privileges to a new team member</p>
             </div>
-          </form>
+          </div>
+
+          <div id="createAdminCard">
+            <form id="createAdminForm" class="space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div class="relative group">
+                  <input type="text" id="admin_username" placeholder=" " class="peer w-full p-4 pt-5 pb-3 border border-gray-200 rounded-2xl focus:border-[#19A975] focus:ring-2 focus:ring-emerald-100 outline-none transition-all bg-white/50" required>
+                  <label class="absolute left-4 top-2 text-xs text-gray-400 font-medium transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-sm peer-focus:top-2 peer-focus:text-xs peer-focus:text-[#19A975]">Username</label>
+                </div>
+                <div class="relative group">
+                  <input type="email" id="admin_email" placeholder=" " class="peer w-full p-4 pt-5 pb-3 border border-gray-200 rounded-2xl focus:border-[#19A975] focus:ring-2 focus:ring-emerald-100 outline-none transition-all bg-white/50" required>
+                  <label class="absolute left-4 top-2 text-xs text-gray-400 font-medium transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-sm peer-focus:top-2 peer-focus:text-xs peer-focus:text-[#19A975]">Email</label>
+                </div>
+                <div class="relative group">
+                  <input type="text" id="admin_name" placeholder=" " class="peer w-full p-4 pt-5 pb-3 border border-gray-200 rounded-2xl focus:border-[#19A975] focus:ring-2 focus:ring-emerald-100 outline-none transition-all bg-white/50" required>
+                  <label class="absolute left-4 top-2 text-xs text-gray-400 font-medium transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-sm peer-focus:top-2 peer-focus:text-xs peer-focus:text-[#19A975]">Full Name</label>
+                </div>
+                <div class="relative group">
+                  <input type="password" id="admin_password" placeholder=" " class="peer w-full p-4 pt-5 pb-3 border border-gray-200 rounded-2xl focus:border-[#19A975] focus:ring-2 focus:ring-emerald-100 outline-none transition-all bg-white/50" required>
+                  <label class="absolute left-4 top-2 text-xs text-gray-400 font-medium transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-sm peer-focus:top-2 peer-focus:text-xs peer-focus:text-[#19A975]">Password</label>
+                </div>
+              </div>
+
+              <div class="relative group">
+                <select id="admin_role" class="w-full p-4 pt-5 pb-3 border border-gray-200 rounded-2xl focus:border-[#19A975] focus:ring-2 focus:ring-emerald-100 outline-none transition-all bg-white/50 appearance-none cursor-pointer">
+                  <option value="admin">Admin</option>
+                  <option value="moderator">Moderator</option>
+                  <option value="staff">Staff</option>
+                </select>
+                <label class="absolute left-4 top-2 text-xs text-[#19A975] font-medium">Role Level</label>
+                <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
+              </div>
+              <div class="bg-gray-50/80 rounded-xl p-4 border border-gray-100">
+                <p class="text-xs text-gray-500 leading-relaxed">
+                  <span class="inline-flex items-center gap-1 font-semibold text-emerald-600"><i class="fas fa-shield-alt text-[10px]"></i> Admin</span> &mdash; platform operators (admin login). &nbsp;
+                  <span class="inline-flex items-center gap-1 font-semibold text-amber-600"><i class="fas fa-user-cog text-[10px]"></i> Moderator</span> &mdash; limited operator role (admin login). &nbsp;
+                  <span class="inline-flex items-center gap-1 font-semibold text-sky-600"><i class="fas fa-chalkboard-teacher text-[10px]"></i> Staff</span> &mdash; approved teachers; can Host Class &amp; assessments (student/staff login &rarr; dashboard).
+                </p>
+              </div>
+
+              <div class="flex items-center gap-4">
+                <button type="submit" class="group relative bg-gradient-to-r from-[#19A975] to-emerald-600 hover:from-[#158a5f] hover:to-emerald-700 text-white px-8 py-4 rounded-2xl font-semibold transition-all shadow-lg shadow-emerald-200/50 hover:shadow-emerald-300/50 hover:-translate-y-0.5 overflow-hidden">
+                  <span class="relative z-10 flex items-center gap-2">
+                    <i class="fas fa-user-plus"></i>Create Admin
+                  </span>
+                  <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                </button>
+                <span id="createAdminStatus" class="text-sm font-medium"></span>
+              </div>
+            </form>
+          </div>
         </section>
 
         <!-- Team Members -->
-        <section class="mb-10">
+        <section class="mb-6 reveal reveal-d5">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="font-bold text-xl">Other Admins & Staff</h3>
-            <span class="text-sm text-gray-500" id="staffCount">0 active members</span>
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center text-violet-600">
+                <i class="fas fa-users text-sm"></i>
+              </div>
+              <div>
+                <h3 class="font-bold text-lg text-gray-800">Other Admins & Staff</h3>
+                <p class="text-xs text-gray-400">Manage your team roster</p>
+              </div>
+            </div>
+            <span class="text-xs font-semibold text-gray-400 bg-white/60 px-3 py-1.5 rounded-full border border-gray-100" id="staffCount">0 active members</span>
           </div>
-          <div id="adminsList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
+          <div id="adminsList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"></div>
         </section>
 
         <!-- Create Post -->
-        <section id="createPostSection" class="bg-white rounded-3xl p-8 shadow-sm border mb-10">
-          <h3 class="text-2xl font-bold mb-6 flex items-center gap-3">
-            <i class="fas fa-newspaper text-[#19A975]"></i>
-            Create New Post / Resource
-          </h3>
-
-          <form id="postForm" class="space-y-6">
-            <input type="text" id="title" placeholder="Post Title" class="w-full p-4 border rounded-2xl focus:border-[#19A975] outline-none" required>
-            <textarea id="excerpt" placeholder="Short excerpt (shown on homepage)" rows="2" class="w-full p-4 border rounded-2xl focus:border-[#19A975] outline-none" required></textarea>
-            <textarea id="content" placeholder="Full content" rows="8" class="w-full p-4 border rounded-2xl focus:border-[#19A975] outline-none" required></textarea>
-
+        <section id="createPostSection" class="glass-card rounded-3xl p-8 mb-6 reveal reveal-d3">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-sky-200/50">
+              <i class="fas fa-newspaper"></i>
+            </div>
             <div>
-              <label class="block text-sm font-medium text-gray-600 mb-2">Featured Image (Optional)</label>
-              <input type="file" id="image" accept="image/*" class="w-full p-3 border rounded-2xl">
-              <p class="text-xs text-gray-500 mt-1">Recommended: 1200x630px for best display</p>
+              <h3 class="text-xl font-bold text-gray-800">Create New Post / Resource</h3>
+              <p class="text-xs text-gray-400">Publish content to the platform feed</p>
+            </div>
+          </div>
+
+          <form id="postForm" class="space-y-5">
+            <div class="relative group">
+              <input type="text" id="title" placeholder=" " class="peer w-full p-4 pt-5 pb-3 border border-gray-200 rounded-2xl focus:border-[#19A975] focus:ring-2 focus:ring-emerald-100 outline-none transition-all bg-white/50" required>
+              <label class="absolute left-4 top-2 text-xs text-gray-400 font-medium transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-sm peer-focus:top-2 peer-focus:text-xs peer-focus:text-[#19A975]">Post Title</label>
+            </div>
+            <div class="relative group">
+              <textarea id="excerpt" placeholder=" " rows="2" class="peer w-full p-4 pt-5 pb-3 border border-gray-200 rounded-2xl focus:border-[#19A975] focus:ring-2 focus:ring-emerald-100 outline-none transition-all bg-white/50 resize-none" required></textarea>
+              <label class="absolute left-4 top-2 text-xs text-gray-400 font-medium transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-sm peer-focus:top-2 peer-focus:text-xs peer-focus:text-[#19A975]">Short excerpt (shown on homepage)</label>
+            </div>
+            <div class="relative group">
+              <textarea id="content" placeholder=" " rows="6" class="peer w-full p-4 pt-5 pb-3 border border-gray-200 rounded-2xl focus:border-[#19A975] focus:ring-2 focus:ring-emerald-100 outline-none transition-all bg-white/50 resize-none" required></textarea>
+              <label class="absolute left-4 top-2 text-xs text-gray-400 font-medium transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-sm peer-focus:top-2 peer-focus:text-xs peer-focus:text-[#19A975]">Full content</label>
+            </div>
+
+            <div class="bg-gray-50/80 rounded-xl p-4 border border-gray-100 border-dashed">
+              <label class="block text-sm font-semibold text-gray-600 mb-2">Featured Image <span class="text-gray-400 font-normal">(Optional)</span></label>
+              <div class="relative">
+                <input type="file" id="image" accept="image/*" class="w-full p-3 border border-gray-200 rounded-2xl bg-white/50 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 transition-colors cursor-pointer">
+              </div>
+              <p class="text-[10px] text-gray-400 mt-2 flex items-center gap-1"><i class="fas fa-info-circle"></i> Recommended: 1200x630px for best display across all devices</p>
             </div>
 
             <div class="flex items-center gap-4">
-              <button type="submit" class="bg-[#19A975] hover:bg-[#158a5f] text-white px-10 py-4 rounded-2xl font-semibold transition">
-                <i class="fas fa-paper-plane mr-2"></i>Publish Post
+              <button type="submit" class="group relative bg-gradient-to-r from-[#19A975] to-emerald-600 hover:from-[#158a5f] hover:to-emerald-700 text-white px-8 py-4 rounded-2xl font-semibold transition-all shadow-lg shadow-emerald-200/50 hover:shadow-emerald-300/50 hover:-translate-y-0.5 overflow-hidden">
+                <span class="relative z-10 flex items-center gap-2">
+                  <i class="fas fa-paper-plane"></i>Publish Post
+                </span>
+                <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
               </button>
-              <span id="postStatus" class="text-sm"></span>
+              <span id="postStatus" class="text-sm font-medium"></span>
             </div>
           </form>
         </section>
 
         <!-- Recent Posts Preview -->
-        <section>
+        <section class="reveal reveal-d4 mb-10">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="font-bold text-xl">Recent Posts</h3>
-            <span class="text-sm text-gray-500" id="postsCount2">0 posts</span>
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center text-sky-600">
+                <i class="fas fa-clock-rotate-left text-sm"></i>
+              </div>
+              <div>
+                <h3 class="font-bold text-lg text-gray-800">Recent Posts</h3>
+                <p class="text-xs text-gray-400">Latest published content</p>
+              </div>
+            </div>
+            <span class="text-xs font-semibold text-gray-400 bg-white/60 px-3 py-1.5 rounded-full border border-gray-100" id="postsCount2">0 posts</span>
           </div>
-          <div id="recentPostsList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
+          <div id="recentPostsList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"></div>
         </section>
       </div>
     </main>
   </div>
 
   <!-- Tickets Modal -->
-  <div id="ticketsModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[300]">
-    <div class="bg-white rounded-3xl w-full max-w-2xl mx-4 max-h-[85vh] overflow-hidden shadow-2xl">
-      <div class="p-6 border-b flex justify-between items-center">
-        <h3 class="text-xl font-bold">Tickets</h3>
-        <button onclick="toggleTickets()" class="text-2xl">✕</button>
+  <div id="ticketsModal" class="hidden fixed inset-0 bg-black/60 modal-backdrop flex items-center justify-center z-[300] p-4">
+    <div class="bg-white rounded-3xl w-full max-w-2xl mx-4 max-h-[85vh] overflow-hidden shadow-2xl border border-white/20">
+      <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-gray-50 to-white">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600">
+            <i class="fas fa-ticket-alt text-sm"></i>
+          </div>
+          <h3 class="text-xl font-bold text-gray-800">Tickets</h3>
+        </div>
+        <button onclick="toggleTickets()" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors text-gray-400 hover:text-gray-600">✕</button>
       </div>
       <div id="ticketsContainer" class="p-6 overflow-y-auto max-h-[70vh]"></div>
     </div>
   </div>
 
   <!-- Manage Users Modal -->
-  <div id="manageUsersModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[350]">
-    <div class="bg-white rounded-3xl w-full max-w-6xl mx-4 max-h-[90vh] overflow-hidden shadow-2xl">
-      <div class="p-6 border-b flex justify-between items-center">
-        <h3 class="text-2xl font-bold flex items-center gap-3">
-          <i class="fas fa-users text-[#19A975]"></i>
-          Manage Users
-        </h3>
-        <button onclick="toggleManageUsers()" class="text-2xl hover:text-red-500">✕</button>
+  <div id="manageUsersModal" class="hidden fixed inset-0 bg-black/60 modal-backdrop flex items-center justify-center z-[350] p-4">
+    <div class="bg-white rounded-3xl w-full max-w-6xl mx-4 max-h-[90vh] overflow-hidden shadow-2xl border border-white/20">
+      <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-gray-50 to-white">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600">
+            <i class="fas fa-users text-sm"></i>
+          </div>
+          <h3 class="text-2xl font-bold text-gray-800">Manage Users</h3>
+        </div>
+        <button onclick="toggleManageUsers()" class="w-8 h-8 rounded-full hover:bg-red-50 flex items-center justify-center transition-colors text-gray-400 hover:text-red-500">✕</button>
       </div>
 
       <div class="p-6 overflow-y-auto max-h-[75vh]">
         <div class="mb-4 flex gap-3">
-          <input type="text" id="userSearchInput" placeholder="Search by name or email..."
-                 class="flex-1 p-3 border rounded-2xl focus:border-[#19A975] outline-none">
-          <select id="userRoleFilter" class="p-3 border rounded-2xl focus:border-[#19A975] outline-none">
+          <div class="relative flex-1">
+            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+            <input type="text" id="userSearchInput" placeholder="Search by name or email..."
+                   class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-2xl focus:border-[#19A975] focus:ring-2 focus:ring-emerald-100 outline-none transition-all bg-gray-50/50">
+          </div>
+          <select id="userRoleFilter" class="p-3 border border-gray-200 rounded-2xl focus:border-[#19A975] focus:ring-2 focus:ring-emerald-100 outline-none transition-all bg-gray-50/50 cursor-pointer">
             <option value="">All Roles</option>
             <option value="student">Students</option>
             <option value="staff">Staff</option>
@@ -332,21 +591,26 @@
           </select>
         </div>
 
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto rounded-2xl border border-gray-100">
           <table class="w-full">
-            <thead class="bg-gray-50">
+            <thead class="bg-gray-50/80">
               <tr>
-                <th class="text-left p-4 font-semibold">Name</th>
-                <th class="text-left p-4 font-semibold">Email</th>
-                <th class="text-left p-4 font-semibold">Role</th>
-                <th class="text-left p-4 font-semibold">Grade/School</th>
-                <th class="text-left p-4 font-semibold">Status</th>
-                <th class="text-left p-4 font-semibold">Actions</th>
+                <th class="text-left p-4 font-semibold text-xs uppercase tracking-wider text-gray-500">Name</th>
+                <th class="text-left p-4 font-semibold text-xs uppercase tracking-wider text-gray-500">Email</th>
+                <th class="text-left p-4 font-semibold text-xs uppercase tracking-wider text-gray-500">Role</th>
+                <th class="text-left p-4 font-semibold text-xs uppercase tracking-wider text-gray-500">Grade/School</th>
+                <th class="text-left p-4 font-semibold text-xs uppercase tracking-wider text-gray-500">Status</th>
+                <th class="text-left p-4 font-semibold text-xs uppercase tracking-wider text-gray-500">Actions</th>
               </tr>
             </thead>
             <tbody id="usersTableBody">
               <tr>
-                <td colspan="6" class="text-center py-12 text-gray-500">Loading users...</td>
+                <td colspan="6" class="text-center py-12 text-gray-400">
+                  <div class="flex flex-col items-center gap-2">
+                    <div class="w-8 h-8 rounded-full border-2 border-gray-200 border-t-emerald-500 animate-spin"></div>
+                    <span class="text-sm">Loading users...</span>
+                  </div>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -356,62 +620,85 @@
   </div>
 
   <!-- User Details Modal -->
-  <div id="userDetailModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[400]">
-    <div class="bg-white rounded-3xl p-8 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+  <div id="userDetailModal" class="hidden fixed inset-0 bg-black/60 modal-backdrop flex items-center justify-center z-[400] p-4">
+    <div class="bg-white rounded-3xl p-8 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto shadow-2xl border border-white/20">
       <div class="flex justify-between items-center mb-6">
-        <h3 class="text-2xl font-bold">User Details</h3>
-        <button onclick="closeUserModal()" class="text-2xl">✕</button>
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600">
+            <i class="fas fa-id-card text-sm"></i>
+          </div>
+          <h3 class="text-2xl font-bold text-gray-800">User Details</h3>
+        </div>
+        <button onclick="closeUserModal()" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors text-gray-400 hover:text-gray-600">✕</button>
       </div>
       <div id="userDetailContent"></div>
     </div>
   </div>
 
   <!-- Edit Post Modal -->
-  <div id="editPostModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[400]">
-    <div class="bg-white rounded-3xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden shadow-2xl">
-      <div class="p-6 border-b flex justify-between items-center">
-        <h3 class="text-xl font-bold">Edit Post</h3>
-        <button onclick="closeEditModal()" class="text-2xl">✕</button>
+  <div id="editPostModal" class="hidden fixed inset-0 bg-black/60 modal-backdrop flex items-center justify-center z-[400] p-4">
+    <div class="bg-white rounded-3xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden shadow-2xl border border-white/20">
+      <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-gray-50 to-white">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center text-sky-600">
+            <i class="fas fa-pen-to-square text-sm"></i>
+          </div>
+          <h3 class="text-xl font-bold text-gray-800">Edit Post</h3>
+        </div>
+        <button onclick="closeEditModal()" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors text-gray-400 hover:text-gray-600">✕</button>
       </div>
 
       <div class="p-6 overflow-y-auto max-h-[75vh]">
-        <form id="editPostForm" class="space-y-6">
+        <form id="editPostForm" class="space-y-5">
           <input type="hidden" id="edit_post_id">
-          <input type="text" id="edit_title" placeholder="Post Title" class="w-full p-4 border rounded-2xl focus:border-[#19A975] outline-none" required>
-          <textarea id="edit_excerpt" placeholder="Short excerpt" rows="2" class="w-full p-4 border rounded-2xl focus:border-[#19A975] outline-none" required></textarea>
-          <textarea id="edit_content" placeholder="Full content" rows="10" class="w-full p-4 border rounded-2xl focus:border-[#19A975] outline-none" required></textarea>
-          <div>
-            <label class="block text-sm font-medium text-gray-600 mb-2">Featured Image (Leave empty to keep current)</label>
-            <input type="file" id="edit_image" accept="image/*" class="w-full p-3 border rounded-2xl">
+          <div class="relative group">
+            <input type="text" id="edit_title" placeholder=" " class="peer w-full p-4 pt-5 pb-3 border border-gray-200 rounded-2xl focus:border-[#19A975] focus:ring-2 focus:ring-emerald-100 outline-none transition-all bg-gray-50/50" required>
+            <label class="absolute left-4 top-2 text-xs text-gray-400 font-medium transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-sm peer-focus:top-2 peer-focus:text-xs peer-focus:text-[#19A975]">Post Title</label>
+          </div>
+          <div class="relative group">
+            <textarea id="edit_excerpt" placeholder=" " rows="2" class="peer w-full p-4 pt-5 pb-3 border border-gray-200 rounded-2xl focus:border-[#19A975] focus:ring-2 focus:ring-emerald-100 outline-none transition-all bg-gray-50/50 resize-none" required></textarea>
+            <label class="absolute left-4 top-2 text-xs text-gray-400 font-medium transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-sm peer-focus:top-2 peer-focus:text-xs peer-focus:text-[#19A975]">Short excerpt</label>
+          </div>
+          <div class="relative group">
+            <textarea id="edit_content" placeholder=" " rows="8" class="peer w-full p-4 pt-5 pb-3 border border-gray-200 rounded-2xl focus:border-[#19A975] focus:ring-2 focus:ring-emerald-100 outline-none transition-all bg-gray-50/50 resize-none" required></textarea>
+            <label class="absolute left-4 top-2 text-xs text-gray-400 font-medium transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-sm peer-focus:top-2 peer-focus:text-xs peer-focus:text-[#19A975]">Full content</label>
+          </div>
+          <div class="bg-gray-50/80 rounded-xl p-4 border border-gray-100 border-dashed">
+            <label class="block text-sm font-semibold text-gray-600 mb-2">Featured Image <span class="text-gray-400 font-normal">(Leave empty to keep current)</span></label>
+            <input type="file" id="edit_image" accept="image/*" class="w-full p-3 border border-gray-200 rounded-2xl bg-white/50 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100 transition-colors cursor-pointer">
           </div>
           <div class="flex gap-3 pt-4">
-            <button type="submit" class="flex-1 bg-[#19A975] hover:bg-[#158a5f] text-white py-4 rounded-2xl font-semibold transition">Save Changes</button>
-            <button type="button" onclick="closeEditModal()" class="flex-1 border border-gray-300 hover:bg-gray-50 py-4 rounded-2xl font-semibold transition">Cancel</button>
+            <button type="submit" class="flex-1 bg-gradient-to-r from-[#19A975] to-emerald-600 hover:from-[#158a5f] hover:to-emerald-700 text-white py-4 rounded-2xl font-semibold transition-all shadow-lg shadow-emerald-200/50 hover:shadow-emerald-300/50 hover:-translate-y-0.5">Save Changes</button>
+            <button type="button" onclick="closeEditModal()" class="flex-1 border border-gray-200 hover:bg-gray-50 py-4 rounded-2xl font-semibold transition-all text-gray-600">Cancel</button>
           </div>
         </form>
       </div>
     </div>
   </div>
 
-  
   <!-- AI Messages Inbox -->
-  <div id="aiInboxPanel" class="hidden fixed inset-0 bg-black/50 z-[450] flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-5xl rounded-3xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
-      <div class="p-5 border-b flex items-center justify-between bg-gradient-to-r from-slate-900 to-teal-900 text-white">
-        <div>
-          <h3 class="text-xl font-bold flex items-center gap-2"><i class="fas fa-robot"></i> AI → Moderator Inbox</h3>
-          <p class="text-sm text-white/70">Conversations referred from the knowledge assistant</p>
+  <div id="aiInboxPanel" class="hidden fixed inset-0 bg-black/50 modal-backdrop z-[450] flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-5xl rounded-3xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col border border-white/20">
+      <div class="p-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-slate-900 via-slate-800 to-teal-900 text-white">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center backdrop-blur-sm border border-white/10">
+            <i class="fas fa-robot"></i>
+          </div>
+          <div>
+            <h3 class="text-xl font-bold">AI &rarr; Moderator Inbox</h3>
+            <p class="text-sm text-white/60">Conversations referred from the knowledge assistant</p>
+          </div>
         </div>
-        <button onclick="toggleAiInbox(false)" class="w-10 h-10 rounded-full bg-white/15 hover:bg-white/25">✕</button>
+        <button onclick="toggleAiInbox(false)" class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">✕</button>
       </div>
       <div class="flex flex-1 min-h-0">
-        <div id="aiInboxList" class="w-full sm:w-2/5 border-r overflow-y-auto max-h-[70vh] p-3 space-y-2 bg-slate-50"></div>
+        <div id="aiInboxList" class="w-full sm:w-2/5 border-r border-gray-100 overflow-y-auto max-h-[70vh] p-3 space-y-2 bg-slate-50/50"></div>
         <div class="hidden sm:flex flex-col flex-1 min-w-0">
-          <div id="aiChatHeader" class="p-4 border-b text-sm text-slate-600">Select a conversation</div>
+          <div id="aiChatHeader" class="p-4 border-b border-gray-100 text-sm text-slate-600 bg-white">Select a conversation</div>
           <div id="aiChatThread" class="flex-1 overflow-y-auto p-4 space-y-3 max-h-[50vh] bg-white"></div>
-          <div class="p-4 border-t flex gap-2">
-            <input id="aiReplyInput" type="text" placeholder="Reply as moderator…" class="flex-1 px-4 py-3 rounded-2xl border focus:border-[#19A975] outline-none" />
-            <button onclick="sendAiModeratorReply()" class="px-5 py-3 rounded-2xl bg-[#19A975] text-white font-semibold hover:bg-[#158a5f]">Send</button>
+          <div class="p-4 border-t border-gray-100 flex gap-2 bg-gray-50/50">
+            <input id="aiReplyInput" type="text" placeholder="Reply as moderator…" class="flex-1 px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#19A975] focus:ring-2 focus:ring-emerald-100 outline-none transition-all bg-white" />
+            <button onclick="sendAiModeratorReply()" class="px-6 py-3 rounded-2xl bg-gradient-to-r from-[#19A975] to-emerald-600 text-white font-semibold hover:from-[#158a5f] hover:to-emerald-700 transition-all shadow-lg shadow-emerald-200/50">Send</button>
           </div>
         </div>
       </div>
@@ -419,43 +706,213 @@
   </div>
 
   <!-- AI Train (super admin only) -->
-  <div id="aiTrainPanel" class="hidden fixed inset-0 bg-black/50 z-[450] flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-3xl rounded-3xl shadow-2xl max-h-[90vh] overflow-y-auto">
-      <div class="p-5 border-b flex items-center justify-between sticky top-0 bg-white">
-        <div>
-          <h3 class="text-xl font-bold text-[#19A975]"><i class="fas fa-database mr-2"></i>Train AI Knowledge</h3>
-          <p class="text-sm text-gray-500">Super admin only · answers come only from this database</p>
+  <div id="aiTrainPanel" class="hidden fixed inset-0 bg-black/50 modal-backdrop z-[450] flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-3xl rounded-3xl shadow-2xl max-h-[90vh] overflow-y-auto border border-white/20">
+      <div class="p-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur-xl z-10">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-lg shadow-emerald-200/50">
+            <i class="fas fa-database"></i>
+          </div>
+          <div>
+            <h3 class="text-xl font-bold text-gray-800">Train AI Knowledge</h3>
+            <p class="text-xs text-gray-400">Super admin only &middot; answers come only from this database</p>
+          </div>
         </div>
-        <button onclick="toggleAiTrain(false)" class="text-2xl px-2">✕</button>
+        <button onclick="toggleAiTrain(false)" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors text-gray-400 hover:text-gray-600">✕</button>
       </div>
       <div class="p-6 space-y-8">
-        <div>
-          <label class="block text-sm font-bold text-gray-700 mb-2">Attitude / Behavioral style</label>
-          <p class="text-xs text-gray-500 mb-2">Saved at the top of database.json and shapes how the assistant should behave (tone, limits).</p>
-          <textarea id="aiBehavioralsBox" rows="4" class="w-full p-4 border rounded-2xl focus:border-[#19A975] outline-none" placeholder="e.g. Be warm, concise, only answer from trained facts…"></textarea>
-          <button onclick="saveAiBehaviorals()" class="mt-3 px-6 py-3 rounded-2xl bg-slate-900 text-white font-semibold hover:bg-slate-800">
+        <div class="bg-gray-50/80 rounded-2xl p-5 border border-gray-100">
+          <label class="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+            <i class="fas fa-brain text-emerald-500 text-xs"></i> Attitude / Behavioral style
+          </label>
+          <p class="text-xs text-gray-400 mb-3">Saved at the top of database.json and shapes how the assistant should behave (tone, limits).</p>
+          <textarea id="aiBehavioralsBox" rows="4" class="w-full p-4 border border-gray-200 rounded-2xl focus:border-[#19A975] focus:ring-2 focus:ring-emerald-100 outline-none transition-all bg-white resize-none" placeholder="e.g. Be warm, concise, only answer from trained facts…"></textarea>
+          <button onclick="saveAiBehaviorals()" class="mt-3 px-6 py-3 rounded-2xl bg-gradient-to-r from-slate-800 to-slate-900 text-white font-semibold hover:from-slate-700 hover:to-slate-800 transition-all shadow-lg">
             <i class="fas fa-save mr-2"></i>Save Attitude
           </button>
-          <span id="aiBehStatus" class="ml-3 text-sm"></span>
+          <span id="aiBehStatus" class="ml-3 text-sm font-medium"></span>
         </div>
-        <div>
-          <label class="block text-sm font-bold text-gray-700 mb-2">Knowledge database</label>
-          <p class="text-xs text-gray-500 mb-2">Paste facts, FAQs, policies. Click Train to add into database.json.</p>
-          <textarea id="aiKnowledgeBox" rows="6" class="w-full p-4 border rounded-2xl focus:border-[#19A975] outline-none" placeholder="Enter knowledge the AI may use when answering…"></textarea>
-          <input id="aiKeywordsBox" type="text" placeholder="Optional keywords (comma-separated)" class="w-full mt-2 p-3 border rounded-2xl" />
-          <button onclick="trainAiKnowledge()" class="mt-3 px-6 py-3 rounded-2xl bg-[#19A975] text-white font-semibold hover:bg-[#158a5f]">
+        <div class="bg-gray-50/80 rounded-2xl p-5 border border-gray-100">
+          <label class="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+            <i class="fas fa-book text-emerald-500 text-xs"></i> Knowledge database
+          </label>
+          <p class="text-xs text-gray-400 mb-3">Paste facts, FAQs, policies. Click Train to add into database.json.</p>
+          <textarea id="aiKnowledgeBox" rows="6" class="w-full p-4 border border-gray-200 rounded-2xl focus:border-[#19A975] focus:ring-2 focus:ring-emerald-100 outline-none transition-all bg-white resize-none" placeholder="Enter knowledge the AI may use when answering…"></textarea>
+          <input id="aiKeywordsBox" type="text" placeholder="Optional keywords (comma-separated)" class="w-full mt-2 p-3 border border-gray-200 rounded-2xl focus:border-[#19A975] focus:ring-2 focus:ring-emerald-100 outline-none transition-all bg-white" />
+          <button onclick="trainAiKnowledge()" class="mt-3 px-6 py-3 rounded-2xl bg-gradient-to-r from-[#19A975] to-emerald-600 text-white font-semibold hover:from-[#158a5f] hover:to-emerald-700 transition-all shadow-lg shadow-emerald-200/50">
             <i class="fas fa-brain mr-2"></i>Train
           </button>
-          <span id="aiTrainStatus" class="ml-3 text-sm"></span>
+          <span id="aiTrainStatus" class="ml-3 text-sm font-medium"></span>
         </div>
         <div>
-          <h4 class="font-bold mb-2">Trained entries</h4>
+          <h4 class="font-bold mb-3 text-gray-800 flex items-center gap-2"><i class="fas fa-list text-emerald-500 text-xs"></i> Trained entries</h4>
           <div id="aiKnowledgeList" class="space-y-2 max-h-60 overflow-y-auto text-sm"></div>
         </div>
       </div>
     </div>
   </div>
 
-  <script src="admin-function.js"></script>
+  <!-- LIVE Dashboard Scripts -->
+  <script>
+  function updateClock() {
+    var now = new Date();
+    var dateEl = document.getElementById('currentDate');
+    var timeEl = document.getElementById('currentTime');
+    if (dateEl) dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+    if (timeEl) timeEl.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // Animate visually but ALWAYS finish on the exact intended (supposed) count
+  function animateCounter(el, target, duration) {
+    duration = duration || 1200;
+    if (!el) return;
+    target = Math.max(0, Math.floor(Number(target) || 0));
+    el.setAttribute('data-count', String(target));
+    el.setAttribute('data-animating', '1');
+    var start = 0;
+    var t0 = performance.now();
+    function tick(now) {
+      var p = Math.min((now - t0) / duration, 1);
+      var ease = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.floor(start + (target - start) * ease).toLocaleString();
+      if (p < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        el.textContent = target.toLocaleString();
+        el.setAttribute('data-count', String(target));
+        el.removeAttribute('data-animating');
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function setRing(id, glowId, percent) {
+    var ring = document.getElementById(id);
+    var glow = document.getElementById(glowId);
+    if (!ring || !glow) return;
+    percent = Math.min(100, Math.max(0, Number(percent) || 0));
+    var offset = 100 - percent;
+    setTimeout(function () {
+      ring.style.strokeDashoffset = offset;
+      glow.style.strokeDashoffset = offset;
+    }, 150);
+  }
+
+  function animatePercent(el, target, duration) {
+    duration = duration || 1200;
+    if (!el) return;
+    target = Math.min(100, Math.max(0, Math.floor(Number(target) || 0)));
+    var t0 = performance.now();
+    function tick(now) {
+      var p = Math.min((now - t0) / duration, 1);
+      var ease = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.floor(target * ease) + '%';
+      if (p < 1) requestAnimationFrame(tick);
+      else el.textContent = target + '%';
+    }
+    requestAnimationFrame(tick);
+  }
+
+  // Ring is visual only — the big number is always the real API count
+  function countToPercent(count, el) {
+    if (el) {
+      var o = el.getAttribute('data-percent');
+      if (o !== null && o !== '') {
+        var p = parseInt(o, 10);
+        if (!isNaN(p)) return Math.min(100, Math.max(0, p));
+      }
+    }
+    count = Number(count) || 0;
+    if (count <= 0) return 0;
+    if (count <= 10) return Math.min(100, count * 8);
+    if (count <= 50) return Math.min(100, 40 + Math.round((count - 10) * 1.2));
+    return 100;
+  }
+
+  (function () {
+    var watched = [
+      { id: 'ticketsCount', ringId: 'ticketsRing', glowId: 'ticketsRingGlow', percentId: 'ticketsPercent' },
+      { id: 'pendingUsersCount', ringId: 'pendingUsersRing', glowId: 'pendingUsersRingGlow', percentId: 'pendingPercent' },
+      { id: 'adminsCount', ringId: 'adminsRing', glowId: 'adminsRingGlow', percentId: 'adminsPercent' },
+      { id: 'postsCount', ringId: 'postsRing', glowId: 'postsRingGlow', percentId: 'postsPercent' }
+    ];
+    var last = {};
+
+    watched.forEach(function (cfg) {
+      var el = document.getElementById(cfg.id);
+      if (!el) return;
+
+      function applyFromElement() {
+        if (el.getAttribute('data-animating') === '1') return;
+        var raw = el.getAttribute('data-count') || String(el.textContent || '').replace(/,/g, '').trim();
+        var num = parseInt(raw, 10);
+        if (isNaN(num) || num < 0) return;
+        if (last[cfg.id] === num) return;
+        last[cfg.id] = num;
+
+        animateCounter(el, num, 1400);
+        var percent = countToPercent(num, el);
+        setRing(cfg.ringId, cfg.glowId, percent);
+        var pctEl = document.getElementById(cfg.percentId);
+        if (pctEl) animatePercent(pctEl, percent, 1400);
+      }
+
+      new MutationObserver(applyFromElement).observe(el, {
+        childList: true,
+        characterData: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['data-count', 'data-percent']
+      });
+    });
+  })();
+
+  (function () {
+    ['staffCount', 'postsCount2'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var last = null;
+      new MutationObserver(function () {
+        var t = el.textContent.trim();
+        if (!t || t === last) return;
+        last = t;
+        el.style.transition = 'all 0.45s ease';
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(4px)';
+        setTimeout(function () {
+          el.style.opacity = '1';
+          el.style.transform = 'translateY(0)';
+        }, 40);
+      }).observe(el, { childList: true, characterData: true, subtree: true });
+    });
+  })();
+
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.reveal').forEach(function (el) { el.classList.add('animate'); });
+
+    // Live activity chart is initialized by admin-function.js → loadActivityChart()
+
+    var role = window.__adminRole || 'admin';
+    var roleLabel = document.getElementById('adminRoleLabel');
+    if (roleLabel) {
+      var map = { super_admin: 'Super Admin', admin: 'Admin', moderator: 'Moderator' };
+      roleLabel.textContent = map[role] || role;
+    }
+    if (role === 'super_admin') {
+      var trainNav = document.getElementById('aiTrainNav');
+      if (trainNav) trainNav.classList.remove('hidden');
+    } else {
+      var superInfo = document.getElementById('superAdminInfo');
+      if (superInfo && superInfo.closest('section')) superInfo.closest('section').style.display = 'none';
+    }
+  });
+
+  function scrollToPostForm() {
+    var el = document.getElementById('createPostSection');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  </script>  <script src="admin-function.js"></script>
 </body>
 </html>
