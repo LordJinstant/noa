@@ -3402,7 +3402,7 @@
       },
       "createdAt": "2026-08-19T18:14:04.310Z"
     },
-    "latest:31": "NOA-CERT-6669F29A7E3CCDA6ACEAFB5C",
+    "latest:31": "NOA-CERT-7A7DC565EBBE1A8FF742079E",
     "NOA-CERT-9E3915F07FE2C28482E74B85": {
       "serial": "NOA-CERT-9E3915F07FE2C28482E74B85",
       "algorithm": "HMAC-SHA256",
@@ -3573,7 +3573,7 @@
       },
       "createdAt": "2026-08-24T08:42:09.378Z"
     },
-    "latest:33": "NOA-CERT-CEF8637A1177CEADF63BB133",
+    "latest:33": "NOA-CERT-F833FBEA695AFFC067C4272F",
     "NOA-CERT-BD41DC27DC3CDD0EB8C8514A": {
       "serial": "NOA-CERT-BD41DC27DC3CDD0EB8C8514A",
       "algorithm": "HMAC-SHA256",
@@ -6033,6 +6033,789 @@
         "scoreFingerprint": "133afe9e34f356f1d16bf6eaa9bdadda3f25198e02cce4d943bb4294ae11a936"
       },
       "createdAt": "2026-08-28T14:03:25.717Z"
+    },
+    "NOA-CERT-7A7DC565EBBE1A8FF742079E": {
+      "serial": "NOA-CERT-7A7DC565EBBE1A8FF742079E",
+      "algorithm": "HMAC-SHA256",
+      "contentHash": "58859932cec67f0563af94cc55c44b7f99489d83b1119a6f4f819338241250e8",
+      "signature": "1b23c809cd497ad67a0dcbe5bf44ede8ec5633d6dda6d30dbcd808d9b26749cc",
+      "claims": {
+        "version": 2,
+        "issuer": "Nigeria Olympiad Academy (NOA)",
+        "serial": "NOA-CERT-7A7DC565EBBE1A8FF742079E",
+        "issuedAt": "2026-08-28",
+        "issuedAtIso": "2026-08-28T14:05:57.872Z",
+        "student": {
+          "id": 31,
+          "name": "Cynthia",
+          "username": "cynthia",
+          "email": "cy@gmail.com",
+          "school": "BLOOM IT",
+          "grade": "Grade12"
+        },
+        "scores": [],
+        "subjectSummaries": [],
+        "overall": 0,
+        "band": "Needs Improvement",
+        "scoreFingerprint": "0193a82dd1c0a00882adbb41a8021ab7a3ccf87b2d98e459b79b9f389bcdbfec"
+      },
+      "createdAt": "2026-08-28T14:05:57.872Z"
+    },
+    "NOA-CERT-4E6C1706C0A5B3BBDB0D8E4D": {
+      "serial": "NOA-CERT-4E6C1706C0A5B3BBDB0D8E4D",
+      "algorithm": "HMAC-SHA256",
+      "contentHash": "579a777bc5730741cea41988ff0a1a3f33129c6ff260f349ee98bcd923214f6e",
+      "signature": "64d0bb46ff4ee9d181d541050c90f282676816e18fda750fc89b5275f210b880",
+      "claims": {
+        "version": 2,
+        "issuer": "Nigeria Olympiad Academy (NOA)",
+        "serial": "NOA-CERT-4E6C1706C0A5B3BBDB0D8E4D",
+        "issuedAt": "2026-08-28",
+        "issuedAtIso": "2026-08-28T14:06:10.108Z",
+        "student": {
+          "id": 33,
+          "name": "New Student",
+          "username": "new",
+          "email": "newnew@gmail.com",
+          "school": "DR MEE HIGHSCHOOL",
+          "grade": "Grade 9"
+        },
+        "scores": [
+          {
+            "subject": "Mathematics",
+            "score": 30,
+            "supposed_score": 100,
+            "percentage": 30,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Needs Improvement"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 77,
+            "supposed_score": 100,
+            "percentage": 77,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Good"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 88,
+            "supposed_score": 100,
+            "percentage": 88,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 89,
+            "supposed_score": 100,
+            "percentage": 89,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 98,
+            "supposed_score": 100,
+            "percentage": 98,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Outstanding"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 95,
+            "supposed_score": 100,
+            "percentage": 95,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Outstanding"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 90,
+            "supposed_score": 100,
+            "percentage": 90,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 80,
+            "supposed_score": 100,
+            "percentage": 80,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Good"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 78,
+            "supposed_score": 100,
+            "percentage": 78,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Good"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 88,
+            "supposed_score": 100,
+            "percentage": 88,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 90,
+            "supposed_score": 100,
+            "percentage": 90,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 34,
+            "supposed_score": 100,
+            "percentage": 34,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Needs Improvement"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 66,
+            "supposed_score": 100,
+            "percentage": 66,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Average"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 66,
+            "supposed_score": 100,
+            "percentage": 66,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Average"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 77,
+            "supposed_score": 100,
+            "percentage": 77,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Good"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 100,
+            "supposed_score": 100,
+            "percentage": 100,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Outstanding"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 93,
+            "supposed_score": 100,
+            "percentage": 93,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Physics",
+            "score": 93,
+            "supposed_score": 100,
+            "percentage": 93,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Physics",
+            "score": 99,
+            "supposed_score": 100,
+            "percentage": 99,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Outstanding"
+          },
+          {
+            "subject": "Physics",
+            "score": 66,
+            "supposed_score": 100,
+            "percentage": 66,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Average"
+          },
+          {
+            "subject": "Physics",
+            "score": 6,
+            "supposed_score": 100,
+            "percentage": 6,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Needs Improvement"
+          }
+        ],
+        "subjectSummaries": [
+          {
+            "subject": "Mathematics",
+            "attempts": 17,
+            "overall": 78.8,
+            "best": 100,
+            "lastDate": "2026-08-28",
+            "totalScore": 1339,
+            "totalOutOf": 1700,
+            "band": "Good"
+          },
+          {
+            "subject": "Physics",
+            "attempts": 4,
+            "overall": 66,
+            "best": 99,
+            "lastDate": "2026-08-24",
+            "totalScore": 264,
+            "totalOutOf": 400,
+            "band": "Average"
+          }
+        ],
+        "overall": 76,
+        "band": "Good",
+        "scoreFingerprint": "133afe9e34f356f1d16bf6eaa9bdadda3f25198e02cce4d943bb4294ae11a936"
+      },
+      "createdAt": "2026-08-28T14:06:10.108Z"
+    },
+    "NOA-CERT-12638B38F107002D5A33E0DE": {
+      "serial": "NOA-CERT-12638B38F107002D5A33E0DE",
+      "algorithm": "HMAC-SHA256",
+      "contentHash": "2d948c760af1dd3274c46474ed966483a9bb3281bf8050f44fe41bb271b10891",
+      "signature": "edcbaaf311cc0a6e1b8f8a13c9c3a2b1ef0454c96191fb0c41c1c33c9d080ffa",
+      "claims": {
+        "version": 2,
+        "issuer": "Nigeria Olympiad Academy (NOA)",
+        "serial": "NOA-CERT-12638B38F107002D5A33E0DE",
+        "issuedAt": "2026-08-28",
+        "issuedAtIso": "2026-08-28T14:19:35.568Z",
+        "student": {
+          "id": 48,
+          "name": "Uchenna Foreign",
+          "username": "uche",
+          "email": "uchenna@gmail.com",
+          "school": "DR. MEE INT.",
+          "grade": "Grade 3 / Primary 3"
+        },
+        "scores": [
+          {
+            "subject": "Technology",
+            "score": 77,
+            "supposed_score": 100,
+            "percentage": 77,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 3 / Primary 3",
+            "band": "Good"
+          },
+          {
+            "subject": "Technology",
+            "score": 89,
+            "supposed_score": 100,
+            "percentage": 89,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 3 / Primary 3",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Technology",
+            "score": 81,
+            "supposed_score": 100,
+            "percentage": 81,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 3 / Primary 3",
+            "band": "Good"
+          },
+          {
+            "subject": "Technology",
+            "score": 89,
+            "supposed_score": 100,
+            "percentage": 89,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 3 / Primary 3",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Technology",
+            "score": 99,
+            "supposed_score": 100,
+            "percentage": 99,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 3 / Primary 3",
+            "band": "Outstanding"
+          },
+          {
+            "subject": "Technology",
+            "score": 90,
+            "supposed_score": 100,
+            "percentage": 90,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 3 / Primary 3",
+            "band": "Excellent"
+          }
+        ],
+        "subjectSummaries": [
+          {
+            "subject": "Technology",
+            "attempts": 6,
+            "overall": 87.5,
+            "best": 99,
+            "lastDate": "2026-08-28",
+            "totalScore": 525,
+            "totalOutOf": 600,
+            "band": "Excellent"
+          }
+        ],
+        "overall": 88,
+        "band": "Excellent",
+        "scoreFingerprint": "2d789f019b00851a5107bff13f7604d2607d2fa73c09d53073d0f697cc750004"
+      },
+      "createdAt": "2026-08-28T14:19:35.568Z"
+    },
+    "latest:48": "NOA-CERT-349662E7F0D375407D0113A1",
+    "NOA-CERT-F833FBEA695AFFC067C4272F": {
+      "serial": "NOA-CERT-F833FBEA695AFFC067C4272F",
+      "algorithm": "HMAC-SHA256",
+      "contentHash": "2f792376359513f747edd7f518bd603b06739101c612873deec4b4ce7c924920",
+      "signature": "1a60de06687c2e9d7de1180db473610dc9de7af989a82008ddc95a176ae90549",
+      "claims": {
+        "version": 2,
+        "issuer": "Nigeria Olympiad Academy (NOA)",
+        "serial": "NOA-CERT-F833FBEA695AFFC067C4272F",
+        "issuedAt": "2026-08-28",
+        "issuedAtIso": "2026-08-28T14:35:06.165Z",
+        "student": {
+          "id": 33,
+          "name": "New Student",
+          "username": "new",
+          "email": "newnew@gmail.com",
+          "school": "DR MEE HIGHSCHOOL",
+          "grade": "Grade 9"
+        },
+        "scores": [
+          {
+            "subject": "Mathematics",
+            "score": 30,
+            "supposed_score": 100,
+            "percentage": 30,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Needs Improvement"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 77,
+            "supposed_score": 100,
+            "percentage": 77,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Good"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 88,
+            "supposed_score": 100,
+            "percentage": 88,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 89,
+            "supposed_score": 100,
+            "percentage": 89,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 98,
+            "supposed_score": 100,
+            "percentage": 98,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Outstanding"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 95,
+            "supposed_score": 100,
+            "percentage": 95,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Outstanding"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 90,
+            "supposed_score": 100,
+            "percentage": 90,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 80,
+            "supposed_score": 100,
+            "percentage": 80,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Good"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 78,
+            "supposed_score": 100,
+            "percentage": 78,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Good"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 88,
+            "supposed_score": 100,
+            "percentage": 88,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 90,
+            "supposed_score": 100,
+            "percentage": 90,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 34,
+            "supposed_score": 100,
+            "percentage": 34,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Needs Improvement"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 66,
+            "supposed_score": 100,
+            "percentage": 66,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Average"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 66,
+            "supposed_score": 100,
+            "percentage": 66,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Average"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 77,
+            "supposed_score": 100,
+            "percentage": 77,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Good"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 100,
+            "supposed_score": 100,
+            "percentage": 100,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Outstanding"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 93,
+            "supposed_score": 100,
+            "percentage": 93,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Physics",
+            "score": 93,
+            "supposed_score": 100,
+            "percentage": 93,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Physics",
+            "score": 99,
+            "supposed_score": 100,
+            "percentage": 99,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Outstanding"
+          },
+          {
+            "subject": "Physics",
+            "score": 66,
+            "supposed_score": 100,
+            "percentage": 66,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Average"
+          },
+          {
+            "subject": "Physics",
+            "score": 6,
+            "supposed_score": 100,
+            "percentage": 6,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Needs Improvement"
+          }
+        ],
+        "subjectSummaries": [
+          {
+            "subject": "Mathematics",
+            "attempts": 17,
+            "overall": 78.8,
+            "best": 100,
+            "lastDate": "2026-08-28",
+            "totalScore": 1339,
+            "totalOutOf": 1700,
+            "band": "Good"
+          },
+          {
+            "subject": "Physics",
+            "attempts": 4,
+            "overall": 66,
+            "best": 99,
+            "lastDate": "2026-08-24",
+            "totalScore": 264,
+            "totalOutOf": 400,
+            "band": "Average"
+          }
+        ],
+        "overall": 76,
+        "band": "Good",
+        "scoreFingerprint": "133afe9e34f356f1d16bf6eaa9bdadda3f25198e02cce4d943bb4294ae11a936"
+      },
+      "createdAt": "2026-08-28T14:35:06.165Z"
+    },
+    "NOA-CERT-099FFE403B0DABA282D33EFB": {
+      "serial": "NOA-CERT-099FFE403B0DABA282D33EFB",
+      "algorithm": "HMAC-SHA256",
+      "contentHash": "3478ab281ef0a666506cf0f35e68252bc9ca946c19c9705cf6b8b3751ad0f6e7",
+      "signature": "96f10ad0c00ad4ae0795d4f680312f1cce04e3b9365e8964b4dad69f9dd815ec",
+      "claims": {
+        "version": 2,
+        "issuer": "Nigeria Olympiad Academy (NOA)",
+        "serial": "NOA-CERT-099FFE403B0DABA282D33EFB",
+        "issuedAt": "2026-08-28",
+        "issuedAtIso": "2026-08-28T14:48:52.095Z",
+        "student": {
+          "id": 48,
+          "name": "Uchenna Foreign",
+          "username": "uche",
+          "email": "uchenna@gmail.com",
+          "school": "DR. MEE INT.",
+          "grade": "Grade 3 / Primary 3"
+        },
+        "scores": [
+          {
+            "subject": "Technology",
+            "score": 77,
+            "supposed_score": 100,
+            "percentage": 77,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 3 / Primary 3",
+            "band": "Good"
+          },
+          {
+            "subject": "Technology",
+            "score": 89,
+            "supposed_score": 100,
+            "percentage": 89,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 3 / Primary 3",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Technology",
+            "score": 81,
+            "supposed_score": 100,
+            "percentage": 81,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 3 / Primary 3",
+            "band": "Good"
+          },
+          {
+            "subject": "Technology",
+            "score": 89,
+            "supposed_score": 100,
+            "percentage": 89,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 3 / Primary 3",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Technology",
+            "score": 99,
+            "supposed_score": 100,
+            "percentage": 99,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 3 / Primary 3",
+            "band": "Outstanding"
+          },
+          {
+            "subject": "Technology",
+            "score": 90,
+            "supposed_score": 100,
+            "percentage": 90,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 3 / Primary 3",
+            "band": "Excellent"
+          }
+        ],
+        "subjectSummaries": [
+          {
+            "subject": "Technology",
+            "attempts": 6,
+            "overall": 87.5,
+            "best": 99,
+            "lastDate": "2026-08-28",
+            "totalScore": 525,
+            "totalOutOf": 600,
+            "band": "Excellent"
+          }
+        ],
+        "overall": 88,
+        "band": "Excellent",
+        "scoreFingerprint": "2d789f019b00851a5107bff13f7604d2607d2fa73c09d53073d0f697cc750004"
+      },
+      "createdAt": "2026-08-28T14:48:52.095Z"
+    },
+    "NOA-CERT-349662E7F0D375407D0113A1": {
+      "serial": "NOA-CERT-349662E7F0D375407D0113A1",
+      "algorithm": "HMAC-SHA256",
+      "contentHash": "fd2c5cf97a5609aca0a6a9370d906cfa3cd2b991a28855663b57a4bb751da5bd",
+      "signature": "2b6624f516e997f9944b6f06f0a08333f091b9f94520cf1331a0e6a9301118bd",
+      "claims": {
+        "version": 2,
+        "issuer": "Nigeria Olympiad Academy (NOA)",
+        "serial": "NOA-CERT-349662E7F0D375407D0113A1",
+        "issuedAt": "2026-08-28",
+        "issuedAtIso": "2026-08-28T14:53:39.748Z",
+        "student": {
+          "id": 48,
+          "name": "Uchenna Foreign",
+          "username": "uche",
+          "email": "uchenna@gmail.com",
+          "school": "DR. MEE INT.",
+          "grade": "Grade 3 / Primary 3"
+        },
+        "scores": [
+          {
+            "subject": "Technology",
+            "score": 77,
+            "supposed_score": 100,
+            "percentage": 77,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 3 / Primary 3",
+            "band": "Good"
+          },
+          {
+            "subject": "Technology",
+            "score": 89,
+            "supposed_score": 100,
+            "percentage": 89,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 3 / Primary 3",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Technology",
+            "score": 81,
+            "supposed_score": 100,
+            "percentage": 81,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 3 / Primary 3",
+            "band": "Good"
+          },
+          {
+            "subject": "Technology",
+            "score": 89,
+            "supposed_score": 100,
+            "percentage": 89,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 3 / Primary 3",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Technology",
+            "score": 99,
+            "supposed_score": 100,
+            "percentage": 99,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 3 / Primary 3",
+            "band": "Outstanding"
+          },
+          {
+            "subject": "Technology",
+            "score": 90,
+            "supposed_score": 100,
+            "percentage": 90,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 3 / Primary 3",
+            "band": "Excellent"
+          }
+        ],
+        "subjectSummaries": [
+          {
+            "subject": "Technology",
+            "attempts": 6,
+            "overall": 87.5,
+            "best": 99,
+            "lastDate": "2026-08-28",
+            "totalScore": 525,
+            "totalOutOf": 600,
+            "band": "Excellent"
+          }
+        ],
+        "overall": 88,
+        "band": "Excellent",
+        "scoreFingerprint": "2d789f019b00851a5107bff13f7604d2607d2fa73c09d53073d0f697cc750004"
+      },
+      "createdAt": "2026-08-28T14:53:39.748Z"
     }
   }
 }
