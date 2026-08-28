@@ -6392,7 +6392,7 @@
       },
       "createdAt": "2026-08-28T14:19:35.568Z"
     },
-    "latest:48": "NOA-CERT-349662E7F0D375407D0113A1",
+    "latest:48": "NOA-CERT-D0F5B8B383B4CC06D1C895C5",
     "NOA-CERT-F833FBEA695AFFC067C4272F": {
       "serial": "NOA-CERT-F833FBEA695AFFC067C4272F",
       "algorithm": "HMAC-SHA256",
@@ -6816,6 +6816,99 @@
         "scoreFingerprint": "2d789f019b00851a5107bff13f7604d2607d2fa73c09d53073d0f697cc750004"
       },
       "createdAt": "2026-08-28T14:53:39.748Z"
+    },
+    "NOA-CERT-D0F5B8B383B4CC06D1C895C5": {
+      "serial": "NOA-CERT-D0F5B8B383B4CC06D1C895C5",
+      "algorithm": "HMAC-SHA256",
+      "contentHash": "e0ffe0bd67c9d97307d0d67d0a378fa167d7e3bb9bae3634213d66d39e1b4f55",
+      "signature": "e23c60742eba1e60f5693986247ce358541bab993b36026f3f9c915585d8665d",
+      "claims": {
+        "version": 2,
+        "issuer": "Nigeria Olympiad Academy (NOA)",
+        "serial": "NOA-CERT-D0F5B8B383B4CC06D1C895C5",
+        "issuedAt": "2026-08-28",
+        "issuedAtIso": "2026-08-28T15:26:01.650Z",
+        "student": {
+          "id": 48,
+          "name": "Uchenna Foreign",
+          "username": "uche",
+          "email": "uchenna@gmail.com",
+          "school": "DR. MEE INT.",
+          "grade": "Grade 3 / Primary 3"
+        },
+        "scores": [
+          {
+            "subject": "Technology",
+            "score": 77,
+            "supposed_score": 100,
+            "percentage": 77,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 3 / Primary 3",
+            "band": "Good"
+          },
+          {
+            "subject": "Technology",
+            "score": 89,
+            "supposed_score": 100,
+            "percentage": 89,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 3 / Primary 3",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Technology",
+            "score": 81,
+            "supposed_score": 100,
+            "percentage": 81,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 3 / Primary 3",
+            "band": "Good"
+          },
+          {
+            "subject": "Technology",
+            "score": 89,
+            "supposed_score": 100,
+            "percentage": 89,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 3 / Primary 3",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Technology",
+            "score": 99,
+            "supposed_score": 100,
+            "percentage": 99,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 3 / Primary 3",
+            "band": "Outstanding"
+          },
+          {
+            "subject": "Technology",
+            "score": 90,
+            "supposed_score": 100,
+            "percentage": 90,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 3 / Primary 3",
+            "band": "Excellent"
+          }
+        ],
+        "subjectSummaries": [
+          {
+            "subject": "Technology",
+            "attempts": 6,
+            "overall": 87.5,
+            "best": 99,
+            "lastDate": "2026-08-28",
+            "totalScore": 525,
+            "totalOutOf": 600,
+            "band": "Excellent"
+          }
+        ],
+        "overall": 88,
+        "band": "Excellent",
+        "scoreFingerprint": "2d789f019b00851a5107bff13f7604d2607d2fa73c09d53073d0f697cc750004"
+      },
+      "createdAt": "2026-08-28T15:26:01.650Z"
     }
   }
 }
