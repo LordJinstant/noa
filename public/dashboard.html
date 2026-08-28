@@ -1654,7 +1654,7 @@ function officeTitleForRole(role) {
 function idCardStatement(name, role) {
   const office = officeTitleForRole(role);
   const first = (name || 'This associate').split(' ')[0];
-  return first + ' is hereby recognised as an Associate Catalyst Partner (ACP) of the Nigerian Olympiad Academy, serving in the capacity of ' + office + '. This credential affirms partnership, professional standing, and shared commitment to excellence in Olympiad education across Nigeria.';
+  return name + ' is hereby recognised as an Associate Catalyst Partner (ACP) of the Nigerian Olympiad Academy, serving in the capacity of ' + office + '. This credential affirms partnership, professional standing, and shared commitment to excellence in Olympiad education across Nigeria.';
 }
 
 function setIdCardPhoto(photoUrl, name) {

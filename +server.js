@@ -2521,29 +2521,20 @@ app.get('/api/top-assessments', (req, res) => {
       WHERE 1=1`;
     const params = [];
 
-    // Staff: students they added OR students who follow them
+    // Staff: only students they added (owner_staff_id). Admin/moderator: entire board.
     if (viewer && isStaffLikeRole(viewer) && !isAdminLikeRole(viewer)) {
-      ensureStaffFollowsTable();
       const sid = resolveStaffDbId(viewer);
       if (sid) {
         sql += ` AND (
-          a.student_id IN (
-            SELECT id FROM users WHERE role = 'student' AND (
-              owner_staff_id = ?
-              OR id IN (SELECT student_id FROM staff_follows WHERE staff_id = ?)
-            )
-          )
+          a.student_id IN (SELECT id FROM users WHERE role = 'student' AND owner_staff_id = ?)
           OR (
             a.student_id IS NULL
             AND lower(COALESCE(a.student_name, '')) IN (
-              SELECT lower(name) FROM users WHERE role = 'student' AND (
-                owner_staff_id = ?
-                OR id IN (SELECT student_id FROM staff_follows WHERE staff_id = ?)
-              )
+              SELECT lower(name) FROM users WHERE role = 'student' AND owner_staff_id = ?
             )
           )
         )`;
-        params.push(sid, sid, sid, sid);
+        params.push(sid, sid);
       } else {
         return res.json([]);
       }
@@ -4408,7 +4399,6 @@ app.get('/api/staff/students', (req, res) => {
     if (!isStaffLikeRole(decoded) && !isAdminLikeRole(decoded)) {
       return res.status(403).json({ msg: 'Staff only' });
     }
-    ensureStaffFollowsTable();
     let rows;
     if (isAdminLikeRole(decoded) && !isStaffLikeRole(decoded)) {
       rows = usersDb.prepare(
@@ -4417,22 +4407,12 @@ app.get('/api/staff/students', (req, res) => {
     } else {
       const sid = resolveStaffDbId(decoded);
       if (!sid) return res.json([]);
-      // Students added by this staff OR students who follow this staff
-      rows = usersDb.prepare(`
-        SELECT id, name, username, email, phone, school, grade, owner_staff_id, joined,
-          CASE WHEN owner_staff_id = ? THEN 'added' ELSE 'follower' END AS link
-        FROM users
-        WHERE role = 'student'
-          AND (
-            owner_staff_id = ?
-            OR id IN (SELECT student_id FROM staff_follows WHERE staff_id = ?)
-          )
-        ORDER BY name COLLATE NOCASE
-      `).all(sid, sid, sid);
+      rows = usersDb.prepare(
+        `SELECT id, name, username, email, phone, school, grade, owner_staff_id, joined FROM users WHERE role = 'student' AND owner_staff_id = ? ORDER BY name`
+      ).all(sid);
     }
     return res.json(rows);
   } catch (e) {
-    console.error('staff/students', e);
     return res.status(401).json({ msg: 'Invalid token' });
   }
 });
@@ -4579,15 +4559,9 @@ app.get('/api/certificate/students', (req, res) => {
     let sql = `SELECT id, name, username, email, school, grade, owner_staff_id FROM users WHERE role = 'student'`;
     const params = [];
     if (role === 'staff') {
-      ensureStaffFollowsTable();
       const sid = resolveStaffDbId(decoded);
-      if (sid) {
-        sql += ` AND (
-          owner_staff_id = ?
-          OR id IN (SELECT student_id FROM staff_follows WHERE staff_id = ?)
-        )`;
-        params.push(sid, sid);
-      } else sql += ` AND 0`;
+      if (sid) { sql += ` AND owner_staff_id = ?`; params.push(sid); }
+      else sql += ` AND 0`;
     }
     sql += ` ORDER BY name`;
     let rows = usersDb.prepare(sql).all(...params);
@@ -4650,15 +4624,7 @@ app.post('/api/certificate/bulk-zip', express.json({ limit: '2mb' }), (req, res)
         `SELECT id, name, username, email, school, grade, owner_staff_id FROM users WHERE id = ? AND role = 'student'`
       ).get(id);
       if (!student) continue;
-      if (staffId) {
-        ensureStaffFollowsTable();
-        const linked =
-          Number(student.owner_staff_id) === Number(staffId) ||
-          !!usersDb.prepare(
-            `SELECT 1 FROM staff_follows WHERE staff_id = ? AND student_id = ?`
-          ).get(staffId, student.id);
-        if (!linked) continue;
-      }
+      if (staffId && Number(student.owner_staff_id) !== Number(staffId)) continue;
       const record = buildCertificateForStudent(student);
       const view = publicCertView(record, req);
       const safeName = String(student.name || student.username || 'student').replace(/[^a-z0-9_-]+/gi, '_').slice(0, 40);

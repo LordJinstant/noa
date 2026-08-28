@@ -3573,7 +3573,7 @@
       },
       "createdAt": "2026-08-24T08:42:09.378Z"
     },
-    "latest:33": "NOA-CERT-6C42091B11CB8802527A38A7",
+    "latest:33": "NOA-CERT-CEF8637A1177CEADF63BB133",
     "NOA-CERT-BD41DC27DC3CDD0EB8C8514A": {
       "serial": "NOA-CERT-BD41DC27DC3CDD0EB8C8514A",
       "algorithm": "HMAC-SHA256",
@@ -5319,6 +5319,720 @@
         "scoreFingerprint": "d1313f0b552c95d787af4a52fadd6dd1e285eeafe2fc96db6fede422502fcd0f"
       },
       "createdAt": "2026-08-27T16:06:34.547Z"
+    },
+    "NOA-CERT-767392798CA6DCC81C62A412": {
+      "serial": "NOA-CERT-767392798CA6DCC81C62A412",
+      "algorithm": "HMAC-SHA256",
+      "contentHash": "59e780010b13c36cfa8658de77b0afe96d2f00a8c433c5e9d634d4215712ab57",
+      "signature": "55647e5ff4b373f556911ec76be63ec7c09afbebd23c162bb9e52053ccc2cb7a",
+      "claims": {
+        "version": 2,
+        "issuer": "Nigeria Olympiad Academy (NOA)",
+        "serial": "NOA-CERT-767392798CA6DCC81C62A412",
+        "issuedAt": "2026-08-28",
+        "issuedAtIso": "2026-08-28T13:57:40.049Z",
+        "student": {
+          "id": 33,
+          "name": "New Student",
+          "username": "new",
+          "email": "newnew@gmail.com",
+          "school": "DR MEE HIGHSCHOOL",
+          "grade": "Grade 9"
+        },
+        "scores": [
+          {
+            "subject": "Mathematics",
+            "score": 30,
+            "supposed_score": 100,
+            "percentage": 30,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Needs Improvement"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 77,
+            "supposed_score": 100,
+            "percentage": 77,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Good"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 88,
+            "supposed_score": 100,
+            "percentage": 88,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 89,
+            "supposed_score": 100,
+            "percentage": 89,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 98,
+            "supposed_score": 100,
+            "percentage": 98,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Outstanding"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 95,
+            "supposed_score": 100,
+            "percentage": 95,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Outstanding"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 90,
+            "supposed_score": 100,
+            "percentage": 90,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 80,
+            "supposed_score": 100,
+            "percentage": 80,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Good"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 78,
+            "supposed_score": 100,
+            "percentage": 78,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Good"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 88,
+            "supposed_score": 100,
+            "percentage": 88,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 90,
+            "supposed_score": 100,
+            "percentage": 90,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 34,
+            "supposed_score": 100,
+            "percentage": 34,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Needs Improvement"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 66,
+            "supposed_score": 100,
+            "percentage": 66,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Average"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 66,
+            "supposed_score": 100,
+            "percentage": 66,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Average"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 77,
+            "supposed_score": 100,
+            "percentage": 77,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Good"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 100,
+            "supposed_score": 100,
+            "percentage": 100,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Outstanding"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 93,
+            "supposed_score": 100,
+            "percentage": 93,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Physics",
+            "score": 93,
+            "supposed_score": 100,
+            "percentage": 93,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Physics",
+            "score": 99,
+            "supposed_score": 100,
+            "percentage": 99,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Outstanding"
+          },
+          {
+            "subject": "Physics",
+            "score": 66,
+            "supposed_score": 100,
+            "percentage": 66,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Average"
+          },
+          {
+            "subject": "Physics",
+            "score": 6,
+            "supposed_score": 100,
+            "percentage": 6,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Needs Improvement"
+          }
+        ],
+        "subjectSummaries": [
+          {
+            "subject": "Mathematics",
+            "attempts": 17,
+            "overall": 78.8,
+            "best": 100,
+            "lastDate": "2026-08-28",
+            "totalScore": 1339,
+            "totalOutOf": 1700,
+            "band": "Good"
+          },
+          {
+            "subject": "Physics",
+            "attempts": 4,
+            "overall": 66,
+            "best": 99,
+            "lastDate": "2026-08-24",
+            "totalScore": 264,
+            "totalOutOf": 400,
+            "band": "Average"
+          }
+        ],
+        "overall": 76,
+        "band": "Good",
+        "scoreFingerprint": "133afe9e34f356f1d16bf6eaa9bdadda3f25198e02cce4d943bb4294ae11a936"
+      },
+      "createdAt": "2026-08-28T13:57:40.049Z"
+    },
+    "NOA-CERT-DBCB3E9CF13B2D2A3ABB71F3": {
+      "serial": "NOA-CERT-DBCB3E9CF13B2D2A3ABB71F3",
+      "algorithm": "HMAC-SHA256",
+      "contentHash": "29804d90ab34e921bb1e87d33a1fbd0fc0b94998ea008cdb93b3aed8f5ae7f6b",
+      "signature": "2cf9a402f9eb06a502281682d9482b9fdbce0bc62f2b96540c4f43b84f96957f",
+      "claims": {
+        "version": 2,
+        "issuer": "Nigeria Olympiad Academy (NOA)",
+        "serial": "NOA-CERT-DBCB3E9CF13B2D2A3ABB71F3",
+        "issuedAt": "2026-08-28",
+        "issuedAtIso": "2026-08-28T14:00:56.394Z",
+        "student": {
+          "id": 33,
+          "name": "New Student",
+          "username": "new",
+          "email": "newnew@gmail.com",
+          "school": "DR MEE HIGHSCHOOL",
+          "grade": "Grade 9"
+        },
+        "scores": [
+          {
+            "subject": "Mathematics",
+            "score": 30,
+            "supposed_score": 100,
+            "percentage": 30,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Needs Improvement"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 77,
+            "supposed_score": 100,
+            "percentage": 77,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Good"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 88,
+            "supposed_score": 100,
+            "percentage": 88,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 89,
+            "supposed_score": 100,
+            "percentage": 89,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 98,
+            "supposed_score": 100,
+            "percentage": 98,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Outstanding"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 95,
+            "supposed_score": 100,
+            "percentage": 95,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Outstanding"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 90,
+            "supposed_score": 100,
+            "percentage": 90,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 80,
+            "supposed_score": 100,
+            "percentage": 80,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Good"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 78,
+            "supposed_score": 100,
+            "percentage": 78,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Good"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 88,
+            "supposed_score": 100,
+            "percentage": 88,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 90,
+            "supposed_score": 100,
+            "percentage": 90,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 34,
+            "supposed_score": 100,
+            "percentage": 34,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Needs Improvement"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 66,
+            "supposed_score": 100,
+            "percentage": 66,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Average"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 66,
+            "supposed_score": 100,
+            "percentage": 66,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Average"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 77,
+            "supposed_score": 100,
+            "percentage": 77,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Good"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 100,
+            "supposed_score": 100,
+            "percentage": 100,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Outstanding"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 93,
+            "supposed_score": 100,
+            "percentage": 93,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Physics",
+            "score": 93,
+            "supposed_score": 100,
+            "percentage": 93,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Physics",
+            "score": 99,
+            "supposed_score": 100,
+            "percentage": 99,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Outstanding"
+          },
+          {
+            "subject": "Physics",
+            "score": 66,
+            "supposed_score": 100,
+            "percentage": 66,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Average"
+          },
+          {
+            "subject": "Physics",
+            "score": 6,
+            "supposed_score": 100,
+            "percentage": 6,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Needs Improvement"
+          }
+        ],
+        "subjectSummaries": [
+          {
+            "subject": "Mathematics",
+            "attempts": 17,
+            "overall": 78.8,
+            "best": 100,
+            "lastDate": "2026-08-28",
+            "totalScore": 1339,
+            "totalOutOf": 1700,
+            "band": "Good"
+          },
+          {
+            "subject": "Physics",
+            "attempts": 4,
+            "overall": 66,
+            "best": 99,
+            "lastDate": "2026-08-24",
+            "totalScore": 264,
+            "totalOutOf": 400,
+            "band": "Average"
+          }
+        ],
+        "overall": 76,
+        "band": "Good",
+        "scoreFingerprint": "133afe9e34f356f1d16bf6eaa9bdadda3f25198e02cce4d943bb4294ae11a936"
+      },
+      "createdAt": "2026-08-28T14:00:56.394Z"
+    },
+    "NOA-CERT-CEF8637A1177CEADF63BB133": {
+      "serial": "NOA-CERT-CEF8637A1177CEADF63BB133",
+      "algorithm": "HMAC-SHA256",
+      "contentHash": "b5ab0a7d00796ac0ffc565c5431aa1295ba6180ca3c9bdfda0a929100b143e5c",
+      "signature": "fc71bb4b37d42041bc34756f6bf29e1d8dce13a7e5b78218801b68b3a859bd7b",
+      "claims": {
+        "version": 2,
+        "issuer": "Nigeria Olympiad Academy (NOA)",
+        "serial": "NOA-CERT-CEF8637A1177CEADF63BB133",
+        "issuedAt": "2026-08-28",
+        "issuedAtIso": "2026-08-28T14:03:25.717Z",
+        "student": {
+          "id": 33,
+          "name": "New Student",
+          "username": "new",
+          "email": "newnew@gmail.com",
+          "school": "DR MEE HIGHSCHOOL",
+          "grade": "Grade 9"
+        },
+        "scores": [
+          {
+            "subject": "Mathematics",
+            "score": 30,
+            "supposed_score": 100,
+            "percentage": 30,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Needs Improvement"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 77,
+            "supposed_score": 100,
+            "percentage": 77,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Good"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 88,
+            "supposed_score": 100,
+            "percentage": 88,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 89,
+            "supposed_score": 100,
+            "percentage": 89,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 98,
+            "supposed_score": 100,
+            "percentage": 98,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Outstanding"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 95,
+            "supposed_score": 100,
+            "percentage": 95,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Outstanding"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 90,
+            "supposed_score": 100,
+            "percentage": 90,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 80,
+            "supposed_score": 100,
+            "percentage": 80,
+            "assessed_at": "2026-08-28",
+            "grade": "Grade 9",
+            "band": "Good"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 78,
+            "supposed_score": 100,
+            "percentage": 78,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Good"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 88,
+            "supposed_score": 100,
+            "percentage": 88,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 90,
+            "supposed_score": 100,
+            "percentage": 90,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 34,
+            "supposed_score": 100,
+            "percentage": 34,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Needs Improvement"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 66,
+            "supposed_score": 100,
+            "percentage": 66,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Average"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 66,
+            "supposed_score": 100,
+            "percentage": 66,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Average"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 77,
+            "supposed_score": 100,
+            "percentage": 77,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Good"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 100,
+            "supposed_score": 100,
+            "percentage": 100,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Outstanding"
+          },
+          {
+            "subject": "Mathematics",
+            "score": 93,
+            "supposed_score": 100,
+            "percentage": 93,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Physics",
+            "score": 93,
+            "supposed_score": 100,
+            "percentage": 93,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Excellent"
+          },
+          {
+            "subject": "Physics",
+            "score": 99,
+            "supposed_score": 100,
+            "percentage": 99,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Outstanding"
+          },
+          {
+            "subject": "Physics",
+            "score": 66,
+            "supposed_score": 100,
+            "percentage": 66,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Average"
+          },
+          {
+            "subject": "Physics",
+            "score": 6,
+            "supposed_score": 100,
+            "percentage": 6,
+            "assessed_at": "2026-08-24",
+            "grade": "Grade 9",
+            "band": "Needs Improvement"
+          }
+        ],
+        "subjectSummaries": [
+          {
+            "subject": "Mathematics",
+            "attempts": 17,
+            "overall": 78.8,
+            "best": 100,
+            "lastDate": "2026-08-28",
+            "totalScore": 1339,
+            "totalOutOf": 1700,
+            "band": "Good"
+          },
+          {
+            "subject": "Physics",
+            "attempts": 4,
+            "overall": 66,
+            "best": 99,
+            "lastDate": "2026-08-24",
+            "totalScore": 264,
+            "totalOutOf": 400,
+            "band": "Average"
+          }
+        ],
+        "overall": 76,
+        "band": "Good",
+        "scoreFingerprint": "133afe9e34f356f1d16bf6eaa9bdadda3f25198e02cce4d943bb4294ae11a936"
+      },
+      "createdAt": "2026-08-28T14:03:25.717Z"
     }
   }
 }
