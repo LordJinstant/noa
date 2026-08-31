@@ -214,6 +214,34 @@ usersDb.exec(`
   );
 `);
 
+// Temporary mute: user cannot post messages until muted_until
+usersDb.exec(`
+  CREATE TABLE IF NOT EXISTS msg_mutes (
+    user_id INTEGER PRIMARY KEY,
+    muted_until TEXT NOT NULL,
+    reason TEXT DEFAULT '',
+    muted_by INTEGER,
+    muted_by_name TEXT DEFAULT '',
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+`);
+
+function getActiveMsgMute(userId) {
+  if (userId == null) return null;
+  try {
+    const row = usersDb.prepare(`SELECT * FROM msg_mutes WHERE user_id = ?`).get(Number(userId));
+    if (!row || !row.muted_until) return null;
+    const until = Date.parse(row.muted_until);
+    if (!Number.isFinite(until) || until <= Date.now()) {
+      usersDb.prepare(`DELETE FROM msg_mutes WHERE user_id = ?`).run(Number(userId));
+      return null;
+    }
+    return row;
+  } catch (e) {
+    return null;
+  }
+}
+
 
 
 // In-memory live class rooms: code -> { host, title, createdAt, sharedFile }
@@ -5162,6 +5190,97 @@ app.get('/api/messages/channels/:id/messages', (req, res) => {
   }
 });
 
+/** Delete a single message — admin / moderator only */
+app.delete('/api/messages/:msgId', (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ msg: 'Login required' });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (!isAdminLikeRole(decoded)) {
+      return res.status(403).json({ msg: 'Only admins and moderators can delete messages' });
+    }
+    const msgId = parseInt(req.params.msgId, 10);
+    if (!msgId) return res.status(400).json({ msg: 'Invalid message' });
+    const msg = usersDb.prepare(`SELECT * FROM msg_messages WHERE id = ?`).get(msgId);
+    if (!msg) return res.status(404).json({ msg: 'Message not found' });
+    usersDb.prepare(`DELETE FROM msg_messages WHERE id = ?`).run(msgId);
+    // Clear reply pointers that pointed at this message
+    try {
+      usersDb.prepare(`UPDATE msg_messages SET reply_to_id = NULL WHERE reply_to_id = ?`).run(msgId);
+    } catch (e) {}
+    return res.json({ msg: 'Message deleted', id: msgId });
+  } catch (err) {
+    return res.status(401).json({ msg: 'Invalid token' });
+  }
+});
+
+/**
+ * Pause (mute) a user from sending messages for a duration.
+ * Body: { userId?, minutes?, hours?, durationMinutes? } or derive user from messageId
+ */
+app.post('/api/messages/pause-user', (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ msg: 'Login required' });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (!isAdminLikeRole(decoded)) {
+      return res.status(403).json({ msg: 'Only admins and moderators can pause messaging' });
+    }
+    const body = req.body || {};
+    let userId = body.userId != null ? Number(body.userId) : null;
+    if (!userId && body.messageId) {
+      const msg = usersDb.prepare(`SELECT sender_id FROM msg_messages WHERE id = ?`).get(Number(body.messageId));
+      if (msg && msg.sender_id) userId = Number(msg.sender_id);
+    }
+    if (!userId) return res.status(400).json({ msg: 'Target user required' });
+
+    let minutes = Number(body.durationMinutes || body.minutes || 0);
+    if (body.hours != null) minutes += Number(body.hours) * 60;
+    if (!Number.isFinite(minutes) || minutes <= 0) {
+      return res.status(400).json({ msg: 'Choose a pause duration (minutes or hours)' });
+    }
+    minutes = Math.min(minutes, 60 * 24 * 30); // max 30 days
+    const until = new Date(Date.now() + minutes * 60 * 1000).toISOString();
+    const mutedByName = decoded.username || decoded.name || 'Admin';
+    usersDb.prepare(`
+      INSERT INTO msg_mutes (user_id, muted_until, reason, muted_by, muted_by_name, created_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'))
+      ON CONFLICT(user_id) DO UPDATE SET
+        muted_until = excluded.muted_until,
+        reason = excluded.reason,
+        muted_by = excluded.muted_by,
+        muted_by_name = excluded.muted_by_name,
+        created_at = datetime('now')
+    `).run(userId, until, String(body.reason || 'Paused by moderator').slice(0, 200), decoded.id || null, mutedByName);
+
+    return res.json({
+      msg: 'User messaging paused',
+      userId,
+      mutedUntil: until,
+      durationMinutes: minutes
+    });
+  } catch (err) {
+    console.error('pause-user', err);
+    return res.status(500).json({ msg: err.message || 'Failed to pause user' });
+  }
+});
+
+app.delete('/api/messages/pause-user/:userId', (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ msg: 'Login required' });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (!isAdminLikeRole(decoded)) {
+      return res.status(403).json({ msg: 'Only admins and moderators can lift pauses' });
+    }
+    const userId = parseInt(req.params.userId, 10);
+    usersDb.prepare(`DELETE FROM msg_mutes WHERE user_id = ?`).run(userId);
+    return res.json({ msg: 'Pause lifted', userId });
+  } catch (err) {
+    return res.status(401).json({ msg: 'Invalid token' });
+  }
+});
+
 app.post('/api/messages/channels/:id/messages', upload.single('file'), (req, res) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ msg: 'Login required' });
@@ -5171,6 +5290,17 @@ app.post('/api/messages/channels/:id/messages', upload.single('file'), (req, res
     if (!ch) return res.status(404).json({ msg: 'Channel not found' });
     if (!canAccessChannel(decoded, ch)) return res.status(403).json({ msg: 'Not allowed in this channel' });
     if (ch.closed) return res.status(400).json({ msg: 'This channel is closed' });
+
+    // Enforce message pause / mute
+    if (decoded.id != null && !isAdminLikeRole(decoded)) {
+      const mute = getActiveMsgMute(decoded.id);
+      if (mute) {
+        const untilLocal = new Date(mute.muted_until).toLocaleString();
+        return res.status(403).json({
+          msg: 'Your messaging is paused until ' + untilLocal + '. Contact an admin if you need help.'
+        });
+      }
+    }
 
     let body = String((req.body && req.body.body) || '').trim();
     let attachment_url = '';

@@ -1459,7 +1459,10 @@
                 <p class="text-emerald-200/80 text-xs font-bold uppercase tracking-widest">Channel</p>
                 <h3 id="msgChannelTitle" class="text-white text-xl font-black">Messages</h3>
               </div>
-              <button type="button" onclick="loadMessageChannels()" class="text-emerald-200 text-sm hover:text-white"><i class="fas fa-sync-alt mr-1"></i>Refresh</button>
+              <div class="flex items-center gap-2">
+                <button type="button" id="msgSoundToggle" onclick="toggleMsgSound()" class="w-9 h-9 rounded-xl bg-white/10 text-emerald-200 hover:text-white hover:bg-white/15 flex items-center justify-center" title="Message sound on — click to mute"><i class="fas fa-bell"></i></button>
+                <button type="button" onclick="loadMessageChannels()" class="text-emerald-200 text-sm hover:text-white"><i class="fas fa-sync-alt mr-1"></i>Refresh</button>
+              </div>
             </div>
             <div class="flex flex-1 min-h-0 flex-col md:flex-row overflow-hidden">
               <div id="msgChannelList" class="md:w-72 border-b md:border-b-0 md:border-r border-white/10 p-3 space-y-2 max-h-40 md:max-h-none overflow-y-auto shrink-0 md:shrink-0"></div>
@@ -1654,7 +1657,7 @@ function officeTitleForRole(role) {
 function idCardStatement(name, role) {
   const office = officeTitleForRole(role);
   const first = (name || 'This associate').split(' ')[0];
-  return name + ' is hereby recognised as an Associate Catalyst Partner (ACP) of the Nigerian Olympiad Academy, serving in the capacity of ' + office + '. This credential affirms partnership, professional standing, and shared commitment to excellence in Olympiad education across Nigeria.';
+  return first + ' is hereby recognised as an Associate Catalyst Partner (ACP) of the Nigerian Olympiad Academy, serving in the capacity of ' + office + '. This credential affirms partnership, professional standing, and shared commitment to excellence in Olympiad education across Nigeria.';
 }
 
 function setIdCardPhoto(photoUrl, name) {
@@ -4759,7 +4762,7 @@ function initMessageNav() {
   refreshSidebarUnread();
   // Poll quietly so new messages light up the sidebar badge
   if (!window.__msgUnreadTimer) {
-    window.__msgUnreadTimer = setInterval(refreshSidebarUnread, 45000);
+    window.__msgUnreadTimer = setInterval(refreshSidebarUnread, 12000);
   }
 }
 
@@ -4783,6 +4786,62 @@ function setSidebarUnreadBadge(n) {
   });
 }
 
+/** Soft two-tone message notification (no external audio file) */
+let msgSoundEnabled = true;
+try {
+  if (localStorage.getItem('noa_msg_sound') === '0') msgSoundEnabled = false;
+} catch (e) {}
+
+function playMsgBeep(kind) {
+  if (!msgSoundEnabled) return;
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    if (!window.__msgAudioCtx) window.__msgAudioCtx = new Ctx();
+    const ctx = window.__msgAudioCtx;
+    if (ctx.state === 'suspended') ctx.resume().catch(function () {});
+    const t0 = ctx.currentTime;
+    function tone(freq, start, dur, vol) {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = kind === 'action' ? 'triangle' : 'sine';
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t0 + start);
+      g.gain.exponentialRampToValueAtTime(vol, t0 + start + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + start + dur);
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.start(t0 + start);
+      o.stop(t0 + start + dur + 0.02);
+    }
+    if (kind === 'action') {
+      // sharper “action” cue (delete / pause / admin)
+      tone(520, 0, 0.09, 0.08);
+      tone(390, 0.1, 0.12, 0.07);
+    } else {
+      // friendly message chime
+      tone(880, 0, 0.12, 0.07);
+      tone(1174, 0.11, 0.16, 0.06);
+    }
+  } catch (e) { /* ignore audio errors */ }
+}
+
+function toggleMsgSound() {
+  msgSoundEnabled = !msgSoundEnabled;
+  try { localStorage.setItem('noa_msg_sound', msgSoundEnabled ? '1' : '0'); } catch (e) {}
+  const btn = document.getElementById('msgSoundToggle');
+  if (btn) {
+    btn.innerHTML = msgSoundEnabled
+      ? '<i class="fas fa-bell"></i>'
+      : '<i class="fas fa-bell-slash"></i>';
+    btn.title = msgSoundEnabled ? 'Message sound on — click to mute' : 'Message sound off — click to enable';
+  }
+  if (msgSoundEnabled) playMsgBeep('new');
+}
+
+let lastKnownUnread = null;
+let lastThreadMaxMsgId = 0;
+
 async function refreshSidebarUnread() {
   if (!token) {
     setSidebarUnreadBadge(0);
@@ -4794,7 +4853,12 @@ async function refreshSidebarUnread() {
     });
     if (!res.ok) return;
     const data = await res.json();
-    setSidebarUnreadBadge(data.unread || 0);
+    const n = Number(data.unread) || 0;
+    if (lastKnownUnread != null && n > lastKnownUnread) {
+      playMsgBeep('new');
+    }
+    lastKnownUnread = n;
+    setSidebarUnreadBadge(n);
   } catch (e) { /* silent */ }
 }
 
@@ -5058,6 +5122,146 @@ function onMsgBubbleDblClick(el) {
   if (m) setMsgReply(m);
 }
 
+/** Admin / moderator: click message → Reply · Copy · Pause · Delete */
+function onMsgBubbleClick(ev, el) {
+  if (!isAdminModRole()) return;
+  if (ev) {
+    ev.preventDefault();
+    ev.stopPropagation();
+  }
+  const id = el && el.getAttribute('data-msg-id');
+  if (!id) return;
+  const m = (lastMsgSnapshot || []).find(function (x) { return String(x.id) === String(id); });
+  if (!m) return;
+
+  // Close any open menu
+  document.querySelectorAll('.msg-mod-menu').forEach(function (n) { n.remove(); });
+
+  const menu = document.createElement('div');
+  menu.className = 'msg-mod-menu absolute z-40 mt-1 min-w-[160px] rounded-xl bg-slate-900 border border-white/20 shadow-2xl py-1 text-left text-sm';
+  menu.style.cssText = 'right:0;top:100%;';
+  const btnCls = 'w-full px-3 py-2 text-left text-white/90 hover:bg-white/10 flex items-center gap-2';
+  menu.innerHTML =
+    '<button type="button" class="' + btnCls + '" data-act="reply"><i class="fas fa-reply text-emerald-300 w-4"></i>Reply</button>' +
+    '<button type="button" class="' + btnCls + '" data-act="copy"><i class="fas fa-copy text-sky-300 w-4"></i>Copy</button>' +
+    '<button type="button" class="' + btnCls + '" data-act="pause"><i class="fas fa-pause-circle text-amber-300 w-4"></i>Pause</button>' +
+    '<button type="button" class="' + btnCls + ' text-rose-300 hover:bg-rose-500/20" data-act="delete"><i class="fas fa-trash w-4"></i>Delete</button>';
+
+  el.appendChild(menu);
+
+  function closeMenu() {
+    menu.remove();
+    document.removeEventListener('click', onDoc, true);
+  }
+  function onDoc(e) {
+    if (!menu.contains(e.target) && e.target !== el) closeMenu();
+  }
+  setTimeout(function () { document.addEventListener('click', onDoc, true); }, 0);
+
+  menu.querySelectorAll('button[data-act]').forEach(function (btn) {
+    btn.onclick = function (e) {
+      e.stopPropagation();
+      const act = btn.getAttribute('data-act');
+      closeMenu();
+      if (act === 'reply') setMsgReply(m);
+      else if (act === 'copy') copyMsgText(m);
+      else if (act === 'pause') pauseMsgSender(m);
+      else if (act === 'delete') deleteChannelMessage(m);
+    };
+  });
+}
+
+function copyMsgText(m) {
+  const text = String((m && m.body) || '').trim() ||
+    (m && m.attachment_name ? ('[File] ' + m.attachment_name) : '');
+  if (!text) {
+    alert('Nothing to copy');
+    return;
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () {
+      // soft feedback
+    }).catch(function () {
+      window.prompt('Copy message:', text);
+    });
+  } else {
+    window.prompt('Copy message:', text);
+  }
+}
+
+async function deleteChannelMessage(m) {
+  if (!isAdminModRole()) {
+    alert('Only admins and moderators can delete messages.');
+    return;
+  }
+  if (!m || !m.id) return;
+  if (!confirm('Delete this message permanently?')) return;
+  try {
+    const res = await fetch('/api/messages/' + m.id, {
+      method: 'DELETE',
+      headers: token ? { Authorization: 'Bearer ' + token } : {}
+    });
+    const data = await res.json().catch(function () { return {}; });
+    if (!res.ok) throw new Error(data.msg || 'Delete failed');
+    playMsgBeep('action');
+    await refreshMessageThread(false, false);
+    try { await loadMessageChannels(); } catch (e) {}
+  } catch (e) {
+    alert(e.message || 'Could not delete');
+  }
+}
+
+async function pauseMsgSender(m) {
+  if (!isAdminModRole()) {
+    alert('Only admins and moderators can pause messaging.');
+    return;
+  }
+  if (!m) return;
+  if (!m.sender_id) {
+    alert('Cannot pause this sender (no user id on the message).');
+    return;
+  }
+  const who = m.sender_name || 'this user';
+  const raw = prompt(
+    'Pause messaging for ' + who + '.\n\nEnter duration:\n• minutes only, e.g. 30\n• or hours, e.g. 2h / 12h\n• or days, e.g. 1d',
+    '30'
+  );
+  if (raw == null) return;
+  const s = String(raw).trim().toLowerCase();
+  let minutes = 0;
+  const dayM = s.match(/^(\d+(?:\.\d+)?)\s*d/);
+  const hourM = s.match(/^(\d+(?:\.\d+)?)\s*h/);
+  if (dayM) minutes = Math.round(parseFloat(dayM[1]) * 24 * 60);
+  else if (hourM) minutes = Math.round(parseFloat(hourM[1]) * 60);
+  else minutes = Math.round(parseFloat(s));
+  if (!Number.isFinite(minutes) || minutes <= 0) {
+    alert('Enter a positive duration (e.g. 30, 2h, 1d).');
+    return;
+  }
+  try {
+    const res = await fetch('/api/messages/pause-user', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: 'Bearer ' + token } : {})
+      },
+      body: JSON.stringify({
+        messageId: m.id,
+        userId: m.sender_id,
+        durationMinutes: minutes,
+        reason: 'Paused from chat by moderator'
+      })
+    });
+    const data = await res.json().catch(function () { return {}; });
+    if (!res.ok) throw new Error(data.msg || 'Pause failed');
+    const until = data.mutedUntil ? new Date(data.mutedUntil).toLocaleString() : '';
+    playMsgBeep('action');
+    alert('Messaging paused for ' + who + (until ? (' until ' + until) : '') + '.');
+  } catch (e) {
+    alert(e.message || 'Could not pause user');
+  }
+}
+
 async function refreshMessageThread(silent, jumpToLatest) {
   if (!activeMsgChannelId) return;
   const thread = document.getElementById('msgThread');
@@ -5072,9 +5276,25 @@ async function refreshMessageThread(silent, jumpToLatest) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.msg || 'Could not load messages');
     const msgs = data.messages || [];
-    lastMsgSnapshot = msgs;
     const myId = user && user.id;
     const myName = (user && (user.username || user.name)) || '';
+    // Beep when a new message from someone else arrives while viewing the thread
+    let maxId = 0;
+    msgs.forEach(function (m) {
+      const mid = Number(m.id) || 0;
+      if (mid > maxId) maxId = mid;
+    });
+    if (silent && lastThreadMaxMsgId > 0 && maxId > lastThreadMaxMsgId) {
+      const newest = msgs.filter(function (m) { return Number(m.id) > lastThreadMaxMsgId; });
+      const fromOther = newest.some(function (m) {
+        const mine = (myId && String(m.sender_id) === String(myId)) ||
+          (!m.sender_id && myName && String(m.sender_name || '').toLowerCase() === String(myName).toLowerCase());
+        return !mine;
+      });
+      if (fromOther) playMsgBeep('new');
+    }
+    if (maxId > lastThreadMaxMsgId) lastThreadMaxMsgId = maxId;
+    lastMsgSnapshot = msgs;
     thread.innerHTML = msgs.length ? msgs.map(function (m) {
       const mine = (myId && String(m.sender_id) === String(myId)) ||
         (!m.sender_id && myName && String(m.sender_name || '').toLowerCase() === String(myName).toLowerCase());
@@ -5091,8 +5311,11 @@ async function refreshMessageThread(silent, jumpToLatest) {
           '<p class="font-bold truncate">' + escapeMsg(m.reply_to.sender_name || 'User') + '</p>' +
           '<p class="truncate opacity-80">' + qBody + '</p></div>';
       }
+      const modClick = isAdminModRole()
+        ? ' onclick="onMsgBubbleClick(event, this)"'
+        : ' ondblclick="onMsgBubbleDblClick(this)"';
       return '<div class="flex msg-row ' + (mine ? 'justify-end' : 'justify-start') + '" data-msg-row="' + m.id + '">' +
-        '<div class="max-w-[85%] px-4 py-2.5 text-sm cursor-pointer select-none ' + (mine ? 'noa-chat-bubble-me' : 'noa-chat-bubble-them') + '" data-msg-id="' + m.id + '" ondblclick="onMsgBubbleDblClick(this)">' +
+        '<div class="max-w-[85%] px-4 py-2.5 text-sm cursor-pointer select-none relative ' + (mine ? 'noa-chat-bubble-me' : 'noa-chat-bubble-them') + '" data-msg-id="' + m.id + '"' + modClick + '>' +
         (mine ? '' : '<p class="text-[10px] font-bold opacity-70 mb-0.5">' + escapeMsg(m.sender_name || 'User') + roleTag + '</p>') +
         quote + text + renderAttachmentHtml(m) +
         '<p class="text-[10px] opacity-50 mt-1 text-right">' + time + '</p></div></div>';
@@ -5439,6 +5662,26 @@ function joinClassFromMonitor(code) {
 
 document.addEventListener('DOMContentLoaded', () => {
   try { initMessageNav(); } catch (e) {}
+  try {
+    const btn = document.getElementById('msgSoundToggle');
+    if (btn) {
+      btn.innerHTML = msgSoundEnabled ? '<i class="fas fa-bell"></i>' : '<i class="fas fa-bell-slash"></i>';
+      btn.title = msgSoundEnabled ? 'Message sound on — click to mute' : 'Message sound off — click to enable';
+    }
+  } catch (e) {}
+  // Unlock Web Audio after first user gesture (browser policy)
+  try {
+    document.addEventListener('click', function unlockMsgAudio() {
+      try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (Ctx) {
+          if (!window.__msgAudioCtx) window.__msgAudioCtx = new Ctx();
+          if (window.__msgAudioCtx.state === 'suspended') window.__msgAudioCtx.resume();
+        }
+      } catch (e) {}
+      document.removeEventListener('click', unlockMsgAudio);
+    }, { once: true });
+  } catch (e) {}
   try { applyOverviewFilterVisibility(); } catch (e) {}
   loadPerformance('week');
 });
