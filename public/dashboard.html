@@ -108,6 +108,66 @@
     .noa-mention-item { display: block; width: 100%; text-align: left; padding: 0.5rem 0.75rem; color: #e2e8f0; font-size: 0.85rem; }
     .noa-mention-item:hover, .noa-mention-item.active { background: rgba(16,185,129,0.25); color: #fff; }
 
+    /* Unified staff rating — SVG stars (full / half / empty always match) */
+    .noa-rating {
+      display: flex; flex-direction: column; gap: 4px;
+      max-width: 240px; user-select: none;
+    }
+    .noa-rating-row {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .noa-rating-stars {
+      display: inline-flex; align-items: center; gap: 2px;
+      line-height: 0;
+    }
+    .noa-star {
+      width: 1.35rem; height: 1.35rem; padding: 0; margin: 0;
+      border: 0; background: transparent; cursor: default;
+      display: inline-flex; align-items: center; justify-content: center;
+      transition: transform 0.12s ease, filter 0.12s ease;
+      border-radius: 4px;
+    }
+    .noa-rating[data-can-rate="1"] .noa-star { cursor: pointer; }
+    .noa-star svg {
+      width: 1.1rem; height: 1.1rem; display: block;
+      overflow: visible;
+    }
+    .noa-star .star-path { transition: fill 0.12s ease; }
+    .noa-star-full .star-path { fill: #f59e0b; }
+    .noa-star-half .star-path { fill: url(#noaStarHalfGrad); }
+    .noa-star-empty .star-path { fill: #e2e8f0; stroke: #cbd5e1; stroke-width: 0.6; }
+    .noa-rating[data-can-rate="1"] .noa-star:hover {
+      transform: scale(1.14);
+    }
+    .noa-rating[data-can-rate="1"] .noa-star.noa-star-hover .star-path {
+      fill: #fbbf24;
+    }
+    .noa-star-mine {
+      filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.9));
+      transform: scale(1.06);
+    }
+    .noa-rating-score {
+      font-size: 12px; font-weight: 800; color: #b45309;
+      font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+      min-width: 2.2rem;
+    }
+    .noa-rating-track {
+      height: 4px; border-radius: 999px; background: #e2e8f0; overflow: hidden;
+      width: 100%; max-width: 120px;
+    }
+    .noa-rating-fill {
+      height: 100%; border-radius: 999px;
+      background: linear-gradient(90deg, #fcd34d, #f59e0b, #d97706);
+      transition: width 0.35s ease;
+    }
+    .noa-rating-label {
+      font-size: 10px; color: #64748b; font-weight: 600; line-height: 1.3;
+      letter-spacing: 0.01em;
+    }
+    .noa-rating-label .my-vote {
+      color: #b45309; font-weight: 700;
+    }
+
     /* —— Overview · premium shell —— */
     #section-overview {
       position: relative;
@@ -977,6 +1037,15 @@
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" id="noaStarSvgDefs">
+    <defs>
+      <linearGradient id="noaStarHalfGrad" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="50%" stop-color="#f59e0b"/>
+        <stop offset="50%" stop-color="#e2e8f0"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
 
   <div class="flex min-h-screen">
     <aside id="sidebar" class="w-72 bg-white border-r border-slate-200 flex flex-col sticky top-0 h-screen shadow-sm z-40">
@@ -2439,7 +2508,8 @@ async function loadDirectory() {
             s.ratingTotal = Number(rd.total) || 0;
             s.ratingPoints = Number(rd.points) || 0;
             s.ratingStars = Number(rd.stars) || 0;
-            s.pointsToNext = Number(rd.pointsToNext) || 0;
+            s.pointsToNext = rd.pointsToNext != null ? Number(rd.pointsToNext) : 0;
+            s.myRating = rd.myRating != null ? Number(rd.myRating) : null;
           });
         }
       }
@@ -2487,7 +2557,9 @@ async function loadDirectory() {
           '<p class="font-semibold text-sm truncate">' + (p.name || 'Unnamed') + '</p>' +
           '<p class="text-xs text-slate-500 truncate">' + subline + '</p>' +
           subjectHtml +
-          (type === 'staff' ? '<div onclick="event.stopPropagation()">' + renderStars(p.id, avg, tot, p.ratingBayesian) + '</div>' : '') +
+          (type === 'staff' ? '<div onclick="event.stopPropagation()">' +
+            renderStars(p.id, p.ratingStars, p.ratingTotal, p.ratingPoints, p.pointsToNext, p.myRating) +
+          '</div>' : '') +
         '</div>' + followBtn + '</div>';
     }
 
@@ -2508,80 +2580,240 @@ async function loadDirectory() {
   }
 }
 
-function starIconForPosition(starLevel, i) {
-  // starLevel is threshold-based (0–5, half steps). Full / half / empty.
-  if (starLevel >= i) return { icon: 'fas fa-star', cls: 'text-amber-400' };
-  if (starLevel >= i - 0.5) return { icon: 'fas fa-star-half-alt', cls: 'text-amber-400' };
-  return { icon: 'fas fa-star', cls: 'text-slate-300' };
+/** Same thresholds as server.js STAR_POINT_THRESHOLDS */
+const STAR_POINT_THRESHOLDS = [
+  { stars: 0, min: 0 },
+  { stars: 1, min: 1 },
+  { stars: 1.5, min: 5 },
+  { stars: 2, min: 10 },
+  { stars: 2.5, min: 18 },
+  { stars: 3, min: 28 },
+  { stars: 3.5, min: 42 },
+  { stars: 4, min: 60 },
+  { stars: 4.5, min: 85 },
+  { stars: 5, min: 120 }
+];
+
+function starsFromPointsClient(points) {
+  const p = Number(points) || 0;
+  let level = 0;
+  for (let i = 0; i < STAR_POINT_THRESHOLDS.length; i++) {
+    if (p >= STAR_POINT_THRESHOLDS[i].min) level = STAR_POINT_THRESHOLDS[i].stars;
+  }
+  return level;
 }
 
-function renderStars(staffId, starLevel, totalVotes, points) {
+function nextStarThresholdClient(points) {
+  const p = Number(points) || 0;
+  for (let i = 0; i < STAR_POINT_THRESHOLDS.length; i++) {
+    if (STAR_POINT_THRESHOLDS[i].min > p) {
+      return {
+        nextStars: STAR_POINT_THRESHOLDS[i].stars,
+        pointsRemaining: STAR_POINT_THRESHOLDS[i].min - p
+      };
+    }
+  }
+  return { nextStars: 5, pointsRemaining: 0 };
+}
+
+function starClassForPosition(starLevel, i) {
+  const level = Number(starLevel) || 0;
+  if (level >= i) return 'noa-star noa-star-full';
+  if (level >= i - 0.5) return 'noa-star noa-star-half';
+  return 'noa-star noa-star-empty';
+}
+
+/** Shared SVG star path — same shape for full, half, empty */
+function starSvgMarkup() {
+  return '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+    '<path class="star-path" d="M12 2.5l2.9 5.88 6.49.94-4.7 4.58 1.11 6.47L12 17.77l-5.8 3.05 1.11-6.47-4.7-4.58 6.49-.94L12 2.5z"/>' +
+    '</svg>';
+}
+
+function formatRatingLabel(starLevel, totalVotes, points, pointsToNext, myRating) {
   const level = Number(starLevel) || 0;
   const t = Number(totalVotes) || 0;
   const pts = Number(points) || 0;
-  let html = '<div class="flex items-center gap-0.5 mt-1 flex-wrap" data-rate-staff="' + staffId + '" data-stars="' + level + '" data-points="' + pts + '" title="Points ' + pts + ' (each vote adds 1–5). Stars unlock only after point thresholds — one vote cannot jump to 5★.">';
-  for (let i = 1; i <= 5; i++) {
-    const st = starIconForPosition(level, i);
-    html += '<button type="button" onclick="event.stopPropagation(); rateStaff(' + staffId + ',' + i + ')" class="text-sm leading-none ' + st.cls + ' hover:text-amber-400 transition" title="Give ' + i + ' point' + (i > 1 ? 's' : '') + ' (your ' + i + '★ vote)"><i class="' + st.icon + '"></i></button>';
+  const role = String((user && user.role) || '').toLowerCase();
+  if (t <= 0) {
+    return role === 'student'
+      ? 'No ratings yet · tap a star to vote'
+      : 'No ratings yet';
   }
-  const label = t > 0
-    ? (level.toFixed(1) + '★ · ' + pts + ' pts · ' + t + ' vote' + (t === 1 ? '' : 's'))
-    : 'No ratings yet';
-  html += '<span class="text-[10px] text-slate-500 ml-1.5 font-medium" id="ratingLabel-' + staffId + '">' + label + '</span></div>';
+  let html = level.toFixed(1) + '★ · ' + pts + ' pts · ' + t + ' vote' + (t === 1 ? '' : 's');
+  const ptn = pointsToNext != null ? Number(pointsToNext) : null;
+  if (ptn != null && level < 5 && ptn > 0) html += ' · ' + ptn + ' to next';
+  if (myRating != null && Number(myRating) > 0) {
+    html += ' · <span class="my-vote">your ' + Number(myRating) + '★</span>';
+  }
   return html;
 }
 
-function applyStaffStars(staffId, starLevel, totalVotes, points) {
-  const level = Number(starLevel) || 0;
+function ratingProgressPct(points) {
+  const bands = STAR_POINT_THRESHOLDS.map(function (t) { return t.min; });
+  const p = Number(points) || 0;
+  if (p >= 120) return 100;
+  let lo = 0, hi = 120;
+  for (let i = 0; i < bands.length - 1; i++) {
+    if (p >= bands[i] && p < bands[i + 1]) {
+      lo = bands[i];
+      hi = bands[i + 1];
+      break;
+    }
+  }
+  return Math.max(3, Math.min(100, Math.round(((p - lo) / (hi - lo || 1)) * 100)));
+}
+
+function canStudentRate() {
+  return !!token && String((user && user.role) || '').toLowerCase() === 'student';
+}
+
+function renderStars(staffId, starLevel, totalVotes, points, pointsToNext, myRating) {
+  let level = Number(starLevel);
+  if (!Number.isFinite(level)) level = starsFromPointsClient(points);
   const t = Number(totalVotes) || 0;
   const pts = Number(points) || 0;
-  const label = document.getElementById('ratingLabel-' + staffId);
-  if (label) {
-    label.textContent = t > 0
-      ? (level.toFixed(1) + '★ · ' + pts + ' pts · ' + t + ' vote' + (t === 1 ? '' : 's'))
-      : 'No ratings yet';
+  const my = myRating != null && myRating !== '' ? Number(myRating) : null;
+  let ptn = pointsToNext;
+  if (ptn == null || ptn === '') ptn = nextStarThresholdClient(pts).pointsRemaining;
+  const pct = ratingProgressPct(pts);
+  const canRate = canStudentRate();
+  const sid = Number(staffId);
+
+  let html = '<div class="noa-rating mt-1.5" data-rate-staff="' + sid + '"' +
+    ' data-stars="' + level + '" data-points="' + pts + '" data-total="' + t + '"' +
+    ' data-can-rate="' + (canRate ? '1' : '0') + '"' +
+    (my != null && Number.isFinite(my) ? ' data-my-rating="' + my + '"' : '') +
+    ' title="Students vote 1–5★. Stars unlock from total points across all votes.">';
+
+  html += '<div class="noa-rating-row">';
+  html += '<div class="noa-rating-stars" data-star-level="' + level + '"' +
+    (canRate
+      ? ' onmouseleave="clearStarHover(this)"'
+      : '') + '>';
+  for (let i = 1; i <= 5; i++) {
+    const cls = starClassForPosition(level, i) + (my === i ? ' noa-star-mine' : '');
+    const events = canRate
+      ? ' onclick="event.stopPropagation(); rateStaff(' + sid + ',' + i + ')"' +
+        ' onmouseenter="previewStarHover(this,' + i + ')"'
+      : '';
+    html += '<button type="button" data-star-val="' + i + '"' + events +
+      ' class="' + cls + '"' +
+      (canRate
+        ? ' title="Rate ' + i + ' star' + (i > 1 ? 's' : '') + ' (' + i + ' point' + (i > 1 ? 's' : '') + ')"'
+        : ' title="' + level.toFixed(1) + ' stars" disabled') + '>' +
+      starSvgMarkup() + '</button>';
   }
-  const wrap = document.querySelector('[data-rate-staff="' + staffId + '"]');
-  if (wrap) {
+  html += '</div>';
+  html += '<span class="noa-rating-score" data-rating-score="' + sid + '">' +
+    (t > 0 ? level.toFixed(1) : '—') + '</span>';
+  html += '</div>';
+
+  html += '<div class="noa-rating-track" aria-hidden="true">' +
+    '<div class="noa-rating-fill" data-rating-bar="' + sid + '" style="width:' + pct + '%"></div></div>';
+  html += '<span class="noa-rating-label" data-rating-label="' + sid + '">' +
+    formatRatingLabel(level, t, pts, ptn, my) + '</span>';
+  html += '</div>';
+  return html;
+}
+
+function previewStarHover(btn, upTo) {
+  const row = btn && btn.parentElement;
+  if (!row) return;
+  row.querySelectorAll('button[data-star-val]').forEach(function (b) {
+    const v = Number(b.getAttribute('data-star-val'));
+    b.classList.toggle('noa-star-hover', v <= upTo);
+  });
+}
+
+function clearStarHover(row) {
+  if (!row) return;
+  row.querySelectorAll('button[data-star-val]').forEach(function (b) {
+    b.classList.remove('noa-star-hover');
+  });
+}
+
+function applyStaffStars(staffId, starLevel, totalVotes, points, pointsToNext, myRating) {
+  let level = Number(starLevel);
+  const t = Number(totalVotes) || 0;
+  const pts = Number(points) || 0;
+  if (!Number.isFinite(level)) level = starsFromPointsClient(pts);
+  const my = myRating != null && myRating !== '' ? Number(myRating) : null;
+  let ptn = pointsToNext;
+  if (ptn == null || ptn === '') ptn = nextStarThresholdClient(pts).pointsRemaining;
+  const pct = ratingProgressPct(pts);
+  const sid = String(staffId);
+
+  document.querySelectorAll('[data-rate-staff="' + sid + '"]').forEach(function (wrap) {
     wrap.setAttribute('data-stars', String(level));
     wrap.setAttribute('data-points', String(pts));
-    wrap.querySelectorAll('button').forEach(function (btn, idx) {
-      const st = starIconForPosition(level, idx + 1);
-      btn.className = 'text-sm leading-none ' + st.cls + ' hover:text-amber-400 transition';
-      const icon = btn.querySelector('i');
-      if (icon) icon.className = st.icon;
+    wrap.setAttribute('data-total', String(t));
+    if (my != null && Number.isFinite(my)) wrap.setAttribute('data-my-rating', String(my));
+    else wrap.removeAttribute('data-my-rating');
+
+    wrap.querySelectorAll('button[data-star-val]').forEach(function (btn) {
+      const i = Number(btn.getAttribute('data-star-val'));
+      btn.className = starClassForPosition(level, i) + (my === i ? ' noa-star-mine' : '');
+      // keep SVG inside — only class changes
     });
-  }
+
+    const score = wrap.querySelector('[data-rating-score="' + sid + '"]') ||
+      wrap.querySelector('.noa-rating-score');
+    if (score) score.textContent = t > 0 ? level.toFixed(1) : '—';
+
+    const bar = wrap.querySelector('[data-rating-bar="' + sid + '"]') ||
+      wrap.querySelector('.noa-rating-fill');
+    if (bar) bar.style.width = pct + '%';
+
+    const label = wrap.querySelector('[data-rating-label="' + sid + '"]') ||
+      wrap.querySelector('.noa-rating-label');
+    if (label) label.innerHTML = formatRatingLabel(level, t, pts, ptn, my);
+  });
+
+  try {
+    const person = window.__dirPeople && window.__dirPeople['staff-' + staffId];
+    if (person) {
+      person.ratingStars = level;
+      person.ratingTotal = t;
+      person.ratingPoints = pts;
+      person.pointsToNext = ptn;
+      if (my != null && Number.isFinite(my)) person.myRating = my;
+    }
+  } catch (e) {}
 }
 
 async function rateStaff(staffId, rating) {
-  if (!token) { alert('Please log in as a student to rate staff'); return; }
-  const role = String((user && user.role) || 'student').toLowerCase();
-  if (role !== 'student') {
-    alert('Only students can rate staff. Score = average of all student votes.');
+  if (!token) {
+    alert('Please log in as a student to rate staff');
     return;
   }
+  if (!canStudentRate()) {
+    alert('Only students can rate staff. Each vote adds 1–5 points; stars unlock by total points.');
+    return;
+  }
+  const r = Math.max(1, Math.min(5, parseInt(rating, 10) || 0));
+  if (!r) return;
   try {
     const res = await fetch('/api/staff-ratings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-      body: JSON.stringify({ staff_id: Number(staffId), rating: Number(rating) })
+      body: JSON.stringify({ staff_id: Number(staffId), rating: r })
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.msg || 'Failed');
-    try {
-      const rr = await fetch('/api/staff-ratings/' + staffId, {
-        headers: { Authorization: 'Bearer ' + token }
-      });
-      if (rr.ok) {
-        const rd = await rr.json();
-        applyStaffStars(staffId, rd.stars, rd.total, rd.points);
-        return;
-      }
-    } catch (e) {}
-    applyStaffStars(staffId, data.stars, data.total, data.points);
+    const data = await res.json().catch(function () { return {}; });
+    if (!res.ok) throw new Error(data.msg || 'Failed to save rating');
+    // Prefer authoritative server stats (includes recomputed stars)
+    applyStaffStars(
+      staffId,
+      data.stars,
+      data.total,
+      data.points,
+      data.pointsToNext,
+      data.myRating != null ? data.myRating : r
+    );
+    // Soft confirm on first vote path
+    try { playMsgBeep && playMsgBeep('action'); } catch (e) {}
   } catch (err) {
-    alert(err.message);
+    alert(err.message || 'Could not save rating');
   }
 }
 
@@ -3964,8 +4196,15 @@ function openPersonDetail(key) {
     html += row('fa-user-friends', 'Followers', fc + ' student' + (fc === 1 ? '' : 's') + ' following');
     html += row('fa-calendar', 'Joined', p.joined || '—');
     html += row('fa-id-badge', 'Profile ID', String(p.id || '—'));
-    if (p.ratingAvg || p.ratingTotal) {
-      html += row('fa-star', 'Average rating', (Number(p.ratingStars || 0).toFixed(1) + '★ · ' + (p.ratingPoints || 0) + ' pts · ' + (p.ratingTotal || 0) + ' vote' + ((p.ratingTotal || 0) === 1 ? '' : 's')));
+    if (p.ratingTotal || p.ratingPoints || p.ratingStars) {
+      const rs = Number(p.ratingStars) || 0;
+      const rp = Number(p.ratingPoints) || 0;
+      const rt = Number(p.ratingTotal) || 0;
+      const next = p.pointsToNext != null ? (' · ' + p.pointsToNext + ' pts to next star') : '';
+      html += row('fa-star', 'Rating',
+        rs.toFixed(1) + '★ · ' + rp + ' pts · ' + rt + ' vote' + (rt === 1 ? '' : 's') + next
+      );
+      html += '<div class="px-1">' + renderStars(p.id, rs, rt, rp, p.pointsToNext, p.myRating) + '</div>';
     }
   }
 
@@ -5890,7 +6129,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div class="idcard-back-foot">
             <em>If found, please return to NOA administration.</em>
-            <span>https://nigolympiacademy-whmpef.org/</span>
+            <span>www · official ACP credential</span>
           </div>
         </div>
       </div>

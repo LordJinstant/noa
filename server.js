@@ -2252,11 +2252,34 @@ app.get('/api/staff-ratings', (req, res) => {
     } else {
       ids = usersDb.prepare(`SELECT id FROM users WHERE lower(trim(role)) = 'staff'`).all().map(r => r.id);
     }
+
+    // If a student is logged in, attach their vote per staff so UI matches
+    let studentId = null;
+    const token = req.headers.authorization?.split(' ')[1];
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        if (decoded.id && String(decoded.role || '').toLowerCase() === 'student') {
+          studentId = Number(decoded.id);
+        }
+      } catch (e) {}
+    }
+
     const out = {};
     for (const id of ids) {
-      out[id] = isRateableStaff(id)
-        ? computeStaffRating(id)
-        : { avg: 0, total: 0, sum: 0, points: 0, stars: 0, method: 'cumulative_points' };
+      if (!isRateableStaff(id)) {
+        out[id] = { avg: 0, total: 0, sum: 0, points: 0, stars: 0, myRating: null, method: 'cumulative_points' };
+        continue;
+      }
+      const stats = computeStaffRating(id);
+      let myRating = null;
+      if (studentId) {
+        const mine = usersDb.prepare(
+          `SELECT rating FROM staff_ratings WHERE staff_id = ? AND student_id = ?`
+        ).get(id, studentId);
+        if (mine) myRating = Number(mine.rating);
+      }
+      out[id] = Object.assign({}, stats, { myRating });
     }
     return res.json(out);
   } catch (err) {
