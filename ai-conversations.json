@@ -1,3 +1,48 @@
 {
-  "conversations": []
+  "conversations": [
+    {
+      "id": "c1788223427656n7xe8",
+      "visitorId": "v1786378393738cu8k49",
+      "name": "",
+      "email": "",
+      "phone": "",
+      "messages": [
+        {
+          "role": "user",
+          "text": "hello",
+          "at": "2026-09-01T00:43:47.657Z"
+        },
+        {
+          "role": "assistant",
+          "text": "Hi there! I can help with SIMCC info. What do you need?",
+          "at": "2026-09-01T00:43:47.681Z"
+        },
+        {
+          "role": "user",
+          "text": "what i need",
+          "at": "2026-09-01T00:44:02.158Z"
+        },
+        {
+          "role": "assistant",
+          "text": "Nigeria Olympiad Academy (NOA) prepares students for international mathematics and science contests including SIMCC competitions. Singapore International Mastery Contests Centre (SIMCC) – Finish Guide About SIMCC The Singapore International Mastery Contests Centre (SIMCC) is an educational services organization that organizes international academic competitions in mathematics. Feel free to ask if you need more info. You've got this! Need a moderator? Click below anytime.",
+          "at": "2026-09-01T00:44:02.207Z"
+        },
+        {
+          "role": "user",
+          "text": "hello",
+          "at": "2026-09-01T00:44:41.120Z"
+        },
+        {
+          "role": "assistant",
+          "text": "Hi there! I can help with SIMCC info. What do you need?",
+          "at": "2026-09-01T00:44:41.122Z"
+        }
+      ],
+      "summary": "User: hello\nAI: Hi there! I can help with SIMCC info. What do you need?\nUser: what i need\nAI: Nigeria Olympiad Academy (NOA) prepares students for international mathematics and science contests including SIMCC competitions. Singapore International Master\nUser: hello\nAI: Hi there! I can help with SIMCC info. What do you need?",
+      "status": "ai",
+      "unreadModerator": false,
+      "createdAt": "2026-09-01T00:43:47.656Z",
+      "updatedAt": "2026-09-01T00:44:41.122Z"
+    }
+  ]
 }

@@ -3402,7 +3402,7 @@
       },
       "createdAt": "2026-08-19T18:14:04.310Z"
     },
-    "latest:31": "NOA-CERT-7A7DC565EBBE1A8FF742079E",
+    "latest:31": "NOA-CERT-0C93929D1DC37CD61A7F7E1B",
     "NOA-CERT-9E3915F07FE2C28482E74B85": {
       "serial": "NOA-CERT-9E3915F07FE2C28482E74B85",
       "algorithm": "HMAC-SHA256",
@@ -7240,6 +7240,33 @@
         "scoreFingerprint": "133afe9e34f356f1d16bf6eaa9bdadda3f25198e02cce4d943bb4294ae11a936"
       },
       "createdAt": "2026-08-31T15:43:45.183Z"
+    },
+    "NOA-CERT-0C93929D1DC37CD61A7F7E1B": {
+      "serial": "NOA-CERT-0C93929D1DC37CD61A7F7E1B",
+      "algorithm": "HMAC-SHA256",
+      "contentHash": "ef6909018c351734de5339ccd57b07044719ba81f79d7b2765b15e9829ae902a",
+      "signature": "b54335efec148b3bf7858f761cd38e12e564e156205140deddd640da088727be",
+      "claims": {
+        "version": 2,
+        "issuer": "Nigeria Olympiad Academy (NOA)",
+        "serial": "NOA-CERT-0C93929D1DC37CD61A7F7E1B",
+        "issuedAt": "2026-08-31",
+        "issuedAtIso": "2026-08-31T18:42:35.345Z",
+        "student": {
+          "id": 31,
+          "name": "Cynthia",
+          "username": "cynthia",
+          "email": "cy@gmail.com",
+          "school": "BLOOM IT",
+          "grade": "Grade12"
+        },
+        "scores": [],
+        "subjectSummaries": [],
+        "overall": 0,
+        "band": "Needs Improvement",
+        "scoreFingerprint": "0193a82dd1c0a00882adbb41a8021ab7a3ccf87b2d98e459b79b9f389bcdbfec"
+      },
+      "createdAt": "2026-08-31T18:42:35.345Z"
     }
   }
 }
