@@ -2775,10 +2775,13 @@ function normalize(text) {
 }
 
 function extractEntities(text) {
-  const lower = String(text || '').toLowerCase();
+  const lower = String(text || '').toLowerCase().trim();
+  const isHowAreYou = /^(how are you|how's it going|how are things|how do you do|are you ok|are you okay)\b/i.test(lower) ||
+    /\bhow are you\b/i.test(lower) && lower.split(/\s+/).length <= 6;
   return {
     wantsHuman: /\b(moderator|human|agent|support|real person|talk to someone|speak to|live chat|operator|representative)\b/.test(lower),
-    isGreeting: /^(hi|hello|hey|greetings|good morning|good afternoon|good evening|howdy|what's up|sup|yo)\b/i.test(lower),
+    isGreeting: /^(hi|hello|hey|greetings|good morning|good afternoon|good evening|howdy|what's up|sup|yo)\b/i.test(lower) && !isHowAreYou,
+    isHowAreYou,
     isThanks: /\b(thanks|thank you|appreciate|grateful|cheers|thx)\b/i.test(lower),
     isGoodbye: /\b(bye|goodbye|see you|later|farewell|take care|catch you)\b/i.test(lower),
     isQuestion: /\b(what|how|when|where|why|who|which|can|could|would|will|is|are|does|do|should)\b/i.test(lower) || lower.includes('?'),
@@ -2905,40 +2908,86 @@ function resolveCoreference(question, context) {
 
 // ===================== RETRIEVAL ENGINE =====================
 
+/** Domain synonym boosts for olympiad / school platform questions */
+const AI_QUERY_SYNONYMS = {
+  fee: ['cost', 'price', 'payment', 'charge'],
+  cost: ['fee', 'price', 'payment'],
+  register: ['enroll', 'signup', 'sign up', 'join', 'apply'],
+  enroll: ['register', 'signup', 'join'],
+  class: ['course', 'lesson', 'session', 'live class'],
+  teacher: ['staff', 'instructor', 'host', 'facilitator'],
+  staff: ['teacher', 'instructor', 'host'],
+  student: ['learner', 'pupil'],
+  login: ['sign in', 'account', 'password'],
+  message: ['chat', 'inbox', 'channel'],
+  certificate: ['cert', 'report card', 'award'],
+  follow: ['following', 'subscribe'],
+  help: ['support', 'assist', 'moderator'],
+  olympiad: ['noa', 'simcc', 'higher move', 'contest'],
+  noa: ['nigeria olympiad academy', 'simcc', 'higher move']
+};
+
+function expandQueryTokens(tokens) {
+  const out = new Set(tokens);
+  for (const t of tokens) {
+    const syns = AI_QUERY_SYNONYMS[t];
+    if (syns) syns.forEach(s => out.add(s));
+  }
+  return [...out];
+}
+
 function rankKnowledge(question, knowledge, context) {
   const qTokens = tokenize(question);
-  const qLower = question.toLowerCase();
+  const expanded = expandQueryTokens(qTokens);
+  const qLower = String(question || '').toLowerCase().trim();
   const scored = [];
 
   for (const item of knowledge || []) {
     const text = String(item.text || '');
+    if (!text.trim()) continue;
     const textLower = text.toLowerCase();
-    const kw = (item.keywords || []).map(k => String(k).toLowerCase());
+    const textTokens = new Set(tokenize(text));
+    const kw = (item.keywords || []).map(k => String(k).toLowerCase().trim()).filter(Boolean);
     let score = 0;
 
-    for (const t of qTokens) {
-      if (textLower.includes(t)) score += 2;
-      if (kw.some(k => k.includes(t) || t.includes(k))) score += 3;
-    }
-
+    // Exact keyword / phrase hits (strong)
     for (const k of kw) {
-      if (k.length > 2 && qLower.includes(k)) score += 5;
+      if (k.length < 2) continue;
+      if (qLower === k || qLower.includes(k)) score += 8;
+      if (textLower.includes(k) && qTokens.some(t => k.includes(t))) score += 2;
     }
 
-    if (textLower.length > 20) {
-      const snippet = textLower.slice(0, 40);
-      if (qLower.includes(snippet.slice(0, 15))) score += 3;
+    // Token overlap with expansion
+    for (const t of expanded) {
+      if (t.length < 2) continue;
+      if (textLower.includes(t)) score += textTokens.has(t) ? 2.5 : 1.5;
+      if (kw.some(k => k === t || k.includes(t) || t.includes(k))) score += 3;
     }
 
-    if (context && context.mentionedEntities.size) {
+    // Bigram / short phrase match
+    for (let i = 0; i < qTokens.length - 1; i++) {
+      const bi = qTokens[i] + ' ' + qTokens[i + 1];
+      if (bi.length > 4 && textLower.includes(bi)) score += 6;
+    }
+
+    // Leading question words: reward definition-style knowledge
+    if (/^\s*(what is|who is|what are|tell me about|about)\b/i.test(qLower)) {
+      if (/\b(is|are|provides|offers|trains|partners)\b/i.test(textLower)) score += 2;
+    }
+
+    // Entity continuity from conversation
+    if (context && context.mentionedEntities && context.mentionedEntities.size) {
       const itemEntities = extractMentions(text);
       const overlap = itemEntities.filter(e => context.mentionedEntities.has(e));
-      score += overlap.length * 2;
+      score += overlap.length * 2.5;
     }
 
-    if (context && context.knowledgeItemsUsed.has(item.id)) score *= 0.7;
+    // Mild penalty if already used, but not zero (follow-ups still need it)
+    if (context && context.knowledgeItemsUsed && context.knowledgeItemsUsed.has(item.id)) {
+      score *= 0.75;
+    }
 
-    if (score > 0) scored.push({ item, score });
+    if (score > 0) scored.push({ item, score: Math.round(score * 10) / 10 });
   }
 
   scored.sort((a, b) => b.score - a.score);
@@ -3058,25 +3107,58 @@ function assimilateKnowledge(rankedItems, questionType, context) {
 }
 
 
+/** Hard caps and style rules from database.json behaviorals */
 function applyBehavioralsDirectives(reply, db, context) {
   let text = String(reply || '').trim();
   if (!text) return text;
   const directives = String((db && db.behaviorals) || '');
   const profile = parseBehavioralStyle(db);
+  const lowerDir = directives.toLowerCase();
 
-  // Concise: cap sentences if behaviorals/verbosity demand it
+  // No emojis / no exclamation points (user behaviorals)
+  if (/no emoji|don't use emoji|no emojis/i.test(directives) || /no exclamation/i.test(directives)) {
+    text = text.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '');
+    text = text.replace(/!+/g, '.');
+  }
+
+  // Sentence cap: 2–5 short sentences
   if (profile.verbosity === 'concise' || /concise|brief|2–5|2-5 short/i.test(directives)) {
     const parts = text.split(/(?<=[.!?])\s+/).filter(Boolean);
     if (parts.length > 5) text = parts.slice(0, 5).join(' ');
   }
 
-  // Warm tone soft opener if empathy high and reply is abrupt
-  if (profile.tone === 'warm' && profile.empathy === 'high' && text.length < 40 && !/[.!?]$/.test(text)) {
-    text = text + '.';
+  // Strict ~20 word limit when behaviorals require it
+  const want20 = /20 words|no more than 20|≤\s*20|max(?:imum)?\s*20/i.test(directives);
+  if (want20) {
+    const words = text.split(/\s+/).filter(Boolean);
+    if (words.length > 22) {
+      text = words.slice(0, 20).join(' ');
+      if (!/[.？?]$/.test(text)) text += '.';
+    }
   }
 
-  // Knowledge-only reminder already in templates; strip accidental self-contradiction repeats
-  return text.replace(/\s+/g, ' ').trim();
+  if (/do not claim to be human|never claim to be human|not a human/i.test(directives)) {
+    text = text.replace(/\b(as a human|I am a real person|I'm a real person)\b/gi, 'as NOA');
+  }
+
+  if (/only state facts|never invent|trained knowledge|don't pretend/i.test(directives)) {
+    text = text.replace(/\b(guaranteed|100%\s*sure)\b/gi, 'as recorded');
+  }
+
+  // Strip repeated queue / moderator nagging after first mention in thread
+  if (context && context.toldFacts) {
+    const nag = /moderator queue|in the queue|moderator will reply|hit that moderator|moderator button/i;
+    if (nag.test(text)) {
+      const alreadyNagged = [...(context.toldFacts || [])].some(f => /moderator|queue|handoff/i.test(f));
+      if (alreadyNagged || (context.turnCount || 0) > 2) {
+        text = text.replace(/\s*(You're in the moderator queue[^.]*\.|A moderator will reply[^.]*\.|Wanna talk to a human[^.]*\.|Need a moderator[^.]*\.|If you need personalized assistance[^.]*\.)/gi, '');
+      }
+    }
+  }
+
+  text = text.replace(/\s+/g, ' ').trim();
+  if (text && !/[.？?]$/.test(text)) text += '.';
+  return text;
 }
 
 function sentenceKey(s) {
@@ -3525,59 +3607,150 @@ const SOCIAL_RESPONSES = {
 
 // ===================== MAIN REPLY BUILDER =====================
 
+/**
+ * Build a grounded reply from ranked knowledge units.
+ * Prefers accurate original wording over aggressive synonym rewriting.
+ */
+function composeGroundedAnswer(ranked, qType, profile, context, question, db) {
+  if (!ranked || !ranked.length || ranked[0].score < 2.5) return null;
+
+  const directives = String((db && db.behaviorals) || '');
+  const want20 = /20 words|no more than 20/i.test(directives);
+  const maxUnits = want20 ? 1 : (profile.verbosity === 'verbose' ? 3 : 2);
+
+  const top = ranked.slice(0, 3).filter(r => r.score >= ranked[0].score * 0.35 || r.score >= 4);
+  const qTokens = new Set(expandQueryTokens(tokenize(question)));
+  const picked = [];
+  const seen = new Set();
+
+  for (const { item } of top) {
+    const units = extractMeaningUnits(item.text);
+    const scoredUnits = units.map(u => {
+      const ut = tokenize(u);
+      let s = 0;
+      for (const t of ut) if (qTokens.has(t)) s += 1;
+      // Prefer short factual sentences when word-capped
+      if (want20) s += Math.max(0, 8 - ut.length) * 0.15;
+      return { u, s };
+    }).sort((a, b) => b.s - a.s);
+
+    for (const { u, s } of scoredUnits) {
+      const key = sentenceKey(u);
+      if (seen.has(key) || key.length < 8) continue;
+      if (s > 0 || picked.length === 0) {
+        seen.add(key);
+        picked.push(u.replace(/\s+/g, ' ').trim());
+      }
+      if (picked.length >= maxUnits) break;
+    }
+    if (picked.length >= maxUnits) break;
+  }
+
+  if (!picked.length) {
+    const raw = String(top[0].item.text || '').trim();
+    if (!raw) return null;
+    picked.push(raw.split(/(?<=[.!?])\s+/)[0]);
+  }
+
+  // Answer first — no fluffy openers (behaviorals)
+  let body = picked.map(s => {
+    s = s.trim();
+    if (s && !/[.!?]$/.test(s)) s += '.';
+    if (s) s = s.charAt(0).toUpperCase() + s.slice(1);
+    return s;
+  }).join(' ');
+
+  // Intelligent trim to ~20 words when required — keep complete clause
+  if (want20) {
+    const words = body.split(/\s+/);
+    if (words.length > 20) {
+      body = words.slice(0, 20).join(' ');
+      if (!/[.]$/.test(body)) body += '.';
+    }
+  }
+
+  return body.replace(/\s+/g, ' ').trim();
+}
+
 function buildAiReply(question, db, conv) {
   const context = buildContext(conv);
   const resolvedQuestion = resolveCoreference(question, context);
   const entities = extractEntities(resolvedQuestion);
   const qType = detectQuestionType(resolvedQuestion);
   const profile = parseBehavioralStyle(db);
+  const directives = String((db && db.behaviorals) || '');
+
+  // How are you — fixed short replies from behaviorals
+  if (entities.isHowAreYou) {
+    const opts = [
+      "I'm doing great. How are you?",
+      "I'm cool. How are you?"
+    ];
+    return { reply: pickRandom(opts), confidence: 10, matched: [] };
+  }
 
   if (entities.isGreeting) {
-    return { reply: pickRandom(SOCIAL_RESPONSES.greeting[profile.register]), confidence: 10, matched: [] };
+    const returning = (context.turnCount || 0) > 0 || (conv && (conv.messages || []).length > 0);
+    let greet;
+    if (returning) {
+      greet = 'Welcome back. What do you need?';
+    } else {
+      greet = "Hi, I'm NOA. What can I help you with?";
+    }
+    return { reply: applyBehavioralsDirectives(greet, db, context), confidence: 10, matched: [] };
   }
   if (entities.isThanks) {
-    return { reply: pickRandom(SOCIAL_RESPONSES.thanks[profile.register]), confidence: 10, matched: [] };
+    // Prefer knowledge match for "you're welcome" if trained
+    const thanksHit = rankKnowledge('thank you welcome moderator', db.knowledge, context);
+    if (thanksHit.length && /welcome/i.test(String(thanksHit[0].item.text || ''))) {
+      let t = String(thanksHit[0].item.text).split(/(?<=[.!?])\s+/)[0];
+      return { reply: applyBehavioralsDirectives(t, db, context), confidence: thanksHit[0].score, matched: [{ id: thanksHit[0].item.id, score: thanksHit[0].score }] };
+    }
+    return { reply: applyBehavioralsDirectives("You're welcome. Anything else?", db, context), confidence: 10, matched: [] };
   }
   if (entities.isGoodbye) {
-    return { reply: pickRandom(SOCIAL_RESPONSES.goodbye[profile.register]), confidence: 10, matched: [] };
+    return { reply: applyBehavioralsDirectives('Goodbye. Keep pursuing excellence on the Higher Move.', db, context), confidence: 10, matched: [] };
   }
 
   const ranked = rankKnowledge(resolvedQuestion, db.knowledge, context);
-  const assimilation = assimilateKnowledge(ranked, qType, context);
+  const minScore = 2.5;
+  const strong = ranked.length && ranked[0].score >= minScore;
 
-  if (!assimilation) {
-    return {
-      reply: pickRandom(SOCIAL_RESPONSES.lowConfidence[profile.register]),
-      confidence: 0,
-      matched: []
-    };
-  }
-
-  assimilation.sources.forEach(id => context.knowledgeItemsUsed.add(id));
-
-  const plan = planDiscourse(assimilation, profile, context);
-  let reply = generateFromPlan(plan, profile, context);
-
-  // Enforce written behaviorals as constraints (always)
-  reply = applyBehavioralsDirectives(reply, db, context);
-
-  // Never repeat a sentence already used in this conversation
-  reply = dedupeAgainstHistory(reply, context);
-
-  if (entities.wantsHuman) {
-    reply += pickRandom(SOCIAL_RESPONSES.handoff[profile.register]);
-  }
-
-  if (!entities.wantsHuman && !entities.isGoodbye && !entities.isThanks) {
-    const escalations = {
-      formal: ' If you would prefer personalized assistance, our moderators are available below.',
-      casual: ' Wanna talk to a human instead? Just hit that moderator button!',
-      neutral: ' Need a moderator? Click below anytime.'
-    };
-    if (!/moderator|human|real person/i.test(reply)) {
-      reply += escalations[profile.register] || escalations.neutral;
+  let reply = '';
+  if (strong) {
+    reply = composeGroundedAnswer(ranked, qType, profile, context, resolvedQuestion, db) || '';
+    if (!reply) {
+      const assimilation = assimilateKnowledge(ranked, qType, context);
+      if (assimilation) {
+        assimilation.sources.forEach(id => context.knowledgeItemsUsed.add(id));
+        const plan = planDiscourse(assimilation, profile, context);
+        reply = generateFromPlan(plan, profile, context);
+      }
+    } else {
+      ranked.slice(0, 3).forEach(r => context.knowledgeItemsUsed.add(r.item.id));
     }
   }
+
+  if (!reply) {
+    const low = "I don't have that information. A moderator can help if you share your details.";
+    return {
+      reply: applyBehavioralsDirectives(low, db, context),
+      confidence: 0,
+      matched: ranked.slice(0, 3).map(r => ({ id: r.item.id, score: r.score }))
+    };
+  }
+
+  reply = applyBehavioralsDirectives(reply, db, context);
+  reply = dedupeAgainstHistory(reply, context);
+
+  // Handoff only when explicitly requested — no repeated queue nags
+  if (entities.wantsHuman) {
+    const hand = ' I notified a moderator. Add your name, email, and phone above.';
+    if (!/moderator|notified/i.test(reply)) reply = (reply + hand).trim();
+    reply = applyBehavioralsDirectives(reply, db, context);
+  }
+
+  reply = String(reply || '').replace(/\s+/g, ' ').trim();
 
   return {
     reply,
@@ -3587,11 +3760,49 @@ function buildAiReply(question, db, conv) {
 }
 
 function summarizeConversation(messages) {
-  const lines = (messages || []).slice(-12).map(m => {
-    const who = m.role === 'user' ? 'User' : (m.role === 'moderator' ? 'Moderator' : 'AI');
-    return who + ': ' + String(m.text || '').slice(0, 160);
-  });
-  return lines.join('\n').slice(0, 1200);
+  const msgs = messages || [];
+  if (!msgs.length) return 'Empty conversation.';
+
+  const userMsgs = msgs.filter(m => m.role === 'user').map(m => String(m.text || '').trim()).filter(Boolean);
+  const aiMsgs = msgs.filter(m => m.role === 'assistant' || m.role === 'ai').map(m => String(m.text || '').trim()).filter(Boolean);
+  const modMsgs = msgs.filter(m => m.role === 'moderator');
+
+  // Topic keywords from user questions
+  const topicCounts = {};
+  const stop = new Set(['the', 'a', 'an', 'is', 'are', 'was', 'were', 'what', 'how', 'when', 'where', 'why', 'who', 'do', 'does', 'did', 'can', 'could', 'would', 'should', 'i', 'you', 'we', 'they', 'my', 'your', 'please', 'help', 'me', 'to', 'of', 'in', 'on', 'for', 'and', 'or', 'with']);
+  for (const u of userMsgs) {
+    for (const t of tokenize(u)) {
+      if (t.length < 3 || stop.has(t)) continue;
+      topicCounts[t] = (topicCounts[t] || 0) + 1;
+    }
+  }
+  const topics = Object.keys(topicCounts)
+    .sort((a, b) => topicCounts[b] - topicCounts[a])
+    .slice(0, 6);
+
+  const wantsHuman = userMsgs.some(u =>
+    /\b(human|moderator|agent|real person|talk to someone|speak to)\b/i.test(u)
+  );
+
+  const lastUser = userMsgs[userMsgs.length - 1] || '';
+  const lastAi = aiMsgs[aiMsgs.length - 1] || '';
+
+  const parts = [];
+  parts.push('Turns: ' + msgs.length + ' (' + userMsgs.length + ' user · ' + aiMsgs.length + ' AI' +
+    (modMsgs.length ? ' · ' + modMsgs.length + ' mod' : '') + ').');
+  if (topics.length) parts.push('Topics: ' + topics.join(', ') + '.');
+  if (lastUser) parts.push('Latest user: ' + lastUser.slice(0, 140) + (lastUser.length > 140 ? '…' : ''));
+  if (lastAi) parts.push('Latest AI: ' + lastAi.slice(0, 140) + (lastAi.length > 140 ? '…' : ''));
+  if (wantsHuman) parts.push('User requested a human/moderator.');
+
+  // Compact transcript tail for moderators
+  const tail = msgs.slice(-6).map(m => {
+    const who = m.role === 'user' ? 'U' : (m.role === 'moderator' ? 'M' : 'AI');
+    return who + ': ' + String(m.text || '').replace(/\s+/g, ' ').slice(0, 90);
+  }).join(' | ');
+  if (tail) parts.push('Recent: ' + tail);
+
+  return parts.join('\n').slice(0, 1400);
 }
 
 // ===================== AUTH MIDDLEWARE =====================
@@ -3716,8 +3927,14 @@ app.post('/api/ai/chat', (req, res) => {
     let replyObj;
     let ephemeral = false;
     if (conv.status === 'handoff' || conv.status === 'open') {
+      // Tell the user once; further user messages stay quiet (ephemeral, not saved)
+      const alreadyTold = (conv.messages || []).some(m =>
+        m.role === 'assistant' && /moderator/i.test(String(m.text || ''))
+      );
       replyObj = {
-        reply: "You're in the moderator queue. A moderator will reply here soon. You can keep adding details.",
+        reply: alreadyTold
+          ? ''
+          : 'A moderator will continue this chat soon. You can keep adding details.',
         confidence: 0,
         matched: []
       };
