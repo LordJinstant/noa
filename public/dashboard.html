@@ -1066,12 +1066,14 @@
           <div id="hostSubmenu" class="submenu ml-4 mt-1 space-y-1">
             <button onclick="showSection('startClass')" class="sidebar-link w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left text-sm transition" data-section="startClass"><i class="fas fa-video w-4"></i><span>Start Class</span></button>
             <button onclick="showSection('assessments')" class="sidebar-link w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left text-sm transition" data-section="assessments"><i class="fas fa-clipboard-check w-4"></i><span>Students Assessments</span></button>
+            <button onclick="showSection('quizSetup')" class="sidebar-link w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left text-sm transition" data-section="quizSetup"><i class="fas fa-pencil-ruler w-4"></i><span>Quiz Setup</span></button>
             <button type="button" id="ongoingClassNavBtn" onclick="openClassMonitor()" class="hidden sidebar-link w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left text-sm transition"><i class="fas fa-broadcast-tower w-4 text-emerald-600"></i><span>Ongoing Class</span></button>
             <button onclick="showSection('messages')" class="sidebar-link w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left text-sm transition" data-section="messages"><i class="fas fa-comments w-4"></i><span>Message</span><span id="sidebarMsgBadge" class="hidden ml-auto min-w-[1.25rem] h-5 px-1.5 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">0</span></button>
             <button id="moderateNavBtn" onclick="showSection('moderate')" class="hidden sidebar-link w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left text-sm transition" data-section="moderate"><i class="fas fa-shield-alt w-4"></i><span>Moderate</span></button>
           </div>
         </div>
         <button onclick="showSection('joinClass')" class="sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition" data-section="joinClass"><i class="fas fa-sign-in-alt w-5"></i><span class="font-medium">Join Class</span></button>
+        <button id="studentQuizNav" onclick="showSection('quizzes')" class="hidden sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition" data-section="quizzes"><i class="fas fa-question-circle w-5"></i><span class="font-medium">Quizzes</span></button>
         <button id="studentMessageNav" onclick="showSection('messages')" class="hidden sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition" data-section="messages"><i class="fas fa-comments w-5"></i><span class="font-medium">Message</span><span id="sidebarMsgBadgeStudent" class="hidden ml-auto min-w-[1.25rem] h-5 px-1.5 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">0</span></button>
         <button type="button" onclick="showSection('classSummary')" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left text-slate-700 hover:bg-emerald-50">
           <i class="fas fa-book-open w-5 text-[#19A975]"></i><span class="font-medium">Class Summary</span>
@@ -1519,6 +1521,93 @@
             <p class="text-xs text-slate-400 mt-4">You will be placed in the waiting room until the host admits you.</p>
           </div>
         </section>
+
+        <!-- QUIZ SETUP (staff / admin / moderator) -->
+        <section id="section-quizSetup" class="hidden space-y-4 fade-in">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-widest text-emerald-700">Exams</p>
+              <h3 class="text-xl font-black text-slate-900">Quiz Setup</h3>
+              <p class="text-sm text-slate-500">Draft stays private until you Enable. Staff quizzes → your students. Admin/Mod → everyone.</p>
+            </div>
+            <button type="button" onclick="createNewQuiz()" class="px-4 py-2.5 rounded-2xl bg-brand text-white font-bold text-sm shadow hover:opacity-90">
+              <i class="fas fa-plus mr-1"></i> New quiz
+            </button>
+          </div>
+          <div class="grid lg:grid-cols-5 gap-4">
+            <div class="lg:col-span-2 bg-white rounded-3xl border border-slate-100 shadow-sm p-4 max-h-[70vh] overflow-y-auto">
+              <p class="text-xs font-bold text-slate-400 uppercase mb-2">Your quizzes</p>
+              <div id="quizSetupList" class="space-y-2"></div>
+            </div>
+            <div class="lg:col-span-3 bg-white rounded-3xl border border-slate-100 shadow-sm p-5 min-h-[420px]">
+              <div id="quizEditorEmpty" class="text-center text-slate-400 py-16">
+                <i class="fas fa-pencil-ruler text-3xl mb-3 opacity-40"></i>
+                <p>Select a quiz or create a new one</p>
+              </div>
+              <div id="quizEditor" class="hidden space-y-4">
+                <div class="flex flex-wrap gap-2 items-start justify-between">
+                  <div class="flex-1 min-w-[200px] space-y-2">
+                    <input id="quizTitle" class="w-full px-3 py-2 rounded-xl border font-bold text-lg" placeholder="Quiz title" />
+                    <input id="quizSubject" class="w-full px-3 py-2 rounded-xl border text-sm" placeholder="Subject (saved to student scores)" />
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    <label class="px-3 py-2 rounded-xl border text-sm cursor-pointer hover:bg-slate-50">
+                      <i class="fas fa-file-upload mr-1"></i> Upload doc
+                      <input type="file" id="quizDocInput" class="hidden" accept=".txt,.md,.csv,.pdf,.doc,.docx" onchange="uploadQuizDoc(event)" />
+                    </label>
+                    <button type="button" onclick="saveQuizEditor()" class="px-3 py-2 rounded-xl bg-slate-900 text-white text-sm font-semibold">Save</button>
+                    <button type="button" id="quizEnableBtn" onclick="toggleQuizEnabled()" class="px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm font-semibold">Enable</button>
+                    <button type="button" onclick="openAllowRetakeModal()" class="px-3 py-2 rounded-xl border text-sm font-semibold">Allow student</button>
+                    <button type="button" onclick="deleteCurrentQuiz()" class="px-3 py-2 rounded-xl border border-rose-200 text-rose-600 text-sm">Delete</button>
+                  </div>
+                </div>
+                <div id="quizDocPreview" class="hidden text-xs bg-slate-50 border rounded-xl p-3 max-h-32 overflow-y-auto whitespace-pre-wrap"></div>
+                <div class="flex items-center justify-between">
+                  <p class="text-sm font-semibold text-slate-700">Questions</p>
+                  <div class="flex gap-2">
+                    <button type="button" onclick="addQuizQuestion('objective')" class="text-xs px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 font-semibold">+ Objective</button>
+                    <button type="button" onclick="addQuizQuestion('subjective')" class="text-xs px-2.5 py-1.5 rounded-lg bg-sky-50 text-sky-800 font-semibold">+ Subjective</button>
+                  </div>
+                </div>
+                <div id="quizQuestionsEditor" class="space-y-3 max-h-[48vh] overflow-y-auto pr-1"></div>
+                <p id="quizEditorStatus" class="text-xs text-slate-500"></p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- STUDENT QUIZZES -->
+        <section id="section-quizzes" class="hidden space-y-4 fade-in">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-widest text-emerald-700">Available</p>
+            <h3 class="text-xl font-black text-slate-900">Quizzes</h3>
+            <p class="text-sm text-slate-500">Enabled exams from your staff or platform. One attempt unless you are allowed to retake.</p>
+          </div>
+          <div id="studentQuizList" class="grid sm:grid-cols-2 gap-3"></div>
+          <div id="studentQuizTake" class="hidden bg-white rounded-3xl border border-slate-100 shadow-sm p-5 space-y-4">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h4 id="takeQuizTitle" class="font-black text-lg"></h4>
+                <p id="takeQuizMeta" class="text-xs text-slate-500"></p>
+              </div>
+              <button type="button" onclick="closeStudentQuizTake()" class="text-slate-400 hover:text-slate-700"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="takeQuizBody" class="space-y-4 max-h-[55vh] overflow-y-auto"></div>
+            <button type="button" onclick="submitStudentQuiz()" class="w-full py-3 rounded-2xl bg-brand text-white font-bold">Submit quiz</button>
+            <p id="takeQuizStatus" class="text-sm text-center text-slate-500"></p>
+          </div>
+        </section>
+
+        <!-- Allow retake modal -->
+        <div id="quizRetakeModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
+          <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-5 space-y-3">
+            <h3 class="font-bold text-lg">Allow student to retake</h3>
+            <p class="text-xs text-slate-500">Search and select a student. Their previous attempt and quiz score will be cleared when they submit again.</p>
+            <input id="quizRetakeSearch" type="text" placeholder="Search name or username…" class="w-full px-3 py-2 rounded-xl border" oninput="searchRetakeStudents()" />
+            <div id="quizRetakeResults" class="max-h-48 overflow-y-auto space-y-1"></div>
+            <button type="button" onclick="closeAllowRetakeModal()" class="w-full py-2 rounded-xl border text-sm">Close</button>
+          </div>
+        </div>
 
         <!-- MESSAGES (staff / student channel chat) -->
         <section id="section-messages" class="hidden space-y-4 fade-in">
@@ -1971,6 +2060,10 @@ function showSection(id) {
     alert('Students Assessments is only available to approved staff and platform administrators.');
     id = 'overview';
   }
+  if (id === 'quizSetup' && !canHostClass()) {
+    alert('Quiz Setup is only available to staff, moderators, and admins.');
+    id = 'overview';
+  }
   document.querySelectorAll('[id^="section-"]').forEach(s => s.classList.add('hidden'));
   const el = document.getElementById('section-' + id);
   if (el) { el.classList.remove('hidden'); el.classList.add('fade-in'); }
@@ -1982,6 +2075,8 @@ function showSection(id) {
     platform: ['Platform Directory', 'Students & staff connected to live records'],
     startClass: ['Host · Live Classroom', 'Camera · Whiteboard · Waiting room'],
     assessments: ['Students Assessments', 'Score entry & bulk CSV upload'],
+    quizSetup: ['Quiz Setup', 'Build, enable, and manage student quizzes'],
+    quizzes: ['Quizzes', 'Enabled exams you can attempt once'],
     joinClass: ['Join Class', 'Enter a class code to participate'],
     messages: ['Messages', 'Chat with your class channel'],
     moderate: ['Moderate', 'Oversee staff message channels']
@@ -1992,12 +2087,13 @@ function showSection(id) {
   if (id === 'startClass') initClassroom();
   if (id === 'platform') { loadDirectory(); try { initStaffPlatformUi(); } catch(e){} }
   if (id === 'messages') {
-    // Opening Messages clears the sidebar badge immediately; real count refreshes after load/read
     setSidebarUnreadBadge(0);
     loadMessageChannels().then(function () { refreshSidebarUnread(); }).catch(function () { refreshSidebarUnread(); });
   }
   if (id === 'moderate') loadModerateChannels();
   if (id === 'assessments') { loadStudentsForAssess(); setTimeout(initAssessColumnResize, 50); }
+  if (id === 'quizSetup') loadQuizSetupList();
+  if (id === 'quizzes') loadStudentQuizzes();
   if (id === 'overview') loadPerformance(currentPeriod);
   if (id === 'classSummary') {
     loadClassSummaries();
@@ -4978,6 +5074,441 @@ function openSaveClassSummary() {
 
 
 
+// ===================== QUIZ SETUP & TAKE =====================
+let currentQuizId = null;
+let currentQuizEnabled = 0;
+let quizEditorQuestions = [];
+let takingQuizId = null;
+let takingQuizQuestions = [];
+
+async function loadQuizSetupList() {
+  const box = document.getElementById('quizSetupList');
+  if (!box) return;
+  box.innerHTML = '<p class="text-xs text-slate-400">Loading…</p>';
+  try {
+    const res = await fetch('/api/quizzes?mode=manage', { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+    const rows = await res.json();
+    if (!res.ok) throw new Error(rows.msg || 'Failed');
+    if (!Array.isArray(rows) || !rows.length) {
+      box.innerHTML = '<p class="text-sm text-slate-400 py-6 text-center">No quizzes yet. Click <strong>New quiz</strong>.</p>';
+      return;
+    }
+    box.innerHTML = rows.map(function (q) {
+      const on = Number(q.enabled) === 1;
+      const active = String(q.id) === String(currentQuizId);
+      return '<button type="button" onclick="openQuizEditor(' + q.id + ')" class="w-full text-left p-3 rounded-2xl border transition ' +
+        (active ? 'border-emerald-400 bg-emerald-50' : 'border-slate-100 hover:bg-slate-50') + '">' +
+        '<div class="flex items-center justify-between gap-2">' +
+        '<p class="font-semibold text-sm truncate">' + escapeHtml(q.title || 'Quiz') + '</p>' +
+        '<span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ' +
+        (on ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500') + '">' + (on ? 'Enabled' : 'Draft') + '</span></div>' +
+        '<p class="text-[11px] text-slate-500 mt-1">' + (q.questionCount || 0) + ' questions · ' + escapeHtml(q.subject || '') +
+        (q.scope === 'global' ? ' · Global' : '') + '</p></button>';
+    }).join('');
+  } catch (e) {
+    box.innerHTML = '<p class="text-sm text-red-500">' + escapeHtml(e.message) + '</p>';
+  }
+}
+
+async function createNewQuiz() {
+  try {
+    const res = await fetch('/api/quizzes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+      body: JSON.stringify({ title: 'New Quiz', subject: 'Quiz' })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.msg || 'Create failed');
+    await loadQuizSetupList();
+    openQuizEditor(data.id);
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+async function openQuizEditor(id) {
+  currentQuizId = id;
+  document.getElementById('quizEditorEmpty')?.classList.add('hidden');
+  document.getElementById('quizEditor')?.classList.remove('hidden');
+  document.getElementById('quizEditorStatus').textContent = 'Loading…';
+  try {
+    const res = await fetch('/api/quizzes/' + id, { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.msg || 'Load failed');
+    const q = data.quiz || {};
+    currentQuizEnabled = Number(q.enabled) || 0;
+    document.getElementById('quizTitle').value = q.title || '';
+    document.getElementById('quizSubject').value = q.subject || '';
+    const enb = document.getElementById('quizEnableBtn');
+    if (enb) {
+      enb.textContent = currentQuizEnabled ? 'Disable' : 'Enable';
+      enb.className = 'px-3 py-2 rounded-xl text-sm font-semibold ' +
+        (currentQuizEnabled ? 'bg-amber-500 text-white' : 'bg-emerald-600 text-white');
+    }
+    quizEditorQuestions = (data.questions || []).map(function (x) {
+      return {
+        id: x.id,
+        qtype: x.qtype || 'objective',
+        prompt: x.prompt || '',
+        options: Array.isArray(x.options) ? x.options.slice() : ['', '', '', ''],
+        correct_answer: x.correct_answer || '',
+        points: x.points || 1
+      };
+    });
+    if (!quizEditorQuestions.length) quizEditorQuestions = [];
+    renderQuizQuestionsEditor();
+    document.getElementById('quizEditorStatus').textContent = currentQuizEnabled
+      ? 'Enabled — students who can access this will see it.'
+      : 'Draft — only you can see this until Enable.';
+    loadQuizSetupList();
+  } catch (e) {
+    document.getElementById('quizEditorStatus').textContent = e.message;
+  }
+}
+
+function renderQuizQuestionsEditor() {
+  const box = document.getElementById('quizQuestionsEditor');
+  if (!box) return;
+  if (!quizEditorQuestions.length) {
+    box.innerHTML = '<p class="text-sm text-slate-400 text-center py-6">No questions yet. Add objective or subjective.</p>';
+    return;
+  }
+  box.innerHTML = quizEditorQuestions.map(function (q, idx) {
+    const isObj = q.qtype !== 'subjective';
+    let opts = '';
+    if (isObj) {
+      const optsArr = (q.options && q.options.length) ? q.options : ['', '', '', ''];
+      while (optsArr.length < 4) optsArr.push('');
+      opts = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">' + optsArr.map(function (o, oi) {
+        const letter = String.fromCharCode(65 + oi);
+        return '<label class="flex items-center gap-2 text-sm">' +
+          '<input type="radio" name="corr-' + idx + '" ' + (String(q.correct_answer).toUpperCase() === letter || String(q.correct_answer) === String(oi) || String(q.correct_answer) === String(o) ? 'checked' : '') +
+          ' onchange="quizEditorQuestions[' + idx + '].correct_answer=\'' + letter + '\'" />' +
+          '<span class="font-bold text-slate-500 w-4">' + letter + '</span>' +
+          '<input class="flex-1 px-2 py-1 rounded-lg border text-sm" value="' + escapeHtml(o) + '" ' +
+          'oninput="quizEditorQuestions[' + idx + '].options[' + oi + ']=this.value" placeholder="Option ' + letter + '" /></label>';
+      }).join('') + '</div>';
+    } else {
+      opts = '<input class="w-full mt-2 px-2 py-1.5 rounded-lg border text-sm" placeholder="Model answer (auto-marked if student matches)" ' +
+        'value="' + escapeHtml(q.correct_answer || '') + '" oninput="quizEditorQuestions[' + idx + '].correct_answer=this.value" />';
+    }
+    return '<div class="p-3 rounded-2xl border border-slate-100 bg-slate-50/50">' +
+      '<div class="flex items-center justify-between gap-2 mb-1">' +
+      '<span class="text-[10px] font-bold uppercase tracking-wide ' + (isObj ? 'text-emerald-700' : 'text-sky-700') + '">' +
+      (isObj ? 'Objective' : 'Subjective') + ' · Q' + (idx + 1) + '</span>' +
+      '<button type="button" class="text-rose-500 text-xs" onclick="quizEditorQuestions.splice(' + idx + ',1);renderQuizQuestionsEditor()">Remove</button></div>' +
+      '<textarea class="w-full px-2 py-1.5 rounded-lg border text-sm" rows="2" placeholder="Question prompt" ' +
+      'oninput="quizEditorQuestions[' + idx + '].prompt=this.value">' + escapeHtml(q.prompt) + '</textarea>' +
+      opts + '</div>';
+  }).join('');
+}
+
+function addQuizQuestion(type) {
+  quizEditorQuestions.push({
+    qtype: type === 'subjective' ? 'subjective' : 'objective',
+    prompt: '',
+    options: ['', '', '', ''],
+    correct_answer: type === 'subjective' ? '' : 'A',
+    points: 1
+  });
+  renderQuizQuestionsEditor();
+}
+
+async function saveQuizEditor() {
+  if (!currentQuizId) return;
+  const status = document.getElementById('quizEditorStatus');
+  if (status) status.textContent = 'Saving…';
+  const payload = {
+    title: document.getElementById('quizTitle').value.trim() || 'Untitled Quiz',
+    subject: document.getElementById('quizSubject').value.trim() || 'Quiz',
+    questions: quizEditorQuestions.map(function (q) {
+      return {
+        qtype: q.qtype,
+        prompt: q.prompt,
+        options: q.options || [],
+        correct_answer: q.correct_answer || '',
+        points: 1
+      };
+    }).filter(function (q) { return String(q.prompt || '').trim(); })
+  };
+  try {
+    const res = await fetch('/api/quizzes/' + currentQuizId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.msg || 'Save failed');
+    quizEditorQuestions = (data.questions || []).map(function (x) {
+      return {
+        id: x.id, qtype: x.qtype, prompt: x.prompt,
+        options: x.options || [], correct_answer: x.correct_answer || '', points: x.points || 1
+      };
+    });
+    renderQuizQuestionsEditor();
+    if (status) status.textContent = 'Saved.';
+    loadQuizSetupList();
+  } catch (e) {
+    if (status) status.textContent = e.message;
+    alert(e.message);
+  }
+}
+
+async function toggleQuizEnabled() {
+  if (!currentQuizId) return;
+  await saveQuizEditor();
+  const path = currentQuizEnabled ? '/disable' : '/enable';
+  try {
+    const res = await fetch('/api/quizzes/' + currentQuizId + path, {
+      method: 'POST',
+      headers: token ? { Authorization: 'Bearer ' + token } : {}
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.msg || 'Failed');
+    currentQuizEnabled = currentQuizEnabled ? 0 : 1;
+    const enb = document.getElementById('quizEnableBtn');
+    if (enb) {
+      enb.textContent = currentQuizEnabled ? 'Disable' : 'Enable';
+      enb.className = 'px-3 py-2 rounded-xl text-sm font-semibold ' +
+        (currentQuizEnabled ? 'bg-amber-500 text-white' : 'bg-emerald-600 text-white');
+    }
+    document.getElementById('quizEditorStatus').textContent = currentQuizEnabled
+      ? 'Enabled for eligible students.'
+      : 'Back to draft — hidden from students.';
+    loadQuizSetupList();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+async function deleteCurrentQuiz() {
+  if (!currentQuizId || !confirm('Delete this quiz and all attempts?')) return;
+  try {
+    const res = await fetch('/api/quizzes/' + currentQuizId, {
+      method: 'DELETE',
+      headers: token ? { Authorization: 'Bearer ' + token } : {}
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.msg || 'Delete failed');
+    currentQuizId = null;
+    document.getElementById('quizEditor')?.classList.add('hidden');
+    document.getElementById('quizEditorEmpty')?.classList.remove('hidden');
+    loadQuizSetupList();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+async function uploadQuizDoc(ev) {
+  const file = ev.target.files && ev.target.files[0];
+  ev.target.value = '';
+  if (!file) return;
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    const res = await fetch('/api/quizzes/upload-doc', {
+      method: 'POST',
+      headers: token ? { Authorization: 'Bearer ' + token } : {},
+      body: fd
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.msg || 'Upload failed');
+    const prev = document.getElementById('quizDocPreview');
+    if (prev) {
+      prev.classList.remove('hidden');
+      prev.innerHTML = '<p class="font-semibold mb-1">' + escapeHtml(data.hint || 'Uploaded') + '</p>' +
+        '<pre class="whitespace-pre-wrap text-[11px]">' + escapeHtml((data.text || data.filename || '').slice(0, 4000)) + '</pre>' +
+        (data.text
+          ? '<button type="button" class="mt-2 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold" onclick="importQuizDocLines()">Import lines as subjective questions</button>'
+          : '');
+      window.__quizDocText = data.text || '';
+    }
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+/** Turn uploaded text lines into subjective prompts for review before Save */
+function importQuizDocLines() {
+  const text = String(window.__quizDocText || '');
+  if (!text.trim()) return;
+  const lines = text.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(function (l) {
+    return l.length > 8 && !/^[-*=#]+$/.test(l);
+  });
+  let added = 0;
+  lines.slice(0, 40).forEach(function (line) {
+    // Skip pure option lines like "A) ..." when bulk importing
+    if (/^[A-Ea-e][).:\-]\s*/.test(line) && line.length < 80) return;
+    quizEditorQuestions.push({
+      qtype: 'subjective',
+      prompt: line.replace(/^\d+[).:\-]\s*/, ''),
+      options: ['', '', '', ''],
+      correct_answer: '',
+      points: 1
+    });
+    added++;
+  });
+  renderQuizQuestionsEditor();
+  const status = document.getElementById('quizEditorStatus');
+  if (status) status.textContent = 'Imported ' + added + ' lines as subjective questions. Set answers, then Save.';
+}
+
+function openAllowRetakeModal() {
+  if (!currentQuizId) { alert('Open a quiz first'); return; }
+  const m = document.getElementById('quizRetakeModal');
+  if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+  document.getElementById('quizRetakeResults').innerHTML = '';
+  document.getElementById('quizRetakeSearch').value = '';
+}
+function closeAllowRetakeModal() {
+  const m = document.getElementById('quizRetakeModal');
+  if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+}
+let retakeSearchTimer = null;
+function searchRetakeStudents() {
+  clearTimeout(retakeSearchTimer);
+  retakeSearchTimer = setTimeout(async function () {
+    const q = document.getElementById('quizRetakeSearch').value.trim();
+    const box = document.getElementById('quizRetakeResults');
+    if (!q) { box.innerHTML = ''; return; }
+    try {
+      const res = await fetch('/api/quizzes/' + currentQuizId + '/students-search?q=' + encodeURIComponent(q), {
+        headers: token ? { Authorization: 'Bearer ' + token } : {}
+      });
+      const rows = await res.json();
+      if (!res.ok) throw new Error(rows.msg || 'Search failed');
+      if (!rows.length) { box.innerHTML = '<p class="text-xs text-slate-400">No matches</p>'; return; }
+      box.innerHTML = rows.map(function (s) {
+        return '<button type="button" class="w-full text-left px-3 py-2 rounded-xl hover:bg-emerald-50 text-sm" onclick="grantQuizRetake(' + s.id + ',\'' + escapeHtml(s.name || s.username).replace(/'/g, '') + '\')">' +
+          '<span class="font-semibold">' + escapeHtml(s.name || s.username) + '</span>' +
+          '<span class="text-xs text-slate-400 ml-2">@' + escapeHtml(s.username || '') + '</span></button>';
+      }).join('');
+    } catch (e) {
+      box.innerHTML = '<p class="text-xs text-red-500">' + escapeHtml(e.message) + '</p>';
+    }
+  }, 250);
+}
+
+async function grantQuizRetake(studentId, name) {
+  try {
+    const res = await fetch('/api/quizzes/' + currentQuizId + '/allow-retake', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+      body: JSON.stringify({ studentId: studentId })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.msg || 'Failed');
+    alert('Retake allowed for ' + (name || 'student') + '. Previous attempt cleared.');
+    closeAllowRetakeModal();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+async function loadStudentQuizzes() {
+  const box = document.getElementById('studentQuizList');
+  const take = document.getElementById('studentQuizTake');
+  if (take) take.classList.add('hidden');
+  if (!box) return;
+  box.innerHTML = '<p class="text-sm text-slate-400">Loading…</p>';
+  try {
+    const res = await fetch('/api/quizzes?mode=take', { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+    const rows = await res.json();
+    if (!res.ok) throw new Error(rows.msg || 'Failed');
+    if (!Array.isArray(rows) || !rows.length) {
+      box.innerHTML = '<p class="text-sm text-slate-400 col-span-2 text-center py-10">No quizzes available right now.</p>';
+      return;
+    }
+    box.innerHTML = rows.map(function (q) {
+      return '<button type="button" onclick="openStudentQuiz(' + q.id + ')" class="text-left p-4 rounded-3xl border border-slate-100 bg-white shadow-sm hover:border-emerald-300 transition">' +
+        '<p class="font-bold text-slate-900">' + escapeHtml(q.title || 'Quiz') + '</p>' +
+        '<p class="text-xs text-slate-500 mt-1">' + (q.questionCount || 0) + ' questions · ' + escapeHtml(q.subject || '') +
+        (q.retakeAllowed ? ' · Retake allowed' : '') + '</p>' +
+        '<p class="text-[11px] text-emerald-700 font-semibold mt-2">Start →</p></button>';
+    }).join('');
+  } catch (e) {
+    box.innerHTML = '<p class="text-sm text-red-500">' + escapeHtml(e.message) + '</p>';
+  }
+}
+
+async function openStudentQuiz(id) {
+  takingQuizId = id;
+  const take = document.getElementById('studentQuizTake');
+  const body = document.getElementById('takeQuizBody');
+  const status = document.getElementById('takeQuizStatus');
+  if (status) status.textContent = '';
+  try {
+    const res = await fetch('/api/quizzes/' + id, { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.msg || 'Could not open');
+    takingQuizQuestions = data.questions || [];
+    document.getElementById('takeQuizTitle').textContent = (data.quiz && data.quiz.title) || 'Quiz';
+    document.getElementById('takeQuizMeta').textContent = (data.quiz && data.quiz.subject) || '';
+    body.innerHTML = takingQuizQuestions.map(function (q, i) {
+      if (q.qtype === 'subjective') {
+        return '<div class="p-3 rounded-2xl border border-slate-100">' +
+          '<p class="font-semibold text-sm mb-2">Q' + (i + 1) + '. ' + escapeHtml(q.prompt) + '</p>' +
+          '<textarea data-qid="' + q.id + '" class="w-full px-3 py-2 rounded-xl border text-sm" rows="3" placeholder="Your answer"></textarea></div>';
+      }
+      const opts = Array.isArray(q.options) ? q.options : [];
+      return '<div class="p-3 rounded-2xl border border-slate-100">' +
+        '<p class="font-semibold text-sm mb-2">Q' + (i + 1) + '. ' + escapeHtml(q.prompt) + '</p>' +
+        opts.map(function (o, oi) {
+          const letter = String.fromCharCode(65 + oi);
+          return '<label class="flex items-center gap-2 text-sm py-1 cursor-pointer">' +
+            '<input type="radio" name="tq-' + q.id + '" value="' + letter + '" data-qid="' + q.id + '" />' +
+            '<span class="font-bold text-slate-500">' + letter + '.</span> ' + escapeHtml(o) + '</label>';
+        }).join('') + '</div>';
+    }).join('') || '<p class="text-slate-400">No questions</p>';
+    take.classList.remove('hidden');
+    take.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+function closeStudentQuizTake() {
+  takingQuizId = null;
+  document.getElementById('studentQuizTake')?.classList.add('hidden');
+}
+
+async function submitStudentQuiz() {
+  if (!takingQuizId) return;
+  const status = document.getElementById('takeQuizStatus');
+  const answers = {};
+  document.querySelectorAll('#takeQuizBody [data-qid]').forEach(function (el) {
+    const qid = el.getAttribute('data-qid');
+    if (el.tagName === 'TEXTAREA') {
+      answers[qid] = el.value;
+    } else if (el.type === 'radio' && el.checked) {
+      answers[qid] = el.value;
+    }
+  });
+  // Also collect radios by name
+  takingQuizQuestions.forEach(function (q) {
+    if (q.qtype === 'subjective') return;
+    const sel = document.querySelector('input[name="tq-' + q.id + '"]:checked');
+    if (sel) answers[String(q.id)] = sel.value;
+  });
+  if (status) status.textContent = 'Submitting…';
+  try {
+    const res = await fetch('/api/quizzes/' + takingQuizId + '/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+      body: JSON.stringify({ answers: answers })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.msg || 'Submit failed');
+    if (status) status.innerHTML = '<span class="text-emerald-700 font-bold">Score: ' + data.percentage + '% (' + data.score + '/' + data.supposed_score + ')</span>';
+    alert('Submitted. Your score: ' + data.percentage + '% — saved to your assessments.');
+    closeStudentQuizTake();
+    loadStudentQuizzes();
+  } catch (e) {
+    if (status) status.textContent = e.message;
+    alert(e.message);
+  }
+}
+
 // ===================== CHANNEL MESSAGES =====================
 let activeMsgChannelId = null;
 let msgPollTimer = null;
@@ -4993,9 +5524,16 @@ function isAdminModRole() {
 function initMessageNav() {
   const r = String((user && user.role) || 'student').toLowerCase();
   const studentNav = document.getElementById('studentMessageNav');
+  const studentQuizNav = document.getElementById('studentQuizNav');
   const modBtn = document.getElementById('moderateNavBtn');
   const ongoingBtn = document.getElementById('ongoingClassNavBtn');
   if (studentNav) studentNav.classList.toggle('hidden', r !== 'student');
+  // Students: staff quizzes + global. Staff: platform (admin/mod) quizzes to attempt.
+  if (studentQuizNav) {
+    studentQuizNav.classList.toggle('hidden', !(r === 'student' || r === 'staff'));
+    const label = studentQuizNav.querySelector('span.font-medium');
+    if (label) label.textContent = r === 'staff' ? 'Platform Quizzes' : 'Quizzes';
+  }
   if (modBtn) modBtn.classList.toggle('hidden', !isAdminModRole());
   if (ongoingBtn) ongoingBtn.classList.toggle('hidden', !isAdminModRole());
   refreshSidebarUnread();
@@ -6129,7 +6667,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div class="idcard-back-foot">
             <em>If found, please return to NOA administration.</em>
-            <em>nigolympiacademy-whmpef.org/</em>
+            <span>www · official ACP credential</span>
           </div>
         </div>
       </div>

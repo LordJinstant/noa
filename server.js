@@ -146,6 +146,71 @@ usersDb.exec(`
   );
 `);
 
+// ===================== QUIZZES =====================
+usersDb.exec(`
+  CREATE TABLE IF NOT EXISTS quizzes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    subject TEXT DEFAULT 'Quiz',
+    creator_id INTEGER NOT NULL,
+    creator_role TEXT DEFAULT 'staff',
+    creator_name TEXT DEFAULT '',
+    enabled INTEGER DEFAULT 0,
+    source_file TEXT DEFAULT '',
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+  );
+`);
+usersDb.exec(`
+  CREATE TABLE IF NOT EXISTS quiz_questions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    quiz_id INTEGER NOT NULL,
+    qtype TEXT NOT NULL DEFAULT 'objective',
+    prompt TEXT NOT NULL,
+    options_json TEXT DEFAULT '[]',
+    correct_answer TEXT DEFAULT '',
+    points REAL DEFAULT 1,
+    sort_order INTEGER DEFAULT 0
+  );
+`);
+usersDb.exec(`
+  CREATE TABLE IF NOT EXISTS quiz_attempts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    quiz_id INTEGER NOT NULL,
+    student_id INTEGER NOT NULL,
+    student_name TEXT DEFAULT '',
+    score REAL NOT NULL,
+    supposed_score REAL NOT NULL,
+    percentage REAL NOT NULL,
+    answers_json TEXT DEFAULT '{}',
+    submitted_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(quiz_id, student_id)
+  );
+`);
+usersDb.exec(`
+  CREATE TABLE IF NOT EXISTS quiz_retake_allows (
+    quiz_id INTEGER NOT NULL,
+    student_id INTEGER NOT NULL,
+    granted_by INTEGER,
+    granted_at TEXT DEFAULT (datetime('now')),
+    PRIMARY KEY (quiz_id, student_id)
+  );
+`);
+try {
+  usersDb.exec(`CREATE INDEX IF NOT EXISTS idx_quiz_questions_quiz ON quiz_questions(quiz_id)`);
+  usersDb.exec(`CREATE INDEX IF NOT EXISTS idx_quiz_attempts_quiz ON quiz_attempts(quiz_id)`);
+  usersDb.exec(`CREATE INDEX IF NOT EXISTS idx_quizzes_creator ON quizzes(creator_id)`);
+} catch (e) {}
+
+try {
+  const qCols = usersDb.prepare(`PRAGMA table_info(quizzes)`).all().map(c => c.name);
+  if (!qCols.includes('scope')) usersDb.exec(`ALTER TABLE quizzes ADD COLUMN scope TEXT DEFAULT 'staff'`);
+  if (!qCols.includes('description')) usersDb.exec(`ALTER TABLE quizzes ADD COLUMN description TEXT DEFAULT ''`);
+  if (!qCols.includes('source_file') && !qCols.includes('source_doc')) {
+    try { usersDb.exec(`ALTER TABLE quizzes ADD COLUMN source_file TEXT DEFAULT ''`); } catch (e) {}
+  }
+} catch (e) {}
+
 usersDb.exec(`
   CREATE TABLE IF NOT EXISTS staff_ratings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -223,6 +288,58 @@ usersDb.exec(`
     muted_by INTEGER,
     muted_by_name TEXT DEFAULT '',
     created_at TEXT DEFAULT (datetime('now'))
+  );
+`);
+
+
+// ===================== QUIZZES =====================
+usersDb.exec(`
+  CREATE TABLE IF NOT EXISTS quizzes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    subject TEXT DEFAULT 'General',
+    created_by INTEGER,
+    creator_role TEXT DEFAULT 'staff',
+    creator_name TEXT DEFAULT '',
+    enabled INTEGER DEFAULT 0,
+    scope TEXT DEFAULT 'staff',
+    source_doc TEXT DEFAULT '',
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+  );
+`);
+usersDb.exec(`
+  CREATE TABLE IF NOT EXISTS quiz_questions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    quiz_id INTEGER NOT NULL,
+    qtype TEXT NOT NULL DEFAULT 'objective',
+    prompt TEXT NOT NULL,
+    options_json TEXT DEFAULT '[]',
+    correct_answer TEXT DEFAULT '',
+    points REAL DEFAULT 1,
+    sort_order INTEGER DEFAULT 0
+  );
+`);
+usersDb.exec(`
+  CREATE TABLE IF NOT EXISTS quiz_attempts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    quiz_id INTEGER NOT NULL,
+    student_id INTEGER NOT NULL,
+    score REAL DEFAULT 0,
+    max_score REAL DEFAULT 0,
+    percentage REAL DEFAULT 0,
+    answers_json TEXT DEFAULT '{}',
+    submitted_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(quiz_id, student_id)
+  );
+`);
+usersDb.exec(`
+  CREATE TABLE IF NOT EXISTS quiz_retakes (
+    quiz_id INTEGER NOT NULL,
+    student_id INTEGER NOT NULL,
+    allowed_by INTEGER,
+    allowed_at TEXT DEFAULT (datetime('now')),
+    PRIMARY KEY (quiz_id, student_id)
   );
 `);
 
@@ -2713,6 +2830,573 @@ app.get('/api/messages/unread-total', (req, res) => {
 });
 
 
+
+// ===================== QUIZ API =====================
+function quizAuth(req, res) {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) { res.status(401).json({ msg: 'Login required' }); return null; }
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch (e) {
+    res.status(401).json({ msg: 'Invalid token' });
+    return null;
+  }
+}
+
+function canManageQuizzes(decoded) {
+  const r = String(decoded.role || '').toLowerCase();
+  return r === 'staff' || r === 'admin' || r === 'super_admin' || r === 'moderator' || decoded.type === 'admin';
+}
+
+function isGlobalQuizRole(decoded) {
+  const r = String(decoded.role || '').toLowerCase();
+  return r === 'admin' || r === 'super_admin' || r === 'moderator' || decoded.type === 'admin';
+}
+
+function loadQuizQuestions(quizId, includeAnswers) {
+  const rows = usersDb.prepare(
+    `SELECT id, quiz_id, qtype, prompt, options_json, correct_answer, points, sort_order
+     FROM quiz_questions WHERE quiz_id = ? ORDER BY sort_order ASC, id ASC`
+  ).all(quizId);
+  return rows.map(q => {
+    let options = [];
+    try { options = JSON.parse(q.options_json || '[]'); } catch (e) { options = []; }
+    const out = {
+      id: q.id,
+      qtype: q.qtype || 'objective',
+      prompt: q.prompt,
+      options,
+      points: Number(q.points) || 1,
+      sort_order: q.sort_order
+    };
+    if (includeAnswers) out.correct_answer = q.correct_answer || '';
+    return out;
+  });
+}
+
+function studentLinkedToStaff(studentId, staffId) {
+  if (!studentId || !staffId) return false;
+  try {
+    ensureStaffFollowsTable();
+    const owned = usersDb.prepare(
+      `SELECT 1 FROM users WHERE id = ? AND role = 'student' AND owner_staff_id = ?`
+    ).get(studentId, staffId);
+    if (owned) return true;
+    const fol = usersDb.prepare(
+      `SELECT 1 FROM staff_follows WHERE student_id = ? AND staff_id = ?`
+    ).get(studentId, staffId);
+    return !!fol;
+  } catch (e) {
+    return false;
+  }
+}
+
+function studentCanAccessQuiz(decoded, quiz) {
+  const role = String(decoded.role || '').toLowerCase();
+  if (role !== 'student') {
+    // Staff/admin can always view their own or global when managing
+    if (isGlobalQuizRole(decoded)) return true;
+    if (Number(quiz.creator_id) === Number(decoded.id) || Number(quiz.creator_id) === Number(resolveStaffDbId(decoded))) return true;
+    if (quiz.enabled && (quiz.scope === 'global' || isGlobalQuizRole({ role: quiz.creator_role }))) return true;
+    return false;
+  }
+  if (!quiz.enabled) return false;
+  const scope = String(quiz.scope || 'staff');
+  const creatorIsGlobal = ['admin', 'super_admin', 'moderator'].includes(String(quiz.creator_role || '').toLowerCase()) || scope === 'global';
+  if (creatorIsGlobal || scope === 'global') return true;
+  return studentLinkedToStaff(decoded.id, quiz.creator_id);
+}
+
+function hasQuizAttempt(quizId, studentId) {
+  return !!usersDb.prepare(
+    `SELECT id FROM quiz_attempts WHERE quiz_id = ? AND student_id = ?`
+  ).get(quizId, studentId);
+}
+
+function hasRetakeAllow(quizId, studentId) {
+  try {
+    if (usersDb.prepare(`SELECT 1 FROM quiz_retake_allows WHERE quiz_id = ? AND student_id = ?`).get(quizId, studentId)) return true;
+  } catch (e) {}
+  try {
+    if (usersDb.prepare(`SELECT 1 FROM quiz_retakes WHERE quiz_id = ? AND student_id = ?`).get(quizId, studentId)) return true;
+  } catch (e) {}
+  return false;
+}
+
+function clearRetakeAllow(quizId, studentId) {
+  try { usersDb.prepare(`DELETE FROM quiz_retake_allows WHERE quiz_id = ? AND student_id = ?`).run(quizId, studentId); } catch (e) {}
+  try { usersDb.prepare(`DELETE FROM quiz_retakes WHERE quiz_id = ? AND student_id = ?`).run(quizId, studentId); } catch (e) {}
+}
+
+function normalizeAnswer(s) {
+  return String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/** Compare student answer to key — supports letter (A/B) or full option text */
+function answersMatch(given, correct, options) {
+  const g = normalizeAnswer(given);
+  const c = normalizeAnswer(correct);
+  if (!g || !c) return false;
+  if (g === c) return true;
+  if (/^[a-e]$/.test(g) && /^[a-e]$/.test(c) && g === c) return true;
+  const opts = Array.isArray(options) ? options : [];
+  if (/^[a-e]$/.test(g)) {
+    const idx = g.charCodeAt(0) - 97;
+    if (opts[idx] && normalizeAnswer(opts[idx]) === c) return true;
+  }
+  if (/^[a-e]$/.test(c)) {
+    const idx = c.charCodeAt(0) - 97;
+    if (opts[idx] && normalizeAnswer(opts[idx]) === g) return true;
+  }
+  return false;
+}
+
+function isGlobalScopeQuiz(quiz) {
+  if (!quiz) return false;
+  const scope = String(quiz.scope || '').toLowerCase();
+  const role = String(quiz.creator_role || '').toLowerCase();
+  return scope === 'global' || role === 'admin' || role === 'super_admin' || role === 'moderator';
+}
+
+/** List quizzes for the current user
+ *  ?mode=manage  → staff/admin editor list
+ *  ?mode=take    → attemptable enabled quizzes (students + staff for global)
+ */
+app.get('/api/quizzes', (req, res) => {
+  const decoded = quizAuth(req, res);
+  if (!decoded) return;
+  try {
+    const role = String(decoded.role || '').toLowerCase();
+    const mode = String(req.query.mode || '').toLowerCase();
+    const wantTake = mode === 'take' || role === 'student';
+    let rows = [];
+
+    if (wantTake) {
+      // Attemptable: enabled, access rules, not already submitted (unless retake)
+      rows = usersDb.prepare(
+        `SELECT * FROM quizzes WHERE enabled = 1 ORDER BY updated_at DESC`
+      ).all().filter(q => {
+        if (role === 'student') {
+          if (!studentCanAccessQuiz(decoded, q)) return false;
+        } else if (role === 'staff') {
+          // Staff may attempt admin/moderator (global) quizzes only
+          if (!isGlobalScopeQuiz(q)) return false;
+        } else if (isGlobalQuizRole(decoded)) {
+          // Admins/mods can preview-attempt any enabled quiz
+        } else {
+          return false;
+        }
+        if (hasQuizAttempt(q.id, decoded.id) && !hasRetakeAllow(q.id, decoded.id)) return false;
+        return true;
+      });
+    } else if (canManageQuizzes(decoded) && role !== 'student') {
+      if (isGlobalQuizRole(decoded)) {
+        rows = usersDb.prepare(`SELECT * FROM quizzes ORDER BY updated_at DESC, id DESC`).all();
+      } else {
+        const sid = resolveStaffDbId(decoded) || decoded.id;
+        rows = usersDb.prepare(
+          `SELECT * FROM quizzes WHERE creator_id = ? OR (enabled = 1 AND (scope = 'global' OR lower(creator_role) IN ('admin','super_admin','moderator'))) ORDER BY updated_at DESC`
+        ).all(sid);
+      }
+    } else {
+      rows = [];
+    }
+
+    const out = rows.map(q => {
+      const qCount = usersDb.prepare(`SELECT COUNT(1) AS c FROM quiz_questions WHERE quiz_id = ?`).get(q.id);
+      const attempted = hasQuizAttempt(q.id, decoded.id);
+      const retake = hasRetakeAllow(q.id, decoded.id);
+      return Object.assign({}, q, {
+        questionCount: Number(qCount && qCount.c) || 0,
+        attempted,
+        retakeAllowed: retake,
+        global: isGlobalScopeQuiz(q)
+      });
+    });
+    return res.json(out);
+  } catch (err) {
+    console.error('quizzes list', err);
+    return res.status(500).json({ msg: err.message });
+  }
+});
+
+app.post('/api/quizzes', (req, res) => {
+  const decoded = quizAuth(req, res);
+  if (!decoded) return;
+  if (!canManageQuizzes(decoded) || String(decoded.role || '').toLowerCase() === 'student') {
+    return res.status(403).json({ msg: 'Only staff, moderators, or admins can create quizzes' });
+  }
+  try {
+    const body = req.body || {};
+    const title = String(body.title || 'Untitled Quiz').trim() || 'Untitled Quiz';
+    const subject = String(body.subject || 'Quiz').trim() || 'Quiz';
+    const description = String(body.description || '').trim();
+    const role = String(decoded.role || 'staff').toLowerCase();
+    const scope = isGlobalQuizRole(decoded) ? 'global' : 'staff';
+    const creatorId = isGlobalQuizRole(decoded) ? (decoded.id || 0) : (resolveStaffDbId(decoded) || decoded.id);
+    const name = decoded.name || decoded.username || 'Staff';
+    const info = usersDb.prepare(`
+      INSERT INTO quizzes (title, subject, description, creator_id, creator_role, creator_name, enabled, scope, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, 0, ?, datetime('now'), datetime('now'))
+    `).run(title, subject, description, creatorId, role, name, scope);
+    const quiz = usersDb.prepare(`SELECT * FROM quizzes WHERE id = ?`).get(info.lastInsertRowid);
+    return res.status(201).json(quiz);
+  } catch (err) {
+    // description column may be missing on very old DBs
+    try {
+      const body = req.body || {};
+      const title = String(body.title || 'Untitled Quiz').trim() || 'Untitled Quiz';
+      const subject = String(body.subject || 'Quiz').trim() || 'Quiz';
+      const role = String(decoded.role || 'staff').toLowerCase();
+      const scope = isGlobalQuizRole(decoded) ? 'global' : 'staff';
+      const creatorId = isGlobalQuizRole(decoded) ? (decoded.id || 0) : (resolveStaffDbId(decoded) || decoded.id);
+      const name = decoded.name || decoded.username || 'Staff';
+      const info = usersDb.prepare(`
+        INSERT INTO quizzes (title, subject, creator_id, creator_role, creator_name, enabled, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, 0, datetime('now'), datetime('now'))
+      `).run(title, subject, creatorId, role, name);
+      try { usersDb.prepare(`UPDATE quizzes SET scope = ? WHERE id = ?`).run(scope, info.lastInsertRowid); } catch (e) {}
+      const quiz = usersDb.prepare(`SELECT * FROM quizzes WHERE id = ?`).get(info.lastInsertRowid);
+      return res.status(201).json(quiz);
+    } catch (err2) {
+      return res.status(500).json({ msg: err2.message });
+    }
+  }
+});
+
+app.get('/api/quizzes/:id', (req, res) => {
+  const decoded = quizAuth(req, res);
+  if (!decoded) return;
+  try {
+    const quiz = usersDb.prepare(`SELECT * FROM quizzes WHERE id = ?`).get(req.params.id);
+    if (!quiz) return res.status(404).json({ msg: 'Quiz not found' });
+    const role = String(decoded.role || '').toLowerCase();
+    const isManager = canManageQuizzes(decoded) && role !== 'student';
+    const isOwner = isManager && (
+      isGlobalQuizRole(decoded) ||
+      Number(quiz.creator_id) === Number(decoded.id) ||
+      Number(quiz.creator_id) === Number(resolveStaffDbId(decoded))
+    );
+    if (!isOwner && !studentCanAccessQuiz(decoded, quiz)) {
+      return res.status(403).json({ msg: 'Not allowed to view this quiz' });
+    }
+    if (role === 'student') {
+      if (hasQuizAttempt(quiz.id, decoded.id) && !hasRetakeAllow(quiz.id, decoded.id)) {
+        return res.status(403).json({ msg: 'You already submitted this quiz' });
+      }
+    }
+    const includeAnswers = isOwner;
+    const questions = loadQuizQuestions(quiz.id, includeAnswers);
+    return res.json({ quiz, questions });
+  } catch (err) {
+    return res.status(500).json({ msg: err.message });
+  }
+});
+
+app.put('/api/quizzes/:id', (req, res) => {
+  const decoded = quizAuth(req, res);
+  if (!decoded) return;
+  if (!canManageQuizzes(decoded)) return res.status(403).json({ msg: 'Forbidden' });
+  try {
+    const quiz = usersDb.prepare(`SELECT * FROM quizzes WHERE id = ?`).get(req.params.id);
+    if (!quiz) return res.status(404).json({ msg: 'Not found' });
+    if (!isGlobalQuizRole(decoded) && Number(quiz.creator_id) !== Number(resolveStaffDbId(decoded) || decoded.id)) {
+      return res.status(403).json({ msg: 'You can only edit your own quizzes' });
+    }
+    const body = req.body || {};
+    const title = body.title != null ? String(body.title).trim() : quiz.title;
+    const subject = body.subject != null ? String(body.subject).trim() : quiz.subject;
+    const description = body.description != null ? String(body.description).trim() : (quiz.description || '');
+    try {
+      usersDb.prepare(`
+        UPDATE quizzes SET title = ?, subject = ?, description = ?, updated_at = datetime('now') WHERE id = ?
+      `).run(title, subject, description, quiz.id);
+    } catch (e) {
+      usersDb.prepare(`
+        UPDATE quizzes SET title = ?, subject = ?, updated_at = datetime('now') WHERE id = ?
+      `).run(title, subject, quiz.id);
+    }
+    // Replace questions if provided
+    if (Array.isArray(body.questions)) {
+      usersDb.prepare(`DELETE FROM quiz_questions WHERE quiz_id = ?`).run(quiz.id);
+      const ins = usersDb.prepare(`
+        INSERT INTO quiz_questions (quiz_id, qtype, prompt, options_json, correct_answer, points, sort_order)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+      body.questions.forEach((q, i) => {
+        const qtype = String(q.qtype || 'objective').toLowerCase() === 'subjective' ? 'subjective' : 'objective';
+        const prompt = String(q.prompt || '').trim();
+        if (!prompt) return;
+        const options = Array.isArray(q.options) ? q.options.map(o => String(o || '').trim()).filter(Boolean) : [];
+        const correct = String(q.correct_answer != null ? q.correct_answer : '').trim();
+        const points = Number(q.points) > 0 ? Number(q.points) : 1;
+        ins.run(quiz.id, qtype, prompt, JSON.stringify(options), correct, points, i);
+      });
+    }
+    const updated = usersDb.prepare(`SELECT * FROM quizzes WHERE id = ?`).get(quiz.id);
+    return res.json({ quiz: updated, questions: loadQuizQuestions(quiz.id, true) });
+  } catch (err) {
+    return res.status(500).json({ msg: err.message });
+  }
+});
+
+app.post('/api/quizzes/:id/enable', (req, res) => {
+  const decoded = quizAuth(req, res);
+  if (!decoded) return;
+  if (!canManageQuizzes(decoded)) return res.status(403).json({ msg: 'Forbidden' });
+  try {
+    const quiz = usersDb.prepare(`SELECT * FROM quizzes WHERE id = ?`).get(req.params.id);
+    if (!quiz) return res.status(404).json({ msg: 'Not found' });
+    if (!isGlobalQuizRole(decoded) && Number(quiz.creator_id) !== Number(resolveStaffDbId(decoded) || decoded.id)) {
+      return res.status(403).json({ msg: 'Not your quiz' });
+    }
+    const count = usersDb.prepare(`SELECT COUNT(1) AS c FROM quiz_questions WHERE quiz_id = ?`).get(quiz.id);
+    if (!count || !count.c) return res.status(400).json({ msg: 'Add at least one question before enabling' });
+    usersDb.prepare(`UPDATE quizzes SET enabled = 1, updated_at = datetime('now') WHERE id = ?`).run(quiz.id);
+    return res.json({ msg: 'Quiz enabled', enabled: 1 });
+  } catch (err) {
+    return res.status(500).json({ msg: err.message });
+  }
+});
+
+app.post('/api/quizzes/:id/disable', (req, res) => {
+  const decoded = quizAuth(req, res);
+  if (!decoded) return;
+  if (!canManageQuizzes(decoded)) return res.status(403).json({ msg: 'Forbidden' });
+  try {
+    const quiz = usersDb.prepare(`SELECT * FROM quizzes WHERE id = ?`).get(req.params.id);
+    if (!quiz) return res.status(404).json({ msg: 'Not found' });
+    if (!isGlobalQuizRole(decoded) && Number(quiz.creator_id) !== Number(resolveStaffDbId(decoded) || decoded.id)) {
+      return res.status(403).json({ msg: 'Not your quiz' });
+    }
+    usersDb.prepare(`UPDATE quizzes SET enabled = 0, updated_at = datetime('now') WHERE id = ?`).run(quiz.id);
+    return res.json({ msg: 'Quiz disabled', enabled: 0 });
+  } catch (err) {
+    return res.status(500).json({ msg: err.message });
+  }
+});
+
+app.delete('/api/quizzes/:id', (req, res) => {
+  const decoded = quizAuth(req, res);
+  if (!decoded) return;
+  if (!canManageQuizzes(decoded)) return res.status(403).json({ msg: 'Forbidden' });
+  try {
+    const quiz = usersDb.prepare(`SELECT * FROM quizzes WHERE id = ?`).get(req.params.id);
+    if (!quiz) return res.status(404).json({ msg: 'Not found' });
+    if (!isGlobalQuizRole(decoded) && Number(quiz.creator_id) !== Number(resolveStaffDbId(decoded) || decoded.id)) {
+      return res.status(403).json({ msg: 'Not your quiz' });
+    }
+    usersDb.prepare(`DELETE FROM quiz_questions WHERE quiz_id = ?`).run(quiz.id);
+    usersDb.prepare(`DELETE FROM quiz_attempts WHERE quiz_id = ?`).run(quiz.id);
+    clearRetakeAllow(quiz.id, null);
+    try { usersDb.prepare(`DELETE FROM quiz_retake_allows WHERE quiz_id = ?`).run(quiz.id); } catch (e) {}
+    try { usersDb.prepare(`DELETE FROM quiz_retakes WHERE quiz_id = ?`).run(quiz.id); } catch (e) {}
+    usersDb.prepare(`DELETE FROM quizzes WHERE id = ?`).run(quiz.id);
+    return res.json({ msg: 'Quiz deleted' });
+  } catch (err) {
+    return res.status(500).json({ msg: err.message });
+  }
+});
+
+/** Allow a student to retake (search + grant) */
+app.post('/api/quizzes/:id/allow-retake', (req, res) => {
+  const decoded = quizAuth(req, res);
+  if (!decoded) return;
+  if (!canManageQuizzes(decoded)) return res.status(403).json({ msg: 'Forbidden' });
+  try {
+    const quiz = usersDb.prepare(`SELECT * FROM quizzes WHERE id = ?`).get(req.params.id);
+    if (!quiz) return res.status(404).json({ msg: 'Not found' });
+    if (!isGlobalQuizRole(decoded) && Number(quiz.creator_id) !== Number(resolveStaffDbId(decoded) || decoded.id)) {
+      return res.status(403).json({ msg: 'Not your quiz' });
+    }
+    const studentId = parseInt((req.body || {}).studentId || (req.body || {}).student_id, 10);
+    if (!studentId) return res.status(400).json({ msg: 'studentId required' });
+    const st = usersDb.prepare(`SELECT id, name, username FROM users WHERE id = ? AND role = 'student'`).get(studentId);
+    if (!st) return res.status(404).json({ msg: 'Student not found' });
+    // Delete previous attempt so they can write again; new submit replaces score
+    usersDb.prepare(`DELETE FROM quiz_attempts WHERE quiz_id = ? AND student_id = ?`).run(quiz.id, studentId);
+    try {
+      usersDb.prepare(`
+        INSERT INTO quiz_retake_allows (quiz_id, student_id, granted_by, granted_at)
+        VALUES (?, ?, ?, datetime('now'))
+        ON CONFLICT(quiz_id, student_id) DO UPDATE SET granted_by = excluded.granted_by, granted_at = datetime('now')
+      `).run(quiz.id, studentId, decoded.id || null);
+    } catch (e) {
+      try {
+        usersDb.prepare(`
+          INSERT OR REPLACE INTO quiz_retakes (quiz_id, student_id, allowed_by, allowed_at)
+          VALUES (?, ?, ?, datetime('now'))
+        `).run(quiz.id, studentId, decoded.id || null);
+      } catch (e2) {}
+    }
+    // Remove old assessment rows for this quiz subject marker if present
+    try {
+      usersDb.prepare(`
+        DELETE FROM assessments WHERE student_id = ? AND subject = ? AND uploaded_by LIKE 'quiz:%'
+      `).run(studentId, quiz.subject || 'Quiz');
+    } catch (e) {}
+    return res.json({ msg: 'Retake allowed for ' + (st.name || st.username), studentId });
+  } catch (err) {
+    return res.status(500).json({ msg: err.message });
+  }
+});
+
+app.get('/api/quizzes/:id/students-search', (req, res) => {
+  const decoded = quizAuth(req, res);
+  if (!decoded) return;
+  if (!canManageQuizzes(decoded)) return res.status(403).json({ msg: 'Forbidden' });
+  try {
+    const q = String(req.query.q || '').trim().toLowerCase();
+    if (q.length < 1) return res.json([]);
+    let sql = `SELECT id, name, username, email, grade FROM users WHERE role = 'student' AND (
+      lower(name) LIKE ? OR lower(username) LIKE ? OR lower(email) LIKE ?
+    )`;
+    const params = ['%' + q + '%', '%' + q + '%', '%' + q + '%'];
+    if (!isGlobalQuizRole(decoded)) {
+      const sid = resolveStaffDbId(decoded) || decoded.id;
+      ensureStaffFollowsTable();
+      sql += ` AND (owner_staff_id = ? OR id IN (SELECT student_id FROM staff_follows WHERE staff_id = ?))`;
+      params.push(sid, sid);
+    }
+    sql += ` ORDER BY name LIMIT 30`;
+    return res.json(usersDb.prepare(sql).all(...params));
+  } catch (err) {
+    return res.status(500).json({ msg: err.message });
+  }
+});
+
+/** Submit quiz attempt — auto score; % out of 100; one attempt unless retake allowed */
+app.post('/api/quizzes/:id/submit', (req, res) => {
+  const decoded = quizAuth(req, res);
+  if (!decoded) return;
+  const role = String(decoded.role || '').toLowerCase();
+  const isStudent = role === 'student';
+  const isStaffTaker = role === 'staff';
+  if (!isStudent && !isStaffTaker && !isGlobalQuizRole(decoded)) {
+    return res.status(403).json({ msg: 'Not allowed to submit this quiz' });
+  }
+  try {
+    const quiz = usersDb.prepare(`SELECT * FROM quizzes WHERE id = ?`).get(req.params.id);
+    if (!quiz) return res.status(404).json({ msg: 'Quiz not found' });
+    if (!quiz.enabled) return res.status(400).json({ msg: 'Quiz is not enabled' });
+
+    if (isStudent) {
+      if (!studentCanAccessQuiz(decoded, quiz)) return res.status(403).json({ msg: 'Not allowed' });
+    } else if (isStaffTaker) {
+      if (!isGlobalScopeQuiz(quiz)) return res.status(403).json({ msg: 'Staff may only attempt platform (admin/mod) quizzes' });
+    }
+
+    const hadAttempt = hasQuizAttempt(quiz.id, decoded.id);
+    const retake = hasRetakeAllow(quiz.id, decoded.id);
+    if (hadAttempt && !retake) {
+      return res.status(400).json({ msg: 'Already submitted. Ask staff to allow a retake.' });
+    }
+
+    const questions = usersDb.prepare(
+      `SELECT * FROM quiz_questions WHERE quiz_id = ? ORDER BY sort_order, id`
+    ).all(quiz.id);
+    if (!questions.length) return res.status(400).json({ msg: 'Quiz has no questions' });
+
+    const answers = (req.body && req.body.answers) || {};
+    let score = 0;
+    let maxScore = 0;
+    questions.forEach(q => {
+      const pts = Number(q.points) > 0 ? Number(q.points) : 1;
+      maxScore += pts;
+      const given = answers[String(q.id)] != null ? answers[String(q.id)] : answers[q.id];
+      let options = [];
+      try { options = JSON.parse(q.options_json || '[]'); } catch (e) { options = []; }
+      // Equal weight per question → percentage out of 100
+      if (answersMatch(given, q.correct_answer, options)) score += pts;
+    });
+    const percentage = maxScore > 0 ? Math.round((score / maxScore) * 1000) / 10 : 0;
+
+    // Replace attempt (retake overwrites previous)
+    usersDb.prepare(`DELETE FROM quiz_attempts WHERE quiz_id = ? AND student_id = ?`).run(quiz.id, decoded.id);
+    const st = usersDb.prepare(`SELECT name, username, grade, role FROM users WHERE id = ?`).get(decoded.id);
+    const studentName = (st && (st.name || st.username)) || decoded.username || 'User';
+    try {
+      usersDb.prepare(`
+        INSERT INTO quiz_attempts (quiz_id, student_id, student_name, score, supposed_score, percentage, answers_json, submitted_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      `).run(quiz.id, decoded.id, studentName, score, maxScore, percentage, JSON.stringify(answers));
+    } catch (e) {
+      usersDb.prepare(`
+        INSERT INTO quiz_attempts (quiz_id, student_id, score, max_score, percentage, answers_json, submitted_at)
+        VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+      `).run(quiz.id, decoded.id, score, maxScore, percentage, JSON.stringify(answers));
+    }
+    clearRetakeAllow(quiz.id, decoded.id);
+
+    // Register under student assessments only (out of 100)
+    if (isStudent) {
+      const subject = String(quiz.subject || quiz.title || 'Quiz').slice(0, 80);
+      try {
+        usersDb.prepare(`
+          DELETE FROM assessments WHERE student_id = ? AND uploaded_by = ?
+        `).run(decoded.id, 'quiz:' + quiz.id);
+      } catch (e) {}
+      usersDb.prepare(`
+        INSERT INTO assessments (student_id, student_name, grade, subject, score, supposed_score, percentage, assessed_at, uploaded_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        decoded.id,
+        studentName,
+        (st && st.grade) || '',
+        subject,
+        percentage,
+        100,
+        percentage,
+        new Date().toISOString().split('T')[0],
+        'quiz:' + quiz.id
+      );
+    }
+
+    return res.json({
+      msg: 'Submitted',
+      score,
+      supposed_score: maxScore,
+      percentage,
+      outOf100: percentage
+    });
+  } catch (err) {
+    console.error('quiz submit', err);
+    return res.status(500).json({ msg: err.message });
+  }
+});
+
+/** Upload a document to help build questions — returns extracted text */
+app.post('/api/quizzes/upload-doc', upload.single('file'), (req, res) => {
+  const decoded = quizAuth(req, res);
+  if (!decoded) return;
+  if (!canManageQuizzes(decoded)) return res.status(403).json({ msg: 'Forbidden' });
+  try {
+    if (!req.file) return res.status(400).json({ msg: 'File required' });
+    const name = req.file.originalname || req.file.filename;
+    const fp = req.file.path;
+    let text = '';
+    const lower = name.toLowerCase();
+    if (lower.endsWith('.txt') || lower.endsWith('.csv') || lower.endsWith('.md')) {
+      text = fs.readFileSync(fp, 'utf8');
+    } else {
+      // Binary docs: return path only; staff pastes/edits questions manually
+      text = '';
+    }
+    return res.json({
+      msg: 'Uploaded',
+      filename: name,
+      url: '/uploads/' + req.file.filename,
+      text: String(text || '').slice(0, 20000),
+      hint: text
+        ? 'Text extracted. Review and turn lines into questions below.'
+        : 'File saved. Open it and type questions into the quiz editor.'
+    });
+  } catch (err) {
+    return res.status(500).json({ msg: err.message });
+  }
+});
+
+
 // ===================== AI KNOWLEDGE ASSISTANT (V5 — HYPER-HUMAN) =====================
 const AI_DB_FILE = path.join(__dirname, 'database.json');
 const AI_CONV_FILE = path.join(__dirname, 'ai-conversations.json');
@@ -4090,40 +4774,114 @@ app.post('/api/ai/inbox/read', (req, res) => {
 });
 
 
+// ===================== HOME-PC RELAY REGISTRY (Port Connector) =====================
+// Your Windows PC runs Port_Connector and POSTs here with X-Relay-Secret.
+// Active relays are injected into /api/webrtc-config so live classes use your PC as TURN.
+const RELAY_SECRET = process.env.RELAY_SECRET || process.env.NOA_RELAY_SECRET || '';
+const activeRelays = new Map(); // name -> { urls, username, credential, publicIp, port, updatedAt }
+const RELAY_TTL_MS = 60 * 1000; // must heartbeat about every 20s
+
+function pruneRelays() {
+  const now = Date.now();
+  for (const [name, r] of activeRelays.entries()) {
+    if (!r || (now - (r.updatedAt || 0)) > RELAY_TTL_MS) activeRelays.delete(name);
+  }
+}
+
+function relaySecretOk(req) {
+  if (!RELAY_SECRET) return false;
+  const h = req.headers['x-relay-secret'] || req.headers['x-relay-token'] || '';
+  const bodySecret = (req.body && (req.body.secret || req.body.relaySecret)) || '';
+  return String(h || bodySecret) === String(RELAY_SECRET);
+}
+
+app.post('/api/relay/register', (req, res) => {
+  try {
+    if (!RELAY_SECRET) {
+      return res.status(503).json({
+        ok: false,
+        msg: 'RELAY_SECRET not configured on server. Set it in Contabo .env and restart Node.'
+      });
+    }
+    if (!relaySecretOk(req)) return res.status(403).json({ ok: false, msg: 'Invalid relay secret' });
+    const body = req.body || {};
+    const name = String(body.name || body.agent || 'home-pc').slice(0, 64);
+    const publicIp = String(body.publicIp || body.ip || '').trim();
+    const port = parseInt(body.port, 10) || 3478;
+    const username = String(body.username || process.env.TURN_USERNAME || 'noaclass');
+    const credential = String(body.credential || body.password || process.env.TURN_CREDENTIAL || 'noaclass-secret');
+    let urls = Array.isArray(body.urls) ? body.urls.map(u => String(u).trim()).filter(Boolean) : [];
+    if (!urls.length && publicIp) {
+      urls = [
+        `turn:${publicIp}:${port}`,
+        `turn:${publicIp}:${port}?transport=udp`,
+        `turn:${publicIp}:${port}?transport=tcp`
+      ];
+    }
+    if (!urls.length) return res.status(400).json({ ok: false, msg: 'urls or publicIp required' });
+    activeRelays.set(name, {
+      name,
+      publicIp,
+      port,
+      urls,
+      username,
+      credential,
+      updatedAt: Date.now()
+    });
+    pruneRelays();
+    return res.json({
+      ok: true,
+      msg: 'Relay registered',
+      name,
+      ttlSec: Math.floor(RELAY_TTL_MS / 1000),
+      activeAgents: activeRelays.size
+    });
+  } catch (err) {
+    return res.status(500).json({ ok: false, msg: err.message });
+  }
+});
+
+app.get('/api/relay/status', (req, res) => {
+  pruneRelays();
+  const agents = [...activeRelays.values()].map(r => ({
+    name: r.name,
+    publicIp: r.publicIp,
+    port: r.port,
+    urls: r.urls,
+    ageMs: Date.now() - r.updatedAt
+  }));
+  return res.json({
+    configured: !!RELAY_SECRET,
+    active: agents.length,
+    agents
+  });
+});
+
 // ===================== WEBRTC ICE CONFIG (STUN + TURN for cross-network) =====================
 app.get('/api/webrtc-config', (req, res) => {
+  pruneRelays();
   const iceServers = [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
     { urls: 'stun:stun3.l.google.com:19302' },
-    { urls: 'stun:stun4.l.google.com:19302' },
-    // Public TURN relays (help when peers are on different networks / strict NAT)
-    {
-      urls: 'turn:openrelay.metered.ca:80',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    },
-    {
-      urls: 'turn:openrelay.metered.ca:443',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    },
-    {
-      urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    },
-    {
-      urls: 'turns:openrelay.metered.ca:443?transport=tcp',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    }
+    { urls: 'stun:stun4.l.google.com:19302' }
   ];
-  // Optional private TURN from .env (recommended for production)
-  // TURN_URLS=turn:your.server:3478,turns:your.server:5349
-  // TURN_USERNAME=...
-  // TURN_CREDENTIAL=...
+
+  // Prefer home-PC Port Connector relays when online (no Contabo coturn required)
+  for (const r of activeRelays.values()) {
+    (r.urls || []).forEach(url => {
+      iceServers.push({
+        urls: url,
+        username: r.username,
+        credential: r.credential
+      });
+    });
+  }
+
+  // Optional private TURN from Contabo .env
+  // TURN_URLS=turn:your.server:3478
+  // TURN_USERNAME=...  TURN_CREDENTIAL=...
   const turnUrls = (process.env.TURN_URLS || '').split(',').map(u => u.trim()).filter(Boolean);
   const turnUser = process.env.TURN_USERNAME || '';
   const turnCred = process.env.TURN_CREDENTIAL || '';
@@ -4134,10 +4892,22 @@ app.get('/api/webrtc-config', (req, res) => {
       credential: turnCred
     });
   });
+
+  // Public fallbacks last (only if no home relay and no private TURN)
+  if (activeRelays.size === 0 && turnUrls.length === 0) {
+    iceServers.push(
+      { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+      { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+      { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+      { urls: 'turns:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+    );
+  }
+
   return res.json({
     iceServers,
     iceCandidatePoolSize: 10,
-    iceTransportPolicy: 'all'
+    iceTransportPolicy: 'all',
+    homeRelayActive: activeRelays.size > 0
   });
 });
 

@@ -176,57 +176,143 @@
           "role": "assistant",
           "text": "Nigeria Olympiad Academy (NOA) prepares students for international mathematics and science contests including SIMCC competitions.",
           "at": "2026-09-01T18:07:26.616Z"
+        },
+        {
+          "role": "user",
+          "text": "hello",
+          "at": "2026-09-01T19:22:49.756Z"
+        },
+        {
+          "role": "assistant",
+          "text": "Welcome back. What do you need?",
+          "at": "2026-09-01T19:22:49.756Z"
+        },
+        {
+          "role": "user",
+          "text": "i need more knowledge",
+          "at": "2026-09-01T19:23:01.474Z"
+        },
+        {
+          "role": "assistant",
+          "text": "MORE… Subjects Covered SIMCC contests span mathematics.",
+          "at": "2026-09-01T19:23:01.489Z"
+        },
+        {
+          "role": "user",
+          "text": "how",
+          "at": "2026-09-01T19:23:14.108Z"
+        },
+        {
+          "role": "assistant",
+          "text": "Students can register on the website.",
+          "at": "2026-09-01T19:23:14.111Z"
+        },
+        {
+          "role": "user",
+          "text": "go on",
+          "at": "2026-09-01T19:23:24.117Z"
+        },
+        {
+          "role": "assistant",
+          "text": "I don't have that information. A moderator can help if you share your details.",
+          "at": "2026-09-01T19:23:24.119Z"
+        },
+        {
+          "role": "user",
+          "text": "who is the president of simcc",
+          "at": "2026-09-01T19:25:28.268Z"
+        },
+        {
+          "role": "assistant",
+          "text": "Singapore International Mastery Contests Centre (SIMCC) – Complete Guide About SIMCC The Singapore International Mastery Contests Centre (SIMCC) is an.",
+          "at": "2026-09-01T19:25:28.279Z"
+        },
+        {
+          "role": "user",
+          "text": "continue",
+          "at": "2026-09-01T19:25:46.090Z"
+        },
+        {
+          "role": "assistant",
+          "text": "I don't have that information. A moderator can help if you share your details.",
+          "at": "2026-09-01T19:25:46.093Z"
+        },
+        {
+          "role": "user",
+          "text": "is an what",
+          "at": "2026-09-01T19:25:52.592Z"
+        },
+        {
+          "role": "assistant",
+          "text": "Nigeria Olympiad Academy (NOA) prepares students for international mathematics and science contests including SIMCC competitions.",
+          "at": "2026-09-01T19:25:52.604Z"
+        },
+        {
+          "role": "user",
+          "text": "who is the president of simcc",
+          "at": "2026-09-01T19:26:10.803Z"
+        },
+        {
+          "role": "assistant",
+          "text": "Singapore International Mastery Contests Centre (SIMCC) – Complete Guide About SIMCC The Singapore International Mastery Contests Centre (SIMCC) is an.",
+          "at": "2026-09-01T19:26:10.809Z"
+        },
+        {
+          "role": "user",
+          "text": "who owns simcc",
+          "at": "2026-09-01T19:26:34.253Z"
+        },
+        {
+          "role": "assistant",
+          "text": "Singapore International Mastery Contests Centre (SIMCC) – Complete Guide About SIMCC The Singapore International Mastery Contests Centre (SIMCC) is an.",
+          "at": "2026-09-01T19:26:34.261Z"
+        },
+        {
+          "role": "user",
+          "text": "who is the president of SIMCC",
+          "at": "2026-09-01T19:26:59.098Z"
+        },
+        {
+          "role": "assistant",
+          "text": "Singapore International Mastery Contests Centre (SIMCC) – Complete Guide About SIMCC The Singapore International Mastery Contests Centre (SIMCC) is an.",
+          "at": "2026-09-01T19:26:59.109Z"
+        },
+        {
+          "role": "user",
+          "text": "simoc",
+          "at": "2026-09-01T19:27:03.991Z"
+        },
+        {
+          "role": "assistant",
+          "text": "It organizes prestigious STEM and math contests like SASMO and SIMOC.",
+          "at": "2026-09-01T19:27:04.005Z"
+        },
+        {
+          "role": "user",
+          "text": "who is the president of NOA",
+          "at": "2026-09-01T19:27:38.925Z"
+        },
+        {
+          "role": "assistant",
+          "text": "The President of NOA is Dr.",
+          "at": "2026-09-01T19:27:38.928Z"
+        },
+        {
+          "role": "user",
+          "text": "Dr. Mercy?",
+          "at": "2026-09-01T19:27:56.240Z"
+        },
+        {
+          "role": "assistant",
+          "text": "The Singapore International Mastery Contests Centre (SIMCC) operates in Nigeria through the Nigeria Olympiad Academy led by National Coordinator Mercy.",
+          "at": "2026-09-01T19:27:56.242Z"
         }
       ],
-      "summary": "Turns: 34 (17 user · 17 AI).\nTopics: tell, hello, simcc, noa, owns, doin.\nLatest user: what do i need\nLatest AI: Nigeria Olympiad Academy (NOA) prepares students for international mathematics and science contests including SIMCC competitions.\nRecent: U: what about amo | AI: Singapore International Mastery Contests Centre (SIMCC) – Complete Guide About SIMCC The S | U: hello | AI: Welcome back. What do you need? | U: what do i need | AI: Nigeria Olympiad Academy (NOA) prepares students for international mathematics and science",
+      "summary": "Turns: 60 (30 user · 30 AI).\nTopics: simcc, president, tell, hello, noa, owns.\nLatest user: Dr. Mercy?\nLatest AI: The Singapore International Mastery Contests Centre (SIMCC) operates in Nigeria through the Nigeria Olympiad Academy led by National Coordin…\nRecent: U: simoc | AI: It organizes prestigious STEM and math contests like SASMO and SIMOC. | U: who is the president of NOA | AI: The President of NOA is Dr. | U: Dr. Mercy? | AI: The Singapore International Mastery Contests Centre (SIMCC) operates in Nigeria through th",
       "status": "ai",
       "unreadModerator": false,
       "createdAt": "2026-09-01T17:31:46.718Z",
-      "updatedAt": "2026-09-01T18:07:26.616Z"
-    },
-    {
-      "id": "c1788223427656n7xe8",
-      "visitorId": "v1786378393738cu8k49",
-      "name": "",
-      "email": "",
-      "phone": "",
-      "messages": [
-        {
-          "role": "user",
-          "text": "hello",
-          "at": "2026-09-01T00:43:47.657Z"
-        },
-        {
-          "role": "assistant",
-          "text": "Hi there! I can help with SIMCC info. What do you need?",
-          "at": "2026-09-01T00:43:47.681Z"
-        },
-        {
-          "role": "user",
-          "text": "what i need",
-          "at": "2026-09-01T00:44:02.158Z"
-        },
-        {
-          "role": "assistant",
-          "text": "Nigeria Olympiad Academy (NOA) prepares students for international mathematics and science contests including SIMCC competitions. Singapore International Mastery Contests Centre (SIMCC) – Finish Guide About SIMCC The Singapore International Mastery Contests Centre (SIMCC) is an educational services organization that organizes international academic competitions in mathematics. Feel free to ask if you need more info. You've got this! Need a moderator? Click below anytime.",
-          "at": "2026-09-01T00:44:02.207Z"
-        },
-        {
-          "role": "user",
-          "text": "hello",
-          "at": "2026-09-01T00:44:41.120Z"
-        },
-        {
-          "role": "assistant",
-          "text": "Hi there! I can help with SIMCC info. What do you need?",
-          "at": "2026-09-01T00:44:41.122Z"
-        }
-      ],
-      "summary": "User: hello\nAI: Hi there! I can help with SIMCC info. What do you need?\nUser: what i need\nAI: Nigeria Olympiad Academy (NOA) prepares students for international mathematics and science contests including SIMCC competitions. Singapore International Master\nUser: hello\nAI: Hi there! I can help with SIMCC info. What do you need?",
-      "status": "ai",
-      "unreadModerator": false,
-      "createdAt": "2026-09-01T00:43:47.656Z",
-      "updatedAt": "2026-09-01T00:44:41.122Z"
+      "updatedAt": "2026-09-01T19:27:56.242Z"
     }
   ]
 }
