@@ -4774,114 +4774,40 @@ app.post('/api/ai/inbox/read', (req, res) => {
 });
 
 
-// ===================== HOME-PC RELAY REGISTRY (Port Connector) =====================
-// Your Windows PC runs Port_Connector and POSTs here with X-Relay-Secret.
-// Active relays are injected into /api/webrtc-config so live classes use your PC as TURN.
-const RELAY_SECRET = process.env.RELAY_SECRET || process.env.NOA_RELAY_SECRET || '';
-const activeRelays = new Map(); // name -> { urls, username, credential, publicIp, port, updatedAt }
-const RELAY_TTL_MS = 60 * 1000; // must heartbeat about every 20s
-
-function pruneRelays() {
-  const now = Date.now();
-  for (const [name, r] of activeRelays.entries()) {
-    if (!r || (now - (r.updatedAt || 0)) > RELAY_TTL_MS) activeRelays.delete(name);
-  }
-}
-
-function relaySecretOk(req) {
-  if (!RELAY_SECRET) return false;
-  const h = req.headers['x-relay-secret'] || req.headers['x-relay-token'] || '';
-  const bodySecret = (req.body && (req.body.secret || req.body.relaySecret)) || '';
-  return String(h || bodySecret) === String(RELAY_SECRET);
-}
-
-app.post('/api/relay/register', (req, res) => {
-  try {
-    if (!RELAY_SECRET) {
-      return res.status(503).json({
-        ok: false,
-        msg: 'RELAY_SECRET not configured on server. Set it in Contabo .env and restart Node.'
-      });
-    }
-    if (!relaySecretOk(req)) return res.status(403).json({ ok: false, msg: 'Invalid relay secret' });
-    const body = req.body || {};
-    const name = String(body.name || body.agent || 'home-pc').slice(0, 64);
-    const publicIp = String(body.publicIp || body.ip || '').trim();
-    const port = parseInt(body.port, 10) || 3478;
-    const username = String(body.username || process.env.TURN_USERNAME || 'noaclass');
-    const credential = String(body.credential || body.password || process.env.TURN_CREDENTIAL || 'noaclass-secret');
-    let urls = Array.isArray(body.urls) ? body.urls.map(u => String(u).trim()).filter(Boolean) : [];
-    if (!urls.length && publicIp) {
-      urls = [
-        `turn:${publicIp}:${port}`,
-        `turn:${publicIp}:${port}?transport=udp`,
-        `turn:${publicIp}:${port}?transport=tcp`
-      ];
-    }
-    if (!urls.length) return res.status(400).json({ ok: false, msg: 'urls or publicIp required' });
-    activeRelays.set(name, {
-      name,
-      publicIp,
-      port,
-      urls,
-      username,
-      credential,
-      updatedAt: Date.now()
-    });
-    pruneRelays();
-    return res.json({
-      ok: true,
-      msg: 'Relay registered',
-      name,
-      ttlSec: Math.floor(RELAY_TTL_MS / 1000),
-      activeAgents: activeRelays.size
-    });
-  } catch (err) {
-    return res.status(500).json({ ok: false, msg: err.message });
-  }
-});
-
-app.get('/api/relay/status', (req, res) => {
-  pruneRelays();
-  const agents = [...activeRelays.values()].map(r => ({
-    name: r.name,
-    publicIp: r.publicIp,
-    port: r.port,
-    urls: r.urls,
-    ageMs: Date.now() - r.updatedAt
-  }));
-  return res.json({
-    configured: !!RELAY_SECRET,
-    active: agents.length,
-    agents
-  });
-});
-
 // ===================== WEBRTC ICE CONFIG (STUN + TURN for cross-network) =====================
 app.get('/api/webrtc-config', (req, res) => {
-  pruneRelays();
   const iceServers = [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
     { urls: 'stun:stun3.l.google.com:19302' },
-    { urls: 'stun:stun4.l.google.com:19302' }
+    { urls: 'stun:stun4.l.google.com:19302' },
+    // Public TURN relays (help when peers are on different networks / strict NAT)
+    {
+      urls: 'turn:openrelay.metered.ca:80',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turns:openrelay.metered.ca:443?transport=tcp',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    }
   ];
-
-  // Prefer home-PC Port Connector relays when online (no Contabo coturn required)
-  for (const r of activeRelays.values()) {
-    (r.urls || []).forEach(url => {
-      iceServers.push({
-        urls: url,
-        username: r.username,
-        credential: r.credential
-      });
-    });
-  }
-
-  // Optional private TURN from Contabo .env
-  // TURN_URLS=turn:your.server:3478
-  // TURN_USERNAME=...  TURN_CREDENTIAL=...
+  // Optional private TURN from .env (recommended for production)
+  // TURN_URLS=turn:your.server:3478,turns:your.server:5349
+  // TURN_USERNAME=...
+  // TURN_CREDENTIAL=...
   const turnUrls = (process.env.TURN_URLS || '').split(',').map(u => u.trim()).filter(Boolean);
   const turnUser = process.env.TURN_USERNAME || '';
   const turnCred = process.env.TURN_CREDENTIAL || '';
@@ -4892,22 +4818,10 @@ app.get('/api/webrtc-config', (req, res) => {
       credential: turnCred
     });
   });
-
-  // Public fallbacks last (only if no home relay and no private TURN)
-  if (activeRelays.size === 0 && turnUrls.length === 0) {
-    iceServers.push(
-      { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-      { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-      { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
-      { urls: 'turns:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
-    );
-  }
-
   return res.json({
     iceServers,
     iceCandidatePoolSize: 10,
-    iceTransportPolicy: 'all',
-    homeRelayActive: activeRelays.size > 0
+    iceTransportPolicy: 'all'
   });
 });
 
