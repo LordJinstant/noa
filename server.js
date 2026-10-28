@@ -8,7 +8,8 @@ const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const Database = require('better-sqlite3');
+const Database = require('./pg-sqlite');
+const { redactDatabaseUrl } = Database;
 const { Server } = require('socket.io');
 
 // Load .env from the project folder (works even if process is started from another cwd)
@@ -23,10 +24,8 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'Jinjin28821.';
-// Always resolve DB relative to this file so Contabo/PM2 cwd cannot break paths
-const USERS_DB = path.isAbsolute(process.env.USERS_DB || '')
-  ? process.env.USERS_DB
-  : path.join(__dirname, process.env.USERS_DB || 'users.db');
+// Supabase/Postgres. Session pooler or direct connection (port 5432), not the 6543 transaction pooler.
+const DATABASE_URL = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL || '';
 
 // Contabo / Nginx reverse proxy
 app.set('trust proxy', 1);
@@ -53,7 +52,8 @@ app.get('/api/health', (req, res) => {
     ok: true,
     time: new Date().toISOString(),
     db: dbOk ? 'ok' : 'fail',
-    dbPath: USERS_DB,
+    dbDriver: 'postgres',
+    dbPath: redactDatabaseUrl(DATABASE_URL),
     envLoaded: Boolean(process.env.JWT_SECRET) || admins.length > 0,
     superAdminsConfigured: admins,
     node: process.version,
@@ -77,7 +77,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-const usersDb = new Database(USERS_DB);
+const usersDb = new Database(DATABASE_URL);
 
 usersDb.exec(`
   CREATE TABLE IF NOT EXISTS users (
@@ -6286,6 +6286,11 @@ app.post('/api/messages/channels/:id/messages', upload.single('file'), (req, res
   }
 });
 
+
+if (process.env.NOA_SCHEMA_ONLY === '1') {
+  console.log('Postgres schema is ready');
+  process.exit(0);
+}
 
 setInterval(() => { try { pruneExpiredConversations(readAiConv()); } catch (e) {} }, 60 * 60 * 1000);
 
