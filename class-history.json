@@ -8,6 +8,27 @@
       "createdAt": "2026-08-27T12:37:31.714Z",
       "status": "live",
       "endedAt": null
+    },
+    {
+      "code": "BBUUW4",
+      "host": "superadmin",
+      "hostId": "1",
+      "title": "BBuuu4",
+      "createdAt": "2026-10-31T05:10:38.096Z",
+      "status": "closed",
+      "endedAt": "2026-10-31T05:11:56.038Z",
+      "participantsCount": 1
+    },
+    {
+      "code": "NOA-4NBGRC",
+      "port": 10764,
+      "host": "superadmin",
+      "hostId": "1",
+      "title": "BBuuu4",
+      "createdAt": "2026-10-31T05:33:30.806Z",
+      "status": "closed",
+      "endedAt": "2026-10-31T05:36:41.574Z",
+      "participantsCount": 1
     }
   ]
 }

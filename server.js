@@ -2515,6 +2515,17 @@ app.post('/api/staff-ratings', (req, res) => {
 });
 
 // ===================== LIVE CLASS ROOMS =====================
+/** Session port: shared number host sets; joiners must match. Not a server OS port. */
+function normalizeSessionPort(raw) {
+  const n = parseInt(String(raw == null ? '' : raw).trim(), 10);
+  if (!Number.isFinite(n) || n < 1 || n > 65535) return null;
+  return n;
+}
+function suggestSessionPort() {
+  // Prefer user-friendly 4–5 digit ports (avoid reserved-looking low numbers)
+  return 10000 + Math.floor(Math.random() * 50000);
+}
+
 app.post('/api/classes/start', (req, res) => {
   const decoded = requireHostAuth(req, res);
   if (!decoded) return;
@@ -2524,11 +2535,23 @@ app.post('/api/classes/start', (req, res) => {
   if (liveClasses.has(code)) {
     return res.status(409).json({ msg: 'Class code already in use. Choose another.' });
   }
+  let port = normalizeSessionPort(req.body.port);
+  if (port == null) port = suggestSessionPort();
+  // Ensure port uniqueness among live rooms (optional collision retry)
+  const usedPorts = new Set();
+  liveClasses.forEach((r) => { if (r && r.port != null) usedPorts.add(Number(r.port)); });
+  if (usedPorts.has(port) && normalizeSessionPort(req.body.port) == null) {
+    for (let i = 0; i < 20; i++) {
+      const p = suggestSessionPort();
+      if (!usedPorts.has(p)) { port = p; break; }
+    }
+  }
   const createdAt = new Date().toISOString();
   liveClasses.set(code, {
     host,
     hostId,
     title: req.body.title || 'Olympiad Class',
+    port,
     createdAt,
     participants: [],
     banned: [], // names / userIds / emails that cannot rejoin this code
@@ -2536,6 +2559,7 @@ app.post('/api/classes/start', (req, res) => {
   });
   upsertClassHistory({
     code,
+    port,
     host,
     hostId,
     title: req.body.title || 'Olympiad Class',
@@ -2543,7 +2567,7 @@ app.post('/api/classes/start', (req, res) => {
     status: 'live',
     endedAt: null
   });
-  return res.json({ msg: 'Class started', code, host });
+  return res.json({ msg: 'Class started', code, port, host });
 });
 
 /** Admin / moderator: list ongoing + closed classes in a time window */
@@ -2567,6 +2591,7 @@ app.get('/api/classes/monitor', (req, res) => {
       const started = new Date(room.createdAt || 0).getTime();
       ongoing.push({
         code,
+        port: room.port != null ? Number(room.port) : null,
         host: room.host || 'Host',
         hostId: room.hostId || '',
         title: room.title || 'Olympiad Class',
@@ -2593,6 +2618,7 @@ app.get('/api/classes/monitor', (req, res) => {
       })
       .map(s => ({
         code: s.code,
+        port: s.port != null ? Number(s.port) : null,
         host: s.host || 'Host',
         hostId: s.hostId || '',
         title: s.title || 'Olympiad Class',
@@ -2616,13 +2642,43 @@ app.get('/api/classes/monitor', (req, res) => {
 app.get('/api/classes/:code', (req, res) => {
   const room = liveClasses.get(req.params.code.toUpperCase());
   if (!room) return res.status(404).json({ msg: 'Class not found or has ended' });
-  return res.json({ code: req.params.code.toUpperCase(), ...room });
+  // Do not hide port — joiners need the number the host shared (or from monitor)
+  return res.json({
+    code: req.params.code.toUpperCase(),
+    host: room.host,
+    hostId: room.hostId,
+    title: room.title,
+    port: room.port,
+    createdAt: room.createdAt,
+    participants: room.participants,
+    sharedFile: room.sharedFile || null
+  });
 });
 
 app.post('/api/classes/:code/join', (req, res) => {
   const code = req.params.code.toUpperCase();
   const room = liveClasses.get(code);
   if (!room) return res.status(404).json({ msg: 'Class not found. Check the code with your host.' });
+
+  // Session port must match host (dynamic shared key — not a server firewall port)
+  const givenPort = normalizeSessionPort(req.body.port);
+  const roomPort = normalizeSessionPort(room.port);
+  if (roomPort != null) {
+    if (givenPort == null) {
+      return res.status(400).json({
+        msg: 'Enter the class port shared by the host (same number everyone agreed on).',
+        needPort: true,
+        // optional soft hint only when admin monitor already showed it — never invent
+      });
+    }
+    if (givenPort !== roomPort) {
+      return res.status(403).json({
+        msg: 'Wrong class port. Ask the host for the current port number and try again.',
+        needPort: true
+      });
+    }
+  }
+
   const name = (req.body.name || 'Participant').trim();
   const email = (req.body.email || '').trim().toLowerCase();
   const userId = req.body.userId != null ? String(req.body.userId) : '';
@@ -2635,7 +2691,14 @@ app.post('/api/classes/:code/join', (req, res) => {
     return res.status(403).json({ msg: 'You were removed from this class and cannot rejoin this code.' });
   }
   if (!room.participants.includes(name)) room.participants.push(name);
-  return res.json({ msg: 'Joined', code, host: room.host, title: room.title, participants: room.participants });
+  return res.json({
+    msg: 'Joined',
+    code,
+    port: room.port,
+    host: room.host,
+    title: room.title,
+    participants: room.participants
+  });
 });
 
 app.post('/api/classes/:code/share', (req, res) => {

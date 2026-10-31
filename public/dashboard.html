@@ -1340,15 +1340,21 @@
                     <div id="codeSetupPanel" class="w-full max-w-sm text-center">
                       <p class="text-lg font-semibold mb-2">Start a live class</p>
                       <input id="hostClassTitle" type="text" placeholder="Class title" class="w-full mb-2 px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-600 text-sm">
-                      <div class="flex gap-2 mb-3">
+                      <div class="flex gap-2 mb-2">
                         <input id="hostClassCode" type="text" placeholder="Class code" class="flex-1 px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-600 text-sm font-mono uppercase">
                         <button type="button" onclick="generateClassCode()" class="px-3 rounded-xl bg-slate-700 text-sm">Gen</button>
                       </div>
+                      <div class="flex gap-2 mb-3">
+                        <input id="hostClassPort" type="number" min="1" max="65535" placeholder="Class port" class="flex-1 px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-600 text-sm font-mono" title="Everyone joining must use this same port number">
+                        <button type="button" onclick="generateClassPort()" class="px-3 rounded-xl bg-slate-700 text-sm" title="Suggest a new port">Port</button>
+                      </div>
+                      <p class="text-[11px] text-slate-400 mb-3 text-left leading-relaxed">Class port is chosen here (suggested or your own). Joiners must enter the <strong class="text-slate-300">same code and port</strong>. Nothing is fixed on the server.</p>
                       <button onclick="startClassWithCode()" class="w-full py-3 rounded-xl bg-brand font-semibold hover:opacity-90">Start Class &amp; Open Camera</button>
                     </div>
                     <div id="waitingAfterStart" class="hidden text-center">
                       <p class="text-lg font-semibold">Waiting for students…</p>
-                      <p class="text-sm text-slate-400 mt-2">Share code <span id="shareCodeHint" class="font-mono text-emerald-300"></span></p>
+                      <p class="text-sm text-slate-400 mt-2">Share code <span id="shareCodeHint" class="font-mono text-emerald-300"></span>
+                        · port <span id="sharePortHint" class="font-mono text-amber-300"></span></p>
                       <button type="button" onclick="dismissWaiting()" class="mt-4 text-sm text-emerald-300 underline">Hide this overlay</button>
                     </div>
                   </div>
@@ -1515,10 +1521,11 @@
           <div class="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 text-center max-w-lg mx-auto">
             <div class="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-5"><i class="fas fa-door-open text-3xl brand-green"></i></div>
             <h3 class="text-2xl font-bold mb-2">Join a Live Class</h3>
-            <p class="text-slate-500 mb-6">Enter the class code shared by your teacher or host.</p>
-            <input id="joinCode" type="text" placeholder="e.g. NOA-2026-MATH" class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-center text-lg font-mono focus:ring-2 focus:ring-green-300 mb-4">
+            <p class="text-slate-500 mb-6">Enter the <strong>class code</strong> and <strong>class port</strong> your host shared. Both must match.</p>
+            <input id="joinCode" type="text" placeholder="Class code e.g. NOA-2026-MATH" class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-center text-lg font-mono focus:ring-2 focus:ring-green-300 mb-3">
+            <input id="joinPort" type="number" min="1" max="65535" placeholder="Class port (same number as host)" class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-center text-lg font-mono focus:ring-2 focus:ring-amber-300 mb-4">
             <button onclick="joinClass()" class="w-full py-3 rounded-2xl bg-brand text-white font-semibold hover:opacity-90">Join Now</button>
-            <p class="text-xs text-slate-400 mt-4">You will be placed in the waiting room until the host admits you.</p>
+            <p class="text-xs text-slate-400 mt-4">Code + port must match the host. No fixed server port is required.</p>
           </div>
         </section>
 
@@ -3842,27 +3849,52 @@ function generateClassCode() {
   if (el) el.value = code;
 }
 
+function generateClassPort() {
+  // Dynamic suggestion only — host may edit to any 1–65535
+  const port = 10000 + Math.floor(Math.random() * 50000);
+  const el = document.getElementById('hostClassPort');
+  if (el) el.value = String(port);
+  return port;
+}
+
+function ensureHostPortReady() {
+  const el = document.getElementById('hostClassPort');
+  if (!el) return generateClassPort();
+  const n = parseInt(String(el.value || '').trim(), 10);
+  if (!Number.isFinite(n) || n < 1 || n > 65535) {
+    return generateClassPort();
+  }
+  return n;
+}
+
 async function startClassWithCode() {
   if (!canHostClass()) { alert('Only approved staff and administrators can start a class.'); return; }
   let code = (document.getElementById('hostClassCode').value || '').trim().toUpperCase();
   const title = (document.getElementById('hostClassTitle').value || 'Olympiad Class').trim();
   if (!code) { generateClassCode(); code = document.getElementById('hostClassCode').value; }
+  const port = ensureHostPortReady();
   try {
     const res = await fetch('/api/classes/start', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
-      body: JSON.stringify({ code, title })
+      body: JSON.stringify({ code, title, port })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.msg || 'Could not start class');
     activeClassCode = data.code;
+    window.activeClassPort = data.port != null ? Number(data.port) : port;
     const badge = document.getElementById('classCodeBadge');
-    if (badge) { badge.textContent = 'Code: ' + data.code; badge.classList.remove('hidden'); }
+    if (badge) {
+      badge.textContent = 'Code: ' + data.code + (data.port != null ? ' · Port: ' + data.port : '');
+      badge.classList.remove('hidden');
+    }
     document.getElementById('classStatus').textContent = 'Live · ' + (title || 'Class');
     document.getElementById('codeSetupPanel')?.classList.add('hidden');
     document.getElementById('waitingAfterStart')?.classList.remove('hidden');
     const hint = document.getElementById('shareCodeHint');
     if (hint) hint.textContent = data.code;
+    const ph = document.getElementById('sharePortHint');
+    if (ph) ph.textContent = String(data.port != null ? data.port : port);
     // Media FIRST, then signaling — critical for remote peers to receive tracks
     await getLocalMedia();
     joinSocketRoom(data.code, true);
@@ -3879,7 +3911,14 @@ async function initClassroom() {
   document.getElementById('codeSetupPanel')?.classList.remove('hidden');
   document.getElementById('waitingAfterStart')?.classList.add('hidden');
   document.getElementById('sharedFilePanel')?.classList.add('hidden');
-  if (!activeClassCode) document.getElementById('classStatus').textContent = 'Set a class code to start';
+  if (!activeClassCode) {
+    document.getElementById('classStatus').textContent = 'Set class code + port to start';
+    // Suggest a port when opening Host Class (host can edit freely)
+    const portEl = document.getElementById('hostClassPort');
+    if (portEl && !String(portEl.value || '').trim()) generateClassPort();
+    const codeEl = document.getElementById('hostClassCode');
+    if (codeEl && !String(codeEl.value || '').trim()) generateClassCode();
+  }
   whiteboardOpen = false;
   document.getElementById('whiteboardPanel')?.classList.add('hidden');
 }
@@ -3887,6 +3926,12 @@ async function initClassroom() {
 function joinClass() {
   const code = (document.getElementById('joinCode').value || '').trim().toUpperCase();
   if (!code) { alert('Please enter a class code'); return; }
+  const portRaw = (document.getElementById('joinPort') && document.getElementById('joinPort').value) || '';
+  const port = parseInt(String(portRaw).trim(), 10);
+  if (!Number.isFinite(port) || port < 1 || port > 65535) {
+    alert('Please enter the class port (same number the host shared).');
+    return;
+  }
   try {
     if (localStorage.getItem('noa_banned_' + code) === '1') {
       alert('You were removed from this class and cannot rejoin this code.');
@@ -3897,11 +3942,12 @@ function joinClass() {
   fetch('/api/classes/' + encodeURIComponent(code) + '/join', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, email: user.email || '', userId: user.id || '' })
+    body: JSON.stringify({ name, email: user.email || '', userId: user.id || '', port })
   }).then(async (res) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.msg || 'Class not found');
     activeClassCode = code;
+    window.activeClassPort = data.port != null ? Number(data.port) : port;
     showSection('startClass');
     setTimeout(async () => {
       document.getElementById('codeSetupPanel')?.classList.add('hidden');
@@ -3909,7 +3955,10 @@ function joinClass() {
       const ov = document.getElementById('waitingOverlay');
       if (ov) ov.style.display = 'none';
       const badge = document.getElementById('classCodeBadge');
-      if (badge) { badge.textContent = 'Code: ' + code; badge.classList.remove('hidden'); }
+      if (badge) {
+        badge.textContent = 'Code: ' + code + (window.activeClassPort ? ' · Port: ' + window.activeClassPort : '');
+        badge.classList.remove('hidden');
+      }
       document.getElementById('classStatus').textContent = 'Joined · Host: ' + (data.host || '—');
       await getLocalMedia();
       joinSocketRoom(code, false);
@@ -6334,16 +6383,18 @@ function renderClassMonitor(ongoing, closed) {
     var started = formatClassTime(item.createdAt);
     var isLive = item.status === 'live' || !faded;
     var safeCode = String(item.code || '').replace(/"/g, '').replace(/</g, '');
+    var safePort = item.port != null ? String(item.port) : '';
     var extra = isLive
       ? '<span class="text-[10px] font-bold uppercase tracking-wide text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Live</span>'
       : '<span class="text-[10px] font-bold uppercase tracking-wide text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Closed</span>';
     var ended = item.endedAt ? ' · ended ' + formatClassTime(item.endedAt) : '';
     var code = safeCode ? '<span class="font-mono text-[11px] text-slate-500">' + safeCode + '</span>' : '';
+    var portBadge = safePort ? '<span class="font-mono text-[11px] text-amber-700 ml-2">port ' + safePort + '</span>' : '';
     var joinHint = isLive
-      ? '<p class="text-[11px] text-emerald-700 font-semibold mt-1"><i class="fas fa-sign-in-alt mr-1"></i>Tap to join · code ready</p>'
+      ? '<p class="text-[11px] text-emerald-700 font-semibold mt-1"><i class="fas fa-sign-in-alt mr-1"></i>Tap to join · code + port ready</p>'
       : '';
     var clickable = isLive && safeCode
-      ? ' role="button" tabindex="0" onclick="joinClassFromMonitor(\'' + safeCode.replace(/'/g, '') + '\')" onkeydown="if(event.key===\'Enter\')joinClassFromMonitor(\'' + safeCode.replace(/'/g, '') + '\')" class="cursor-pointer hover:ring-2 hover:ring-emerald-300 transition '
+      ? ' role="button" tabindex="0" onclick="joinClassFromMonitor(\'' + safeCode.replace(/'/g, '') + '\',' + (safePort || 'null') + ')" onkeydown="if(event.key===\'Enter\')joinClassFromMonitor(\'' + safeCode.replace(/'/g, '') + '\',' + (safePort || 'null') + ')" class="cursor-pointer hover:ring-2 hover:ring-emerald-300 transition '
       : ' class="';
     return (
       '<div' + clickable + 'flex items-start justify-between gap-3 px-4 py-3 rounded-2xl border ' +
@@ -6356,7 +6407,7 @@ function renderClassMonitor(ongoing, closed) {
           '<p class="text-xs text-slate-500 mt-0.5">Started ' + started + ended +
             (item.title ? ' · ' + String(item.title).replace(/</g, '').slice(0, 40) : '') +
           '</p>' +
-          (code ? '<p class="mt-1">' + code + '</p>' : '') +
+          (code || portBadge ? '<p class="mt-1">' + code + portBadge + '</p>' : '') +
           joinHint +
         '</div>' +
         '<div class="shrink-0 flex flex-col items-end gap-1">' + extra +
@@ -6413,8 +6464,8 @@ function classMonitorAskMore() {
   openClassMonitor(h);
 }
 
-/** Admin/mod: join an ongoing class using the host's exact code (no need to ask) */
-function joinClassFromMonitor(code) {
+/** Admin/mod: join using host code + port (suggested automatically from monitor) */
+function joinClassFromMonitor(code, port) {
   if (!isAdminModRole()) {
     alert('Only admins and moderators can join from this list.');
     return;
@@ -6425,14 +6476,18 @@ function joinClassFromMonitor(code) {
     return;
   }
   closeClassMonitor();
-  // Prefill Join Class field so the code is visible / suggested
   var input = document.getElementById('joinCode');
   if (input) input.value = code;
-  // Go to Join Class section (code already filled) then join automatically
+  var portInput = document.getElementById('joinPort');
+  if (portInput && port != null && port !== '' && Number.isFinite(Number(port))) {
+    portInput.value = String(port);
+  }
   try { showSection('joinClass'); } catch (e) {}
-  // Small delay so the section is visible before join starts media
   setTimeout(function () {
     if (input) input.value = code;
+    if (portInput && port != null && port !== '' && Number.isFinite(Number(port))) {
+      portInput.value = String(port);
+    }
     joinClass();
   }, 120);
 }
