@@ -343,6 +343,33 @@ usersDb.exec(`
   );
 `);
 
+// ===================== JSON DOCUMENTS → Supabase (replaces disk JSON files) =====================
+// Stores admins.json, posts.json, class-history.json, class-summaries.json,
+// certificates.json, database.json (AI knowledge), etc.
+usersDb.exec(`
+  CREATE TABLE IF NOT EXISTS json_documents (
+    key TEXT PRIMARY KEY,
+    data TEXT NOT NULL DEFAULT '{}',
+    updated_at TEXT DEFAULT (datetime('now'))
+  );
+`);
+
+// Live class rooms (host/join) — survives restarts; no class-history-only JSON
+usersDb.exec(`
+  CREATE TABLE IF NOT EXISTS live_classes (
+    code TEXT PRIMARY KEY,
+    host TEXT DEFAULT '',
+    host_id TEXT DEFAULT '',
+    title TEXT DEFAULT 'Olympiad Class',
+    port INTEGER,
+    created_at TEXT DEFAULT (datetime('now')),
+    participants_json TEXT DEFAULT '[]',
+    banned_json TEXT DEFAULT '[]',
+    shared_file_json TEXT DEFAULT 'null',
+    room_json TEXT DEFAULT '{}'
+  );
+`);
+
 // ===================== AI CONVERSATIONS (Supabase / Postgres via usersDb) =====================
 usersDb.exec(`
   CREATE TABLE IF NOT EXISTS ai_conversations (
@@ -420,7 +447,81 @@ function isAdminLikeRole(decoded) {
 
 const liveClasses = new Map();
 
-/** Persist live/closed class sessions for admin monitoring */
+const resolveDataFile = (file) => {
+  if (path.isAbsolute(file)) return file;
+  return path.join(__dirname, file);
+};
+
+function jsonDocDefaults(key) {
+  const k = String(key || '').toLowerCase();
+  if (k.includes('post')) return { posts: [] };
+  if (k.includes('class-history') || k.includes('class_history')) return { sessions: [] };
+  if (k.includes('class-sum')) return { summaries: [] };
+  if (k.includes('cert')) return { certificates: {} };
+  if (k.includes('database') || k.includes('ai-knowledge')) return { behaviorals: '', behavior: null, knowledge: [] };
+  if (k.includes('ai-conversation')) return { conversations: [] };
+  return { admins: [] };
+}
+
+/**
+ * All former on-disk JSON now lives in Supabase table `json_documents`.
+ * On first read, migrates from disk file if present (then ignores disk writes).
+ */
+const readJson = (file) => {
+  const key = path.basename(String(file || ''));
+  try {
+    const row = usersDb.prepare(`SELECT data FROM json_documents WHERE key = ?`).get(key);
+    if (row && row.data != null && String(row.data).trim() !== '') {
+      try {
+        return JSON.parse(row.data);
+      } catch (e) {
+        /* fall through */
+      }
+    }
+  } catch (e) {
+    console.error('readJson db', key, e.message);
+  }
+
+  // One-time migrate from disk (fixes Contabo EACCES by never writing disk again)
+  try {
+    const diskPath = resolveDataFile(file);
+    if (fs.existsSync(diskPath)) {
+      const raw = fs.readFileSync(diskPath, 'utf8');
+      const parsed = JSON.parse(raw);
+      try {
+        writeJson(file, parsed);
+        try {
+          fs.renameSync(diskPath, diskPath + '.migrated');
+        } catch (e2) {}
+        console.log('[db] Migrated ' + key + ' → Supabase json_documents');
+      } catch (e3) {
+        console.error('migrate write', key, e3.message);
+      }
+      return parsed;
+    }
+  } catch (e) {}
+
+  return jsonDocDefaults(key);
+};
+
+const writeJson = (file, data) => {
+  const key = path.basename(String(file || ''));
+  const payload = JSON.stringify(data == null ? {} : data);
+  try {
+    usersDb.prepare(`
+      INSERT INTO json_documents (key, data, updated_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(key) DO UPDATE SET
+        data = excluded.data,
+        updated_at = excluded.updated_at
+    `).run(key, payload, new Date().toISOString());
+  } catch (err) {
+    console.error('writeJson failed for', key, err.message);
+    throw err;
+  }
+};
+
+/** Persist live/closed class sessions for admin monitoring (Supabase) */
 function loadClassHistory() {
   try {
     const data = readJson('class-history.json');
@@ -430,7 +531,6 @@ function loadClassHistory() {
   }
 }
 function saveClassHistory(sessions) {
-  // Keep last ~500 sessions to avoid unbounded growth
   const trimmed = (sessions || []).slice(-500);
   writeJson('class-history.json', { sessions: trimmed });
 }
@@ -458,24 +558,96 @@ function closeClassHistory(code) {
   if (changed) saveClassHistory(sessions);
 }
 
+function roomToLiveRow(code, room) {
+  return {
+    code: String(code).toUpperCase(),
+    host: room.host || '',
+    host_id: room.hostId != null ? String(room.hostId) : '',
+    title: room.title || 'Olympiad Class',
+    port: room.port != null ? Number(room.port) : null,
+    created_at: room.createdAt || new Date().toISOString(),
+    participants_json: JSON.stringify(room.participants || []),
+    banned_json: JSON.stringify(room.banned || []),
+    shared_file_json: JSON.stringify(room.sharedFile == null ? null : room.sharedFile),
+    room_json: JSON.stringify(room)
+  };
+}
 
-
-const resolveDataFile = (file) => {
-  if (path.isAbsolute(file)) return file;
-  return path.join(__dirname, file);
-};
-
-const readJson = (file) => {
+function liveRowToRoom(row) {
+  if (!row) return null;
   try {
-    return JSON.parse(fs.readFileSync(resolveDataFile(file), 'utf8'));
-  } catch (e) {
-    return String(file).includes('posts') ? { posts: [] } : { admins: [] };
-  }
-};
+    if (row.room_json) {
+      const parsed = JSON.parse(row.room_json);
+      if (parsed && typeof parsed === 'object') return parsed;
+    }
+  } catch (e) {}
+  let participants = [];
+  let banned = [];
+  let sharedFile = null;
+  try { participants = JSON.parse(row.participants_json || '[]'); } catch (e) {}
+  try { banned = JSON.parse(row.banned_json || '[]'); } catch (e) {}
+  try { sharedFile = JSON.parse(row.shared_file_json || 'null'); } catch (e) {}
+  return {
+    host: row.host || 'Host',
+    hostId: row.host_id || '',
+    title: row.title || 'Olympiad Class',
+    port: row.port != null ? Number(row.port) : null,
+    createdAt: row.created_at,
+    participants,
+    banned,
+    sharedFile
+  };
+}
 
-const writeJson = (file, data) => {
-  fs.writeFileSync(resolveDataFile(file), JSON.stringify(data, null, 2));
-};
+function saveLiveClassToDb(code, room) {
+  const r = roomToLiveRow(code, room);
+  try {
+    usersDb.prepare(`
+      INSERT INTO live_classes (code, host, host_id, title, port, created_at, participants_json, banned_json, shared_file_json, room_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(code) DO UPDATE SET
+        host = excluded.host,
+        host_id = excluded.host_id,
+        title = excluded.title,
+        port = excluded.port,
+        created_at = excluded.created_at,
+        participants_json = excluded.participants_json,
+        banned_json = excluded.banned_json,
+        shared_file_json = excluded.shared_file_json,
+        room_json = excluded.room_json
+    `).run(
+      r.code, r.host, r.host_id, r.title, r.port, r.created_at,
+      r.participants_json, r.banned_json, r.shared_file_json, r.room_json
+    );
+  } catch (e) {
+    console.error('saveLiveClassToDb', e.message);
+  }
+}
+
+function deleteLiveClassFromDb(code) {
+  try {
+    usersDb.prepare(`DELETE FROM live_classes WHERE code = ?`).run(String(code).toUpperCase());
+  } catch (e) {
+    console.error('deleteLiveClassFromDb', e.message);
+  }
+}
+
+function loadLiveClassesFromDb() {
+  try {
+    const rows = usersDb.prepare(`SELECT * FROM live_classes`).all() || [];
+    for (const row of rows) {
+      const code = String(row.code || '').toUpperCase();
+      if (!code) continue;
+      const room = liveRowToRoom(row);
+      if (room) liveClasses.set(code, room);
+    }
+    if (rows.length) console.log('[db] Restored ' + rows.length + ' live class(es) from Supabase');
+  } catch (e) {
+    console.error('loadLiveClassesFromDb', e.message);
+  }
+}
+
+try { loadLiveClassesFromDb(); } catch (e) {}
 
 // Safe bcrypt compare — never throws on plain-text / malformed env hashes
 async function safeBcryptCompare(plain, hashed) {
@@ -2579,7 +2751,7 @@ app.post('/api/classes/start', (req, res) => {
     }
   }
   const createdAt = new Date().toISOString();
-  liveClasses.set(code, {
+  const room = {
     host,
     hostId,
     title: req.body.title || 'Olympiad Class',
@@ -2588,7 +2760,9 @@ app.post('/api/classes/start', (req, res) => {
     participants: [],
     banned: [], // names / userIds / emails that cannot rejoin this code
     sharedFile: null
-  });
+  };
+  liveClasses.set(code, room);
+  saveLiveClassToDb(code, room);
   upsertClassHistory({
     code,
     port,
@@ -2723,6 +2897,7 @@ app.post('/api/classes/:code/join', (req, res) => {
     return res.status(403).json({ msg: 'You were removed from this class and cannot rejoin this code.' });
   }
   if (!room.participants.includes(name)) room.participants.push(name);
+  saveLiveClassToDb(code, room);
   return res.json({
     msg: 'Joined',
     code,
@@ -2738,6 +2913,7 @@ app.post('/api/classes/:code/share', (req, res) => {
   const room = liveClasses.get(code);
   if (!room) return res.status(404).json({ msg: 'Class not found' });
   room.sharedFile = req.body.file || null; // { name, url or dataUrl }
+  saveLiveClassToDb(code, room);
   return res.json({ msg: 'File shared', sharedFile: room.sharedFile });
 });
 
@@ -2761,6 +2937,7 @@ app.delete('/api/classes/:code', (req, res) => {
     closeClassHistory(code);
   }
   liveClasses.delete(code);
+  deleteLiveClassFromDb(code);
   return res.json({ msg: 'Class ended' });
 });
 
@@ -3493,14 +3670,19 @@ app.post('/api/quizzes/upload-doc', upload.single('file'), (req, res) => {
 
 
 // ===================== AI KNOWLEDGE ASSISTANT (V5 — HYPER-HUMAN) =====================
-const AI_DB_FILE = path.join(__dirname, 'database.json');
-const AI_CONV_FILE = path.join(__dirname, 'ai-conversations.json'); // legacy JSON; migrated into Supabase
+const AI_DB_FILE = 'database.json'; // stored in Supabase json_documents
+const AI_CONV_FILE = path.join(__dirname, 'ai-conversations.json'); // legacy; chats are in ai_* tables
 
 function readAiDb() {
-  try { return JSON.parse(fs.readFileSync(AI_DB_FILE, 'utf8')); }
-  catch (e) { return { behaviorals: '', behavior: null, knowledge: [] }; }
+  try {
+    const data = readJson(AI_DB_FILE);
+    if (data && (data.knowledge || data.behaviorals || data.behavior)) return data;
+  } catch (e) {}
+  return { behaviorals: '', behavior: null, knowledge: [] };
 }
-function writeAiDb(data) { fs.writeFileSync(AI_DB_FILE, JSON.stringify(data, null, 2)); }
+function writeAiDb(data) {
+  writeJson(AI_DB_FILE, data || { behaviorals: '', behavior: null, knowledge: [] });
+}
 
 const AI_CONV_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -5063,14 +5245,19 @@ app.get('/api/webrtc-config', (req, res) => {
   });
 });
 
-// ===================== CLASS SUMMARIES =====================
-const CLASS_SUM_FILE = path.join(__dirname, 'class-summaries.json');
+// ===================== CLASS SUMMARIES (Supabase json_documents) =====================
+const CLASS_SUM_FILE = 'class-summaries.json';
 function readClassSummaries() {
-  try { return JSON.parse(fs.readFileSync(CLASS_SUM_FILE, 'utf8')); }
-  catch (e) { return { summaries: [] }; }
+  try {
+    const data = readJson(CLASS_SUM_FILE);
+    if (!data.summaries) data.summaries = [];
+    return data;
+  } catch (e) {
+    return { summaries: [] };
+  }
 }
 function writeClassSummaries(data) {
-  fs.writeFileSync(CLASS_SUM_FILE, JSON.stringify(data, null, 2));
+  writeJson(CLASS_SUM_FILE, data || { summaries: [] });
 }
 
 app.get('/api/class-summaries', (req, res) => {
@@ -5278,6 +5465,7 @@ io.on('connection', (socket) => {
         if (!lc.banned.includes(k)) lc.banned.push(k);
       });
       lc.participants = (lc.participants || []).filter(p => p !== targetName);
+      try { saveLiveClassToDb(roomCode, lc); } catch (e) {}
     }
 
     io.to(targetId).emit('kicked', {
@@ -5403,16 +5591,21 @@ app.get('/api/gallery/:name', (req, res) => {
 
 
 
-// ===================== PERFORMANCE CERTIFICATES (signed / anti-forgery) =====================
-const CERT_FILE = path.join(__dirname, 'certificates.json');
+// ===================== PERFORMANCE CERTIFICATES (Supabase json_documents) =====================
+const CERT_FILE = 'certificates.json';
 const CERT_HMAC_SECRET = process.env.CERT_HMAC_SECRET || (JWT_SECRET + ':NOA-CERT-v1');
 
 function readCerts() {
-  try { return JSON.parse(fs.readFileSync(CERT_FILE, 'utf8')); }
-  catch (e) { return { certificates: {} }; }
+  try {
+    const data = readJson(CERT_FILE);
+    if (!data.certificates) data.certificates = {};
+    return data;
+  } catch (e) {
+    return { certificates: {} };
+  }
 }
 function writeCerts(data) {
-  fs.writeFileSync(CERT_FILE, JSON.stringify(data, null, 2));
+  writeJson(CERT_FILE, data || { certificates: {} });
 }
 
 function bandFromPct(pct) {
