@@ -343,6 +343,38 @@ usersDb.exec(`
   );
 `);
 
+// ===================== AI CONVERSATIONS (Supabase / Postgres via usersDb) =====================
+usersDb.exec(`
+  CREATE TABLE IF NOT EXISTS ai_conversations (
+    id TEXT PRIMARY KEY,
+    visitor_id TEXT DEFAULT '',
+    name TEXT DEFAULT '',
+    email TEXT DEFAULT '',
+    phone TEXT DEFAULT '',
+    summary TEXT DEFAULT '',
+    status TEXT DEFAULT 'ai',
+    unread_moderator INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+  );
+`);
+usersDb.exec(`
+  CREATE TABLE IF NOT EXISTS ai_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    conversation_id TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'user',
+    text TEXT NOT NULL DEFAULT '',
+    by_name TEXT DEFAULT '',
+    at TEXT DEFAULT (datetime('now'))
+  );
+`);
+try {
+  usersDb.exec(`CREATE INDEX IF NOT EXISTS idx_ai_conv_visitor ON ai_conversations(visitor_id)`);
+  usersDb.exec(`CREATE INDEX IF NOT EXISTS idx_ai_conv_status ON ai_conversations(status)`);
+  usersDb.exec(`CREATE INDEX IF NOT EXISTS idx_ai_conv_updated ON ai_conversations(updated_at)`);
+  usersDb.exec(`CREATE INDEX IF NOT EXISTS idx_ai_msg_conv ON ai_messages(conversation_id)`);
+} catch (e) {}
+
 function getActiveMsgMute(userId) {
   if (userId == null) return null;
   try {
@@ -3462,18 +3494,13 @@ app.post('/api/quizzes/upload-doc', upload.single('file'), (req, res) => {
 
 // ===================== AI KNOWLEDGE ASSISTANT (V5 — HYPER-HUMAN) =====================
 const AI_DB_FILE = path.join(__dirname, 'database.json');
-const AI_CONV_FILE = path.join(__dirname, 'ai-conversations.json');
+const AI_CONV_FILE = path.join(__dirname, 'ai-conversations.json'); // legacy JSON; migrated into Supabase
 
 function readAiDb() {
   try { return JSON.parse(fs.readFileSync(AI_DB_FILE, 'utf8')); }
   catch (e) { return { behaviorals: '', behavior: null, knowledge: [] }; }
 }
 function writeAiDb(data) { fs.writeFileSync(AI_DB_FILE, JSON.stringify(data, null, 2)); }
-function readAiConv() {
-  try { return JSON.parse(fs.readFileSync(AI_CONV_FILE, 'utf8')); }
-  catch (e) { return { conversations: [] }; }
-}
-function writeAiConv(data) { fs.writeFileSync(AI_CONV_FILE, JSON.stringify(data, null, 2)); }
 
 const AI_CONV_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -3490,6 +3517,154 @@ function isConversationExpired(conv) {
   if (!last) return true;
   return (Date.now() - last) > AI_CONV_TTL_MS;
 }
+
+function aiRowToConv(row) {
+  if (!row) return null;
+  const messageRows = usersDb.prepare(
+    `SELECT role, text, by_name, at FROM ai_messages WHERE conversation_id = ? ORDER BY id ASC`
+  ).all(row.id);
+  const messages = (messageRows || []).map(m => ({
+    role: m.role,
+    text: m.text,
+    at: m.at,
+    ...(m.by_name ? { by: m.by_name } : {})
+  }));
+  return {
+    id: row.id,
+    visitorId: row.visitor_id || '',
+    name: row.name || '',
+    email: row.email || '',
+    phone: row.phone || '',
+    summary: row.summary || '',
+    status: row.status || 'ai',
+    unreadModerator: !!Number(row.unread_moderator),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    messages
+  };
+}
+
+function saveAiConversationToDb(conv) {
+  if (!conv || !conv.id) return;
+  usersDb.prepare(`
+    INSERT INTO ai_conversations (id, visitor_id, name, email, phone, summary, status, unread_moderator, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      visitor_id = excluded.visitor_id,
+      name = excluded.name,
+      email = excluded.email,
+      phone = excluded.phone,
+      summary = excluded.summary,
+      status = excluded.status,
+      unread_moderator = excluded.unread_moderator,
+      updated_at = excluded.updated_at
+  `).run(
+    String(conv.id),
+    String(conv.visitorId || ''),
+    String(conv.name || ''),
+    String(conv.email || ''),
+    String(conv.phone || ''),
+    String(conv.summary || ''),
+    String(conv.status || 'ai'),
+    conv.unreadModerator ? 1 : 0,
+    conv.createdAt || new Date().toISOString(),
+    conv.updatedAt || new Date().toISOString()
+  );
+
+  usersDb.prepare(`DELETE FROM ai_messages WHERE conversation_id = ?`).run(conv.id);
+  const ins = usersDb.prepare(
+    `INSERT INTO ai_messages (conversation_id, role, text, by_name, at) VALUES (?, ?, ?, ?, ?)`
+  );
+  const msgs = Array.isArray(conv.messages) ? conv.messages : [];
+  for (const m of msgs) {
+    ins.run(
+      conv.id,
+      String(m.role || 'user'),
+      String(m.text || ''),
+      String(m.by || ''),
+      String(m.at || new Date().toISOString())
+    );
+  }
+}
+
+function deleteAiConversationFromDb(id) {
+  if (!id) return;
+  usersDb.prepare(`DELETE FROM ai_messages WHERE conversation_id = ?`).run(id);
+  usersDb.prepare(`DELETE FROM ai_conversations WHERE id = ?`).run(id);
+}
+
+function loadAllAiConversationsFromDb() {
+  const rows = usersDb.prepare(
+    `SELECT * FROM ai_conversations ORDER BY updated_at DESC`
+  ).all();
+  return (rows || []).map(aiRowToConv);
+}
+
+/** One-time import from legacy ai-conversations.json into Supabase */
+function migrateAiConversationsFromJson() {
+  try {
+    if (!fs.existsSync(AI_CONV_FILE)) return;
+    const countRow = usersDb.prepare(`SELECT COUNT(1) AS c FROM ai_conversations`).get();
+    const count = countRow && (countRow.c != null ? countRow.c : countRow.count);
+    if (Number(count) > 0) {
+      try { fs.renameSync(AI_CONV_FILE, AI_CONV_FILE + '.migrated'); } catch (e) {}
+      return;
+    }
+    let data;
+    try {
+      data = JSON.parse(fs.readFileSync(AI_CONV_FILE, 'utf8'));
+    } catch (e) {
+      return;
+    }
+    const list = (data && data.conversations) || [];
+    if (!list.length) {
+      try { fs.renameSync(AI_CONV_FILE, AI_CONV_FILE + '.migrated'); } catch (e) {}
+      return;
+    }
+    for (const c of list) {
+      if (!c || !c.id) continue;
+      saveAiConversationToDb(c);
+    }
+    try { fs.renameSync(AI_CONV_FILE, AI_CONV_FILE + '.migrated'); } catch (e) {}
+    console.log('[AI] Migrated ' + list.length + ' conversation(s) from ai-conversations.json → Supabase');
+  } catch (err) {
+    console.error('[AI] Conversation migration error:', err.message);
+  }
+}
+
+try { migrateAiConversationsFromJson(); } catch (e) {}
+
+/** Compatible shape: { conversations: [...] } backed by Supabase (usersDb) */
+function readAiConv() {
+  try {
+    return { conversations: loadAllAiConversationsFromDb() };
+  } catch (e) {
+    console.error('readAiConv', e);
+    return { conversations: [] };
+  }
+}
+
+function writeAiConv(data) {
+  try {
+    const list = (data && data.conversations) || [];
+    const keepIds = new Set();
+    for (const c of list) {
+      if (!c || !c.id) continue;
+      saveAiConversationToDb(c);
+      keepIds.add(String(c.id));
+    }
+    // Remove rows pruned from the in-memory store (e.g. expired)
+    const all = usersDb.prepare(`SELECT id FROM ai_conversations`).all() || [];
+    for (const row of all) {
+      if (!keepIds.has(String(row.id))) {
+        deleteAiConversationFromDb(row.id);
+      }
+    }
+  } catch (err) {
+    console.error('writeAiConv', err);
+  }
+}
+
 function pruneExpiredConversations(store) {
   const data = store || readAiConv();
   data.conversations = data.conversations || [];
