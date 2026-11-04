@@ -5399,10 +5399,19 @@ io.on('connection', (socket) => {
       }
     }
 
-    socket.join(roomCode);
-
     if (!socketRooms.has(roomCode)) socketRooms.set(roomCode, new Map());
     const room = socketRooms.get(roomCode);
+
+    // Soft capacity (signaling only — WebRTC is star-topology on the client)
+    const maxPart = Math.max(2, Math.min(2000, parseInt(process.env.CLASS_MAX_PARTICIPANTS || '1000', 10) || 1000));
+    if (room.size >= maxPart) {
+      socket.emit('kicked', {
+        reason: 'This class is full (' + maxPart + ' participants). Try again later or ask the host to start a second session.'
+      });
+      return;
+    }
+
+    socket.join(roomCode);
 
     const peers = [];
     room.forEach((info, id) => {
@@ -5424,21 +5433,39 @@ io.on('connection', (socket) => {
       userId: socket.data.userId
     });
 
-    socket.emit('room-peers', { peers, code: roomCode });
+    const members = [];
+    room.forEach((info, id) => {
+      members.push({
+        id,
+        name: info.name,
+        isHost: info.isHost,
+        email: info.email,
+        username: info.username,
+        userId: info.userId
+      });
+    });
+    const count = room.size;
+
+    // New joiner receives existing peers (client only opens WebRTC to host)
+    socket.emit('room-peers', { peers, code: roomCode, count, members });
     socket.to(roomCode).emit('user-joined', {
       id: socket.id,
       name: socket.data.name,
       isHost: socket.data.isHost,
       email: socket.data.email,
       username: socket.data.username,
-      userId: socket.data.userId
+      userId: socket.data.userId,
+      count
     });
+    // Everyone gets full roster count (not limited by WebRTC mesh)
+    io.to(roomCode).emit('room-roster', { count, members, code: roomCode });
 
     if (typeof liveClasses !== 'undefined' && liveClasses.has(roomCode)) {
       const lc = liveClasses.get(roomCode);
       if (!lc.participants.includes(socket.data.name)) {
         lc.participants.push(socket.data.name);
       }
+      try { saveLiveClassToDb(roomCode, lc); } catch (e) {}
     }
 
     console.log(`${socket.data.name} joined room ${roomCode} (${room.size} in room)`);
@@ -5557,11 +5584,25 @@ function leaveCurrentRoom(socket) {
   const roomCode = socket.data.roomCode;
   if (!roomCode) return;
   const room = socketRooms.get(roomCode);
+  let count = 0;
+  const members = [];
   if (room) {
     room.delete(socket.id);
+    count = room.size;
+    room.forEach((info, id) => {
+      members.push({
+        id,
+        name: info.name,
+        isHost: info.isHost,
+        email: info.email,
+        username: info.username,
+        userId: info.userId
+      });
+    });
     if (room.size === 0) socketRooms.delete(roomCode);
   }
-  socket.to(roomCode).emit('user-left', { id: socket.id, name: socket.data.name });
+  socket.to(roomCode).emit('user-left', { id: socket.id, name: socket.data.name, count });
+  socket.to(roomCode).emit('room-roster', { count, members, code: roomCode });
   socket.leave(roomCode);
   socket.data.roomCode = null;
 }

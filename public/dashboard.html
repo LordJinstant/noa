@@ -1394,8 +1394,12 @@
                     <p class="text-slate-400 text-xs font-semibold uppercase tracking-wide">Participants — click to enlarge</p>
                     <span id="livePeerHint" class="text-[10px] text-slate-500">Cameras &amp; mics stream peer-to-peer</span>
                   </div>
-                  <div id="remoteVideos" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-[220px] overflow-y-auto pr-1">
-                    <!-- peer slots filled dynamically -->
+                  <div id="classRosterPanel" class="mb-2 rounded-xl border border-slate-700 bg-slate-900/80 p-2 max-h-28 overflow-y-auto">
+                    <p class="text-[10px] uppercase tracking-wide text-slate-500 mb-1">In this class</p>
+                    <div id="classRosterList" class="space-y-1"></div>
+                  </div>
+                  <div id="remoteVideos" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 max-h-[280px] overflow-y-auto pr-1">
+                    <!-- peer video slots (star: host sees students; students see host) -->
                   </div>
                 </div>
               </div>
@@ -3387,29 +3391,60 @@ function ensureSocket() {
   socket = io({ transports: ['websocket', 'polling'], reconnection: true });
   socket.on('connect', () => console.log('Socket.IO connected', socket.id));
 
-  socket.on('room-peers', async ({ peers: existing }) => {
+  // STAR topology: WebRTC only between host and each participant (not full mesh).
+  // Full mesh collapses around ~3–4 people; star supports many students.
+  socket.on('room-peers', async ({ peers: existing, count }) => {
+    if (count != null) window._roomParticipantCount = Number(count) || 0;
     for (const p of existing || []) {
       peerMeta[p.id] = { name: p.name, isHost: p.isHost, email: p.email, username: p.username, userId: p.userId };
-      // We are the new joiner: create offer to each existing peer
-      await createPeerConnection(p.id, p.name, true);
+      // New joiner: only open WebRTC to the host (or to everyone if we are the host)
+      if (shouldWebRTCWith(p)) {
+        await createPeerConnection(p.id, p.name, true);
+      }
     }
     updateParticipantUI();
+    renderRosterList();
   });
 
-  socket.on('user-joined', async ({ id, name, isHost, email, username, userId }) => {
+  socket.on('user-joined', async ({ id, name, isHost, email, username, userId, count }) => {
+    if (count != null) window._roomParticipantCount = Number(count) || 0;
     peerMeta[id] = { name, isHost, email, username, userId };
-    // Existing peer: wait for their offer (they send offers on room-peers)
-    await createPeerConnection(id, name, false);
+    // Existing members: open WebRTC only if star rule allows; wait for offer from joiner
+    if (shouldWebRTCWith({ id, isHost })) {
+      await createPeerConnection(id, name, false);
+    }
     updateParticipantUI();
+    renderRosterList();
     const st = document.getElementById('classStatus');
     if (st) st.textContent = (name || 'Someone') + ' joined';
   });
 
-  socket.on('user-left', ({ id, name }) => {
+  socket.on('room-roster', ({ count, members }) => {
+    if (count != null) window._roomParticipantCount = Number(count) || 0;
+    if (Array.isArray(members)) {
+      members.forEach(m => {
+        if (m && m.id) {
+          peerMeta[m.id] = {
+            name: m.name,
+            isHost: m.isHost,
+            email: m.email,
+            username: m.username,
+            userId: m.userId
+          };
+        }
+      });
+    }
+    updateParticipantUI();
+    renderRosterList();
+  });
+
+  socket.on('user-left', ({ id, name, count }) => {
+    if (count != null) window._roomParticipantCount = Number(count) || 0;
     if (focusedPeerId === id) clearFocusPeer();
     removePeer(id);
     delete peerMeta[id];
     updateParticipantUI();
+    renderRosterList();
     const st = document.getElementById('classStatus');
     if (st) st.textContent = (name || 'Someone') + ' left';
   });
@@ -3471,41 +3506,95 @@ function ensureSocket() {
   return socket;
 }
 
+/** Star topology: host ↔ each student only (no student–student video mesh). */
+function shouldWebRTCWith(remote) {
+  if (!remote) return false;
+  if (isClassHost) return true; // host connects to every participant
+  return !!remote.isHost; // students only connect to the host
+}
+
 function updateParticipantUI() {
-  const n = Object.keys(peers).length + (mediaStream ? 1 : 0);
+  const rosterN = Number(window._roomParticipantCount);
+  const n = Number.isFinite(rosterN) && rosterN > 0
+    ? rosterN
+    : (Object.keys(peerMeta).length + 1);
   const st = document.getElementById('classStatus');
   const badge = document.getElementById('participantCountBadge');
   if (st && activeClassCode) st.textContent = 'Live · ' + activeClassCode;
-  if (badge) badge.textContent = n + ' connected';
+  if (badge) badge.textContent = n + ' in class';
+}
+
+function renderRosterList() {
+  const el = document.getElementById('classRosterList');
+  if (!el) return;
+  const rows = [];
+  Object.keys(peerMeta).forEach(id => {
+    const m = peerMeta[id] || {};
+    rows.push({
+      id,
+      name: m.name || 'Participant',
+      isHost: !!m.isHost,
+      live: !!peers[id]
+    });
+  });
+  rows.sort((a, b) => (b.isHost - a.isHost) || a.name.localeCompare(b.name));
+  if (!rows.length) {
+    el.innerHTML = '<p class="text-[11px] text-slate-500 px-1">Waiting for participants…</p>';
+    return;
+  }
+  el.innerHTML = rows.map(r =>
+    '<div class="flex items-center justify-between gap-2 px-2 py-1 rounded-lg ' +
+    (r.isHost ? 'bg-emerald-900/40' : 'bg-slate-800/80') + '">' +
+    '<span class="text-[11px] text-slate-200 truncate">' +
+    (r.isHost ? '👑 ' : '') + String(r.name).replace(/</g, '') +
+    '</span>' +
+    '<span class="text-[10px] ' + (r.live ? 'text-emerald-400' : 'text-slate-500') + '">' +
+    (r.live ? 'live' : 'in room') + '</span></div>'
+  ).join('');
 }
 
 async function getLocalMedia() {
   if (mediaStream) return mediaStream;
   try {
+    // Host keeps higher quality; students use lighter video so the host can take many links
+    const videoConstraints = isClassHost
+      ? {
+          width: { min: 640, ideal: 1280, max: 1920 },
+          height: { min: 480, ideal: 720, max: 1080 },
+          frameRate: { ideal: 30, max: 30 },
+          facingMode: 'user',
+          aspectRatio: { ideal: 16 / 9 }
+        }
+      : {
+          width: { ideal: 640, max: 960 },
+          height: { ideal: 360, max: 540 },
+          frameRate: { ideal: 20, max: 24 },
+          facingMode: 'user'
+        };
     mediaStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        width: { min: 640, ideal: 1280, max: 1920 },
-        height: { min: 480, ideal: 720, max: 1080 },
-        frameRate: { ideal: 30, max: 30 },
-        facingMode: 'user',
-        aspectRatio: { ideal: 16 / 9 }
-      },
+      video: videoConstraints,
       audio: {
         echoCancellation: true,
         noiseSuppression: true,
         autoGainControl: true
       }
     });
-    // Prefer higher quality when the device supports it
     try {
       const vTrack = mediaStream.getVideoTracks()[0];
       if (vTrack && vTrack.applyConstraints) {
-        await vTrack.applyConstraints({
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 30 },
-          advanced: [{ width: 1280, height: 720 }]
-        });
+        if (isClassHost) {
+          await vTrack.applyConstraints({
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: 30 }
+          });
+        } else {
+          await vTrack.applyConstraints({
+            width: { ideal: 640 },
+            height: { ideal: 360 },
+            frameRate: { ideal: 20 }
+          });
+        }
       }
     } catch (e) { /* keep stream as-is */ }
     camOn = true;
@@ -3529,6 +3618,9 @@ async function getLocalMedia() {
 
 async function createPeerConnection(remoteId, remoteName, shouldOffer) {
   if (peers[remoteId]) return peers[remoteId];
+  // Guard: never form student–student mesh links
+  const meta = peerMeta[remoteId] || { name: remoteName, isHost: false };
+  if (!isClassHost && !meta.isHost) return null;
   await ensureIceConfig();
   const pc = new RTCPeerConnection(ICE_SERVERS);
   peers[remoteId] = pc;
@@ -3539,7 +3631,23 @@ async function createPeerConnection(remoteId, remoteName, shouldOffer) {
   if (!mediaStream) await getLocalMedia();
   if (mediaStream) {
     mediaStream.getTracks().forEach((track) => {
-      try { pc.addTrack(track, mediaStream); } catch (e) {}
+      try {
+        const sender = pc.addTrack(track, mediaStream);
+        // Cap student uplink so host can accept many connections
+        if (!isClassHost && track.kind === 'video' && sender && sender.setParameters) {
+          try {
+            const params = sender.getParameters();
+            params.encodings = params.encodings && params.encodings.length
+              ? params.encodings
+              : [{}];
+            params.encodings.forEach(enc => {
+              enc.maxBitrate = 350000; // ~350 kbps
+              enc.maxFramerate = 20;
+            });
+            sender.setParameters(params);
+          } catch (e) {}
+        }
+      } catch (e) {}
     });
   }
 
@@ -3574,7 +3682,13 @@ async function createPeerConnection(remoteId, remoteName, shouldOffer) {
 
 async function handleSignal(fromId, data) {
   let pc = peers[fromId];
-  if (!pc) pc = await createPeerConnection(fromId, peerMeta[fromId]?.name || 'Peer', false);
+  if (!pc) {
+    const meta = peerMeta[fromId] || {};
+    // Ignore student↔student signals (star topology)
+    if (!isClassHost && !meta.isHost) return;
+    pc = await createPeerConnection(fromId, meta.name || 'Peer', false);
+  }
+  if (!pc) return;
   try {
     if (data.type === 'offer') {
       await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
