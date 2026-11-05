@@ -5403,7 +5403,7 @@ io.on('connection', (socket) => {
     const room = socketRooms.get(roomCode);
 
     // Soft capacity (signaling only — WebRTC is star-topology on the client)
-    const maxPart = Math.max(2, Math.min(2000, parseInt(process.env.CLASS_MAX_PARTICIPANTS || '1000', 10) || 1000));
+    const maxPart = Math.max(2, Math.min(2000, parseInt(process.env.CLASS_MAX_PARTICIPANTS || '500', 10) || 500));
     if (room.size >= maxPart) {
       socket.emit('kicked', {
         reason: 'This class is full (' + maxPart + ' participants). Try again later or ask the host to start a second session.'
@@ -5523,6 +5523,21 @@ io.on('connection', (socket) => {
   socket.on('wb-clear', ({ code }) => {
     if (!code) return;
     socket.to(String(code).toUpperCase()).emit('wb-clear', { from: socket.id });
+  });
+
+
+  // Whiteboard state sync (late joiners) + media-state relay — LIVE CLASS v2
+  socket.on('wb-request-state', ({ code, to }) => {
+    if (!code || !to) return;
+    io.to(to).emit('wb-request-state', { from: socket.id, code: String(code).toUpperCase() });
+  });
+  socket.on('wb-history', ({ code, to, strokes, open }) => {
+    if (!code || !to) return;
+    io.to(to).emit('wb-history', { from: socket.id, strokes: Array.isArray(strokes) ? strokes : [], open: !!open });
+  });
+  socket.on('media-state', ({ code, mic, cam }) => {
+    if (!code) return;
+    socket.to(String(code).toUpperCase()).emit('media-state', { from: socket.id, mic: !!mic, cam: !!cam });
   });
 
   // File share announce

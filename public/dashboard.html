@@ -1034,6 +1034,36 @@
         animation: none !important;
       }
     }
+
+    /* ================= LIVE CLASS v2 ================= */
+    .mic-waves{display:inline-flex;align-items:flex-end;gap:2px;height:12px;flex-shrink:0}
+    .mic-waves span{width:3px;height:4px;border-radius:2px;background:#34d399;animation:noaWave 1s ease-in-out infinite}
+    .mic-waves span:nth-child(2){animation-delay:.14s}
+    .mic-waves span:nth-child(3){animation-delay:.28s}
+    @keyframes noaWave{0%,100%{height:4px}50%{height:12px}}
+    #classMobileCol{min-height:0}
+    #whiteboardPanel{position:relative;width:100%;height:320px;flex-shrink:0}
+    @media(min-width:1024px){
+      #whiteboardPanel{position:absolute;top:16px;right:16px;z-index:30;width:400px;height:380px;
+        box-shadow:0 24px 60px rgba(0,0,0,.55);border-color:#475569}
+    }
+    #boardHeader{cursor:move}
+    #whiteboardPanel.board-locked #boardHeader{cursor:default}
+    #boardScrollWrap{scrollbar-width:thin;overscroll-behavior:contain}
+    #boardScrollWrap::-webkit-scrollbar{width:8px;height:8px}
+    #boardScrollWrap::-webkit-scrollbar-thumb{background:#334155;border-radius:8px}
+    #boardScrollWrap::-webkit-scrollbar-track{background:transparent}
+    #boardResizeGrip{position:absolute;right:0;bottom:0;width:18px;height:18px;cursor:nwse-resize;
+      color:#64748b;display:none;align-items:flex-end;justify-content:flex-end;padding:2px;z-index:5}
+    @media(min-width:1024px){#boardResizeGrip{display:flex}}
+    #fileViewScroll{overscroll-behavior:contain;touch-action:pan-x pan-y}
+    #participantCountBadge{white-space:nowrap}
+    .roster-row{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:10px;background:rgba(15,23,42,.65)}
+    .roster-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+    @media(max-width:1023px){
+      #remoteVideos{max-height:200px}
+      #classToolbar{position:sticky;top:0;z-index:40;background:#0f172a}
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -1302,41 +1332,37 @@
 
         <!-- START CLASS -->
         <section id="section-startClass" class="hidden space-y-6 fade-in">
-          <div id="liveClassShell" class="bg-slate-900 rounded-3xl overflow-hidden shadow-2xl">
-            <div class="px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-700">
-              <div class="flex items-center gap-3 flex-wrap">
-                <div class="w-3 h-3 rounded-full bg-red-500 animate-pulse"></div>
-                <span class="text-white font-semibold">Live Classroom</span>
-                <span id="classCodeBadge" class="hidden text-xs font-mono px-2.5 py-1 rounded-lg bg-brand/20 text-emerald-300 border border-emerald-500/30"></span>
-                <span id="classStatus" class="text-xs text-slate-400">Set a class code to start</span>
-                <span id="participantCountBadge" class="text-xs text-slate-400"></span>
+          <div id="liveClassShell" class="bg-slate-900 rounded-3xl overflow-hidden shadow-2xl relative">
+            <div class="px-3 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-700" id="classToolbar">
+              <div class="flex items-center gap-2 flex-wrap min-w-0">
+                <div class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shrink-0"></div>
+                <span class="text-white font-semibold text-sm">Live Class</span>
+                <span id="classCodeBadge" class="hidden text-[11px] font-mono px-2 py-1 rounded-lg bg-brand/20 text-emerald-300 border border-emerald-500/30"></span>
+                <span id="participantCountBadge" class="text-[11px] px-2 py-1 rounded-full bg-slate-700/90 text-slate-100 font-bold">1 in class</span>
+                <span id="classStatus" class="text-[11px] text-slate-400 truncate max-w-[200px]">Set a class code to start</span>
               </div>
-              <div class="flex items-center gap-2 flex-wrap">
-                <button id="btnToggleCam" type="button" onclick="toggleCamera()" class="px-3 py-2 rounded-xl bg-slate-700 text-white text-sm hover:bg-slate-600" title="Camera"><i class="fas fa-video mr-1"></i><span class="hidden sm:inline">Cam</span></button>
-                <button id="btnToggleMic" type="button" onclick="toggleMic()" class="px-3 py-2 rounded-xl bg-slate-700 text-white text-sm hover:bg-slate-600" title="Microphone"><i class="fas fa-microphone mr-1"></i><span class="hidden sm:inline">Mic</span></button>
-                <button id="btnScreenShare" type="button" onclick="toggleScreenShare()" class="px-3 py-2 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-400 shadow-lg shadow-indigo-900/40 ring-2 ring-indigo-300/40" title="Share your screen with the class">
-                  <i class="fas fa-desktop mr-1"></i><span>Screen</span>
-                </button>
-                <button id="btnRecordClass" type="button" onclick="toggleClassRecording()" class="hidden px-3 py-2 rounded-xl bg-rose-600 text-white text-sm font-semibold hover:bg-rose-500" title="Record this classroom session">
-                  <i class="fas fa-circle mr-1 text-xs"></i><span>Record</span>
-                </button>
-                <button type="button" onclick="triggerShareFile()" class="px-3 py-2 rounded-xl bg-slate-700 text-white text-sm hover:bg-slate-600" title="Share a file"><i class="fas fa-file-upload mr-1"></i><span class="hidden sm:inline">File</span></button>
-                <button id="btnToggleBoard" type="button" onclick="toggleWhiteboardPanel()" class="px-3 py-2 rounded-xl bg-slate-700 text-white text-sm hover:bg-slate-600" title="Show or hide whiteboard"><i class="fas fa-chalkboard mr-1"></i><span class="hidden sm:inline">Board</span></button>
-                <button id="btnBoardPerm" type="button" onclick="toggleBoardPermission()" class="hidden px-3 py-2 rounded-xl bg-amber-600 text-white text-sm hover:bg-amber-500" title="Allow students to draw"><i class="fas fa-pen-fancy mr-1"></i>Draw</button>
-                <button type="button" onclick="toggleClassFullscreen()" class="px-3 py-2 rounded-xl bg-slate-700 text-white text-sm hover:bg-slate-600" title="Fullscreen"><i class="fas fa-expand mr-1"></i></button>
-                <button type="button" onclick="endClass()" class="px-3 py-2 rounded-xl bg-red-600 text-white text-sm hover:bg-red-500" title="End class"><i class="fas fa-phone-slash mr-1"></i>End</button>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <button id="btnToggleCam" type="button" onclick="toggleCamera()" class="px-2.5 py-2 rounded-xl bg-slate-700 text-white text-xs hover:bg-slate-600" title="Camera"><i class="fas fa-video mr-1"></i><span class="hidden sm:inline">Cam</span></button>
+                <button id="btnToggleMic" type="button" onclick="toggleMic()" class="px-2.5 py-2 rounded-xl bg-slate-700 text-white text-xs hover:bg-slate-600" title="Microphone"><i class="fas fa-microphone mr-1"></i><span class="hidden sm:inline">Mic</span></button>
+                <button id="btnScreenShare" type="button" onclick="toggleScreenShare()" class="px-2.5 py-2 rounded-xl bg-indigo-500 text-white text-xs font-semibold hover:bg-indigo-400 shadow-lg shadow-indigo-900/40 ring-2 ring-indigo-300/40" title="Share your screen with the class"><i class="fas fa-desktop mr-1"></i><span>Screen</span></button>
+                <button id="btnRecordClass" type="button" onclick="toggleClassRecording()" class="hidden px-2.5 py-2 rounded-xl bg-rose-600 text-white text-xs font-semibold hover:bg-rose-500" title="Record this classroom session"><i class="fas fa-circle mr-1 text-[10px]"></i><span>Record</span></button>
+                <button type="button" onclick="triggerShareFile()" class="px-2.5 py-2 rounded-xl bg-slate-700 text-white text-xs hover:bg-slate-600" title="Share a file"><i class="fas fa-file-upload mr-1"></i><span class="hidden sm:inline">File</span></button>
+                <button id="btnToggleBoard" type="button" onclick="toggleWhiteboardPanel()" class="px-2.5 py-2 rounded-xl bg-slate-700 text-white text-xs hover:bg-slate-600" title="Show or hide whiteboard"><i class="fas fa-chalkboard mr-1"></i><span class="hidden sm:inline">Board</span></button>
+                <button id="btnBoardPerm" type="button" onclick="toggleBoardPermission()" class="hidden px-2.5 py-2 rounded-xl bg-amber-600 text-white text-xs hover:bg-amber-500" title="Allow students to draw"><i class="fas fa-pen-fancy mr-1"></i>Draw</button>
+                <button type="button" onclick="toggleClassFullscreen()" class="px-2.5 py-2 rounded-xl bg-slate-700 text-white text-xs hover:bg-slate-600" title="Fullscreen"><i class="fas fa-expand"></i></button>
+                <button type="button" onclick="endClass()" class="px-2.5 py-2 rounded-xl bg-red-600 text-white text-xs hover:bg-red-500" title="End class"><i class="fas fa-phone-slash mr-1"></i>End</button>
               </div>
             </div>
             <input type="file" id="shareFileInput" class="hidden" onchange="onShareFileSelected(event)" accept="*/*">
 
-            <div class="flex flex-col lg:flex-row min-h-[520px]" id="classLayoutRow">
-              <!-- Main stage (grows as board shrinks) -->
-              <div class="flex-1 min-w-0 p-4 space-y-3 relative" id="classMainColumn" style="flex: 1 1 auto;">
+            <div id="classMobileCol" class="flex flex-col">
+              <!-- STAGE: host camera + board overlay (desktop) / next-in-flow (mobile) -->
+              <div id="stageWrap" class="relative flex-1 min-w-0 p-3 sm:p-4 space-y-3">
                 <div id="mainStage" class="relative aspect-video bg-slate-950 rounded-2xl overflow-hidden border border-slate-700">
-                  <video id="localVideo" autoplay muted playsinline class="w-full h-full object-contain bg-black" style="object-fit:contain;transform:none;"></video>
+                  <video id="localVideo" autoplay muted playsinline class="w-full h-full object-contain bg-black"></video>
                   <video id="focusVideo" autoplay playsinline class="hidden w-full h-full object-contain bg-black"></video>
-                  <div id="screenShareBadge" class="hidden absolute top-3 left-3 px-3 py-1 rounded-lg bg-indigo-600 text-white text-xs font-semibold"><i class="fas fa-desktop mr-1"></i>Screen sharing</div>
-                  <div id="waitingOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/95 text-white p-6">
+                  <div id="screenShareBadge" class="hidden absolute top-3 left-3 px-3 py-1 rounded-lg bg-indigo-600 text-white text-xs font-semibold z-10"><i class="fas fa-desktop mr-1"></i>Screen sharing</div>
+                  <div id="waitingOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/95 text-white p-6 z-10">
                     <div id="codeSetupPanel" class="w-full max-w-sm text-center">
                       <p class="text-lg font-semibold mb-2">Start a live class</p>
                       <input id="hostClassTitle" type="text" placeholder="Class title" class="w-full mb-2 px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-600 text-sm">
@@ -1348,7 +1374,7 @@
                         <input id="hostClassPort" type="number" min="1" max="65535" placeholder="Class port" class="flex-1 px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-600 text-sm font-mono" title="Everyone joining must use this same port number">
                         <button type="button" onclick="generateClassPort()" class="px-3 rounded-xl bg-slate-700 text-sm" title="Suggest a new port">Port</button>
                       </div>
-                      <p class="text-[11px] text-slate-400 mb-3 text-left leading-relaxed">Class port is chosen here (suggested or your own). Joiners must enter the <strong class="text-slate-300">same code and port</strong>. Nothing is fixed on the server.</p>
+                      <p class="text-[11px] text-slate-400 mb-3 text-left leading-relaxed">Class port is chosen here (suggested or your own). Joiners must enter the <strong class="text-slate-300">same code and port</strong>. Supports 20–500 participants.</p>
                       <button onclick="startClassWithCode()" class="w-full py-3 rounded-xl bg-brand font-semibold hover:opacity-90">Start Class &amp; Open Camera</button>
                     </div>
                     <div id="waitingAfterStart" class="hidden text-center">
@@ -1358,27 +1384,34 @@
                       <button type="button" onclick="dismissWaiting()" class="mt-4 text-sm text-emerald-300 underline">Hide this overlay</button>
                     </div>
                   </div>
+
+                  <!-- Shared file viewer: zoom / pan / PDF pages, all inside this box -->
                   <div id="sharedFilePanel" class="hidden absolute inset-0 z-20 bg-slate-950 flex flex-col">
-                    <div class="flex items-center justify-between px-3 py-2 bg-slate-900 border-b border-slate-700">
-                      <span id="sharedFileName" class="text-white text-sm truncate font-medium">Shared file</span>
-                      <div class="flex gap-2">
-                        <a id="sharedFileLink" href="#" target="_blank" rel="noopener" class="text-xs text-emerald-300 underline">Open / Download</a>
-                        <button type="button" onclick="closeSharedFile()" class="text-white/80 hover:text-white text-sm px-2">✕</button>
+                    <div class="flex items-center justify-between px-3 py-2 bg-slate-900 border-b border-slate-700 gap-2 flex-wrap">
+                      <span id="sharedFileName" class="text-white text-xs truncate font-medium max-w-[38%]">Shared file</span>
+                      <div class="flex items-center gap-1 text-xs flex-wrap">
+                        <button type="button" onclick="fileZoomOut()" class="w-8 h-8 rounded-lg bg-slate-800 text-white hover:bg-slate-700" title="Zoom out"><i class="fas fa-search-minus"></i></button>
+                        <span id="fileZoomLabel" class="text-slate-300 font-mono w-12 text-center">100%</span>
+                        <button type="button" onclick="fileZoomIn()" class="w-8 h-8 rounded-lg bg-slate-800 text-white hover:bg-slate-700" title="Zoom in"><i class="fas fa-search-plus"></i></button>
+                        <button type="button" onclick="fileZoomFit()" class="px-2.5 h-8 rounded-lg bg-slate-800 text-white hover:bg-slate-700 font-semibold" title="Fit to window">Fit</button>
+                        <span id="filePageWrap" class="hidden items-center gap-1 px-1">
+                          <button type="button" onclick="filePrevPage()" class="w-8 h-8 rounded-lg bg-slate-800 text-white hover:bg-slate-700" title="Previous page"><i class="fas fa-chevron-left"></i></button>
+                          <span id="filePageLabel" class="text-slate-300 font-mono px-1">1/1</span>
+                          <button type="button" onclick="fileNextPage()" class="w-8 h-8 rounded-lg bg-slate-800 text-white hover:bg-slate-700" title="Next page"><i class="fas fa-chevron-right"></i></button>
+                        </span>
+                        <a id="sharedFileLink" href="#" target="_blank" rel="noopener" class="px-2.5 h-8 inline-flex items-center rounded-lg bg-slate-800 text-emerald-300 hover:bg-slate-700 font-semibold">Open</a>
+                        <a id="sharedFileDownload" href="#" download class="px-2.5 h-8 hidden sm:inline-flex items-center rounded-lg bg-slate-800 text-white hover:bg-slate-700 font-semibold">Save</a>
+                        <button type="button" onclick="closeSharedFile()" class="w-8 h-8 rounded-lg bg-slate-800 text-white hover:bg-slate-700" title="Close file"><i class="fas fa-times"></i></button>
                       </div>
                     </div>
-                    <div class="flex-1 min-h-0 bg-slate-900 relative">
-                      <img id="sharedFileImg" class="hidden w-full h-full object-contain" alt="Shared">
-                      <iframe id="sharedFileFrame" class="hidden w-full h-full bg-white border-0" title="Shared file"></iframe>
-                      <video id="sharedFileVideo" class="hidden w-full h-full object-contain" controls></video>
-                      <div id="sharedFileFallback" class="hidden absolute inset-0 flex flex-col items-center justify-center text-slate-300 p-6 text-center">
-                        <i class="fas fa-file-alt text-4xl mb-3 text-slate-500"></i>
-                        <p class="text-sm mb-2">Preview not available for this file type.</p>
-                        <a id="sharedFileFallbackLink" href="#" target="_blank" class="text-emerald-400 underline text-sm">Download / open in new tab</a>
-                      </div>
+                    <div id="fileViewScroll" class="flex-1 min-h-0 overflow-auto bg-slate-900 relative">
+                      <div id="fileViewContent" class="inline-block p-4 min-w-full"></div>
+                      <div id="fileViewHint" class="hidden absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] text-slate-500 bg-slate-900/80 px-3 py-1 rounded-full pointer-events-none">Scroll to move · buttons or swipe to change page</div>
                     </div>
                   </div>
-                  <div class="absolute bottom-3 left-3 px-3 py-1 rounded-lg bg-black/60 text-white text-xs" id="mainStageLabel">You</div>
-                  <button type="button" id="btnClearFocus" onclick="clearFocusPeer()" class="hidden absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-black/70 text-white text-xs hover:bg-black">Back to my camera</button>
+
+                  <div class="absolute bottom-3 left-3 px-3 py-1 rounded-lg bg-black/60 text-white text-xs z-10" id="mainStageLabel">You</div>
+                  <button type="button" id="btnClearFocus" onclick="clearFocusPeer()" class="hidden absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-black/70 text-white text-xs hover:bg-black z-10">Back to my camera</button>
                   <div id="focusedStudentCard" class="hidden absolute bottom-3 right-3 max-w-xs w-[min(100%,280px)] bg-slate-900/95 border border-slate-600 rounded-2xl p-3 text-white shadow-xl z-10">
                     <p class="text-[10px] uppercase tracking-wide text-slate-400 mb-1">Participant</p>
                     <p id="fsName" class="font-bold text-sm truncate">—</p>
@@ -1389,52 +1422,47 @@
                   </div>
                 </div>
 
-                <div>
-                  <div class="flex items-center justify-between mb-2">
-                    <p class="text-slate-400 text-xs font-semibold uppercase tracking-wide">Participants — click to enlarge</p>
-                    <span id="livePeerHint" class="text-[10px] text-slate-500">Cameras &amp; mics stream peer-to-peer</span>
+                <!-- WHITEBOARD: overlay on host camera (desktop) / inline right after camera (mobile) -->
+                <div id="whiteboardPanel" class="hidden bg-slate-800/95 backdrop-blur rounded-2xl border border-slate-600 flex flex-col overflow-hidden shadow-2xl">
+                  <div id="boardHeader" class="flex items-center gap-1 px-2 py-1.5 border-b border-slate-700 flex-wrap select-none">
+                    <span id="boardDragHandle" class="hidden lg:inline-flex items-center text-slate-400 px-1.5 hover:text-white" title="Drag board to move"><i class="fas fa-grip-vertical"></i></span>
+                    <h4 class="text-white font-semibold text-sm mr-auto whitespace-nowrap"><i class="fas fa-chalkboard mr-1.5"></i>Board</h4>
+                    <span id="boardLockHint" class="text-[10px] text-amber-300/90 mr-1 whitespace-nowrap"></span>
+                    <button type="button" onclick="adjustBoardHeight(-140)" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600" title="Make board shorter"><i class="fas fa-compress-alt"></i></button>
+                    <button type="button" onclick="adjustBoardHeight(140)" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600" title="Make board longer (scrollable)"><i class="fas fa-expand-alt"></i></button>
+                    <button type="button" id="boardLockBtn" onclick="toggleBoardLock()" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600 hidden lg:inline-flex items-center justify-center" title="Lock / unlock board position"><i class="fas fa-lock-open"></i></button>
+                    <button class="tool-btn active w-7 h-7 rounded-lg bg-slate-700 text-white text-xs" data-tool="pen" title="Pen"><i class="fas fa-pen"></i></button>
+                    <button class="tool-btn w-7 h-7 rounded-lg bg-slate-700 text-white text-xs" data-tool="eraser" title="Eraser"><i class="fas fa-eraser"></i></button>
+                    <button class="color-btn w-5 h-5 rounded-full bg-white border-2 border-transparent" data-color="#ffffff" title="White"></button>
+                    <button class="color-btn w-5 h-5 rounded-full bg-red-400" data-color="#f87171" title="Red"></button>
+                    <button class="color-btn w-5 h-5 rounded-full bg-yellow-300" data-color="#fde047" title="Yellow"></button>
+                    <button class="color-btn w-5 h-5 rounded-full bg-emerald-400" data-color="#34d399" title="Green"></button>
+                    <button class="color-btn w-5 h-5 rounded-full bg-sky-400" data-color="#38bdf8" title="Blue"></button>
+                    <button type="button" onclick="clearBoard()" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600" title="Clear board"><i class="fas fa-trash"></i></button>
+                    <button type="button" onclick="toggleWhiteboardPanel(false)" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600" title="Hide board"><i class="fas fa-times"></i></button>
                   </div>
-                  <div id="classRosterPanel" class="mb-2 rounded-xl border border-slate-700 bg-slate-900/80 p-2 max-h-28 overflow-y-auto">
-                    <p class="text-[10px] uppercase tracking-wide text-slate-500 mb-1">In this class</p>
-                    <div id="classRosterList" class="space-y-1"></div>
+                  <div id="boardScrollWrap" class="flex-1 min-h-0 overflow-auto bg-slate-950">
+                    <canvas id="whiteboardCanvas" style="display:block;cursor:crosshair;touch-action:none"></canvas>
                   </div>
-                  <div id="remoteVideos" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 max-h-[280px] overflow-y-auto pr-1">
-                    <!-- peer video slots (star: host sees students; students see host) -->
-                  </div>
+                  <div id="boardResizeGrip" title="Drag to resize board"><i class="fas fa-caret-up" style="transform:rotate(45deg)"></i></div>
                 </div>
+
+                <div id="remoteVideos" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 max-h-[240px] overflow-y-auto pr-1"></div>
               </div>
 
-              <!-- Drag handle between stage and board -->
-              <div id="boardResizeHandle" class="hidden lg:flex w-1.5 cursor-col-resize bg-slate-700 hover:bg-brand items-stretch flex-shrink-0" title="Drag to resize board"></div>
-              <!-- Whiteboard (resizable) -->
-              <div id="whiteboardPanel" class="hidden bg-slate-800 p-3 flex flex-col border-l border-slate-700 min-h-[280px] relative" style="width: 360px; min-width: 180px; max-width: 100%;">
-                <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
-                  <h4 class="text-white font-semibold text-sm"><i class="fas fa-chalkboard mr-2"></i>Whiteboard</h4>
-                  <div class="flex gap-1 items-center">
-                    <span id="boardLockHint" class="text-[10px] text-amber-300/90 mr-1"></span>
-                    <button type="button" onclick="setBoardWidthPct(0.22)" class="w-8 h-8 rounded-lg bg-slate-700 text-white text-xs" title="Smaller board"><i class="fas fa-compress"></i></button>
-                    <button type="button" onclick="setBoardWidthPct(0.45)" class="w-8 h-8 rounded-lg bg-slate-700 text-white text-xs" title="Medium board"><i class="fas fa-equals"></i></button>
-                    <button type="button" onclick="setBoardWidthPct(0.92)" class="w-8 h-8 rounded-lg bg-slate-700 text-white text-xs" title="Board almost full width"><i class="fas fa-expand"></i></button>
-                    <button class="tool-btn active w-8 h-8 rounded-lg bg-slate-700 text-white text-xs" data-tool="pen"><i class="fas fa-pen"></i></button>
-                    <button class="tool-btn w-8 h-8 rounded-lg bg-slate-700 text-white text-xs" data-tool="eraser"><i class="fas fa-eraser"></i></button>
-                    <button onclick="clearBoard()" class="w-8 h-8 rounded-lg bg-slate-700 text-white text-xs"><i class="fas fa-trash"></i></button>
-                    <button onclick="toggleWhiteboardPanel(false)" class="w-8 h-8 rounded-lg bg-slate-700 text-white text-xs" title="Hide board"><i class="fas fa-times"></i></button>
-                  </div>
+              <!-- PARTICIPANTS: compact lines; cameras only when on -->
+              <div id="participantsWrap" class="px-3 sm:px-4 pb-4 pt-1 space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <p class="text-slate-400 text-[11px] font-semibold uppercase tracking-wide">Participants — <span id="rosterCountInline">1</span></p>
+                  <span id="livePeerHint" class="text-[10px] text-slate-500">Tap a camera to enlarge</span>
                 </div>
-                <div class="flex gap-1 mb-2">
-                  <button class="color-btn w-6 h-6 rounded-full bg-white border-2 border-transparent" data-color="#ffffff"></button>
-                  <button class="color-btn w-6 h-6 rounded-full bg-red-400" data-color="#f87171"></button>
-                  <button class="color-btn w-6 h-6 rounded-full bg-yellow-300" data-color="#fde047"></button>
-                  <button class="color-btn w-6 h-6 rounded-full bg-emerald-400" data-color="#34d399"></button>
-                  <button class="color-btn w-6 h-6 rounded-full bg-sky-400" data-color="#38bdf8"></button>
-                </div>
-                <canvas id="whiteboardCanvas" class="flex-1 w-full bg-slate-950 rounded-xl min-h-[240px]"></canvas>
+                <div id="classRosterList" class="space-y-1 max-h-40 overflow-y-auto pr-1"></div>
               </div>
             </div>
           </div>
           <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-sm text-emerald-900">
             <p class="font-semibold mb-1"><i class="fas fa-broadcast-tower mr-2 text-brand"></i>Live class</p>
-            <p>Host starts with a code; students join with the same code. Cameras and mics connect peer-to-peer. Host can share screen/files and open the whiteboard. Students draw only when the host allows it.</p>
+            <p>Host starts with a code + port; students join with the same pair. The board opens automatically on every joiner's screen and mirrors the host in real time — late joiners receive the full board. Shared files zoom and pan inside the viewer; PDFs turn by button or swipe. Supports 20–500 participants with host-only video routing for stability.</p>
           </div>
         </section>
 
@@ -2061,8 +2089,6 @@ async function downloadIdCard() {
 let performanceChart = null, currentPeriod = 'week', currentSubject = '', currentGrade = '', currentNameQ = '', allPerformanceData = [], allStudents = [], currentModalStudent = null;
 let classMediaRecorder = null, classRecordChunks = [], isClassRecording = false;
 let lastCertificatePayload = null;
-let mediaStream = null, camOn = true, micOn = true;
-let drawing = false, tool = 'pen', color = '#ffffff', lastX = 0, lastY = 0;
 
 function showSection(id) {
   // Assessments stay staff/admin-only. Live classroom (startClass) is allowed for
@@ -3331,18 +3357,25 @@ function clearBoard() {
 
 
 
-// ===================== SOCKET.IO + WEBRTC =====================
+// ===================== LIVE CLASS v2 · SOCKET.IO + WEBRTC =====================
 let activeClassCode = null;
+let activeClassPort = null;
+let mediaStream = null, camOn = true, micOn = true;
 let isClassHost = false;
 let socket = null;
+let myRoomJoin = null; // saved so we can re-join after a socket reconnect
 let screenStream = null;
 let isScreenSharing = false;
-let boardUnlockedForStudents = false; // host controls
-let canDrawBoard = false; // local permission
+let boardUnlockedForStudents = false;
+let canDrawBoard = false;
 let whiteboardOpen = false;
+let boardLocked = false;
+let boardStrokes = [];          // normalized strokes (0..1 coords) — full board history
+let boardCanvasH = 480;         // logical canvas height; wrap scrolls when taller than panel
+let drawing = false, tool = 'pen', color = '#ffffff', lastX = 0, lastY = 0;
 let focusedPeerId = null;
 const peers = {};
-const peerMeta = {}; // id -> { name, isHost }
+const peerMeta = {};
 const peerSlotMap = {};
 let ICE_SERVERS = {
   iceServers: [
@@ -3359,6 +3392,11 @@ let ICE_SERVERS = {
   iceCandidatePoolSize: 10
 };
 let iceConfigReady = null;
+let fileView = { kind: null, zoom: 1, baseW: 0, pdfDoc: null, pdfPage: 1, pageCount: 1, rendering: false };
+
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
 
 async function ensureIceConfig() {
   if (iceConfigReady) return iceConfigReady;
@@ -3368,55 +3406,76 @@ async function ensureIceConfig() {
       if (res.ok) {
         const cfg = await res.json();
         if (cfg && Array.isArray(cfg.iceServers) && cfg.iceServers.length) {
-          ICE_SERVERS = {
-            iceServers: cfg.iceServers,
-            iceCandidatePoolSize: cfg.iceCandidatePoolSize || 10
-          };
+          ICE_SERVERS = { iceServers: cfg.iceServers, iceCandidatePoolSize: cfg.iceCandidatePoolSize || 10 };
         }
       }
-    } catch (e) {
-      console.warn('Using built-in ICE servers', e);
-    }
+    } catch (e) { console.warn('Using built-in ICE servers', e); }
     return ICE_SERVERS;
   })();
   return iceConfigReady;
 }
 
+function roomJoinPayload() {
+  const name = (user && (user.name || user.username)) || 'Participant';
+  return {
+    code: String(activeClassCode).toUpperCase(),
+    name,
+    isHost: !!isClassHost,
+    userId: user && user.id,
+    email: user && user.email,
+    username: user && user.username
+  };
+}
+
+function emitRoomJoin() {
+  if (socket && activeClassCode) socket.emit('join-room', roomJoinPayload());
+}
+
 function ensureSocket() {
   if (socket && socket.connected) return socket;
-  if (typeof io === 'undefined') {
-    console.error('Socket.IO client not loaded');
-    return null;
-  }
-  socket = io({ transports: ['websocket', 'polling'], reconnection: true });
-  socket.on('connect', () => console.log('Socket.IO connected', socket.id));
+  if (typeof io === 'undefined') { console.error('Socket.IO client not loaded'); return null; }
+  socket = io({ transports: ['websocket', 'polling'], reconnection: true, reconnectionAttempts: Infinity, reconnectionDelay: 800, reconnectionDelayMax: 5000 });
 
-  // STAR topology: WebRTC only between host and each participant (not full mesh).
-  // Full mesh collapses around ~3–4 people; star supports many students.
+  socket.on('connect', () => {
+    console.log('Socket.IO connected', socket.id);
+    // App-grade stability: if we were in a class and the socket dropped, rejoin seamlessly
+    if (activeClassCode && myRoomJoin) {
+      emitRoomJoin();
+      const st = document.getElementById('classStatus');
+      if (st) st.textContent = 'Reconnected · ' + activeClassCode;
+    }
+  });
+
   socket.on('room-peers', async ({ peers: existing, count }) => {
     if (count != null) window._roomParticipantCount = Number(count) || 0;
+    let hostId = null;
     for (const p of existing || []) {
-      peerMeta[p.id] = { name: p.name, isHost: p.isHost, email: p.email, username: p.username, userId: p.userId };
-      // New joiner: only open WebRTC to the host (or to everyone if we are the host)
-      if (shouldWebRTCWith(p)) {
-        await createPeerConnection(p.id, p.name, true);
-      }
+      peerMeta[p.id] = { name: p.name, isHost: p.isHost, email: p.email, username: p.username, userId: p.userId, micOn: true, camOn: true };
+      if (p.isHost) hostId = p.id;
+      if (shouldWebRTCWith(p)) await createPeerConnection(p.id, p.name, true);
     }
     updateParticipantUI();
     renderRosterList();
+    // Late joiner: pull the full board history + open state from the host
+    if (!isClassHost && hostId && boardStrokes.length === 0) {
+      socket.emit('wb-request-state', { code: activeClassCode, to: hostId });
+    }
   });
 
   socket.on('user-joined', async ({ id, name, isHost, email, username, userId, count }) => {
     if (count != null) window._roomParticipantCount = Number(count) || 0;
-    peerMeta[id] = { name, isHost, email, username, userId };
-    // Existing members: open WebRTC only if star rule allows; wait for offer from joiner
-    if (shouldWebRTCWith({ id, isHost })) {
-      await createPeerConnection(id, name, false);
-    }
+    peerMeta[id] = { name, isHost, email, username, userId, micOn: true, camOn: true };
+    if (shouldWebRTCWith({ id, isHost })) await createPeerConnection(id, name, false);
     updateParticipantUI();
     renderRosterList();
     const st = document.getElementById('classStatus');
     if (st) st.textContent = (name || 'Someone') + ' joined';
+    if (isClassHost) {
+      // Bring the new joiner up to speed: board content + visibility + draw permission
+      socket.emit('wb-history', { code: activeClassCode, to: id, strokes: boardStrokes.slice(-4000), open: whiteboardOpen });
+      socket.emit('board-visibility', { code: activeClassCode, open: whiteboardOpen });
+      socket.emit('board-permission', { code: activeClassCode, allowed: boardUnlockedForStudents });
+    }
   });
 
   socket.on('room-roster', ({ count, members }) => {
@@ -3424,13 +3483,9 @@ function ensureSocket() {
     if (Array.isArray(members)) {
       members.forEach(m => {
         if (m && m.id) {
-          peerMeta[m.id] = {
-            name: m.name,
-            isHost: m.isHost,
-            email: m.email,
-            username: m.username,
-            userId: m.userId
-          };
+          peerMeta[m.id] = Object.assign({ micOn: true, camOn: true }, peerMeta[m.id] || {}, {
+            name: m.name, isHost: m.isHost, email: m.email, username: m.username, userId: m.userId
+          });
         }
       });
     }
@@ -3451,9 +3506,7 @@ function ensureSocket() {
 
   socket.on('kicked', ({ reason }) => {
     alert(reason || 'You were removed from this class by the host. You cannot rejoin this class code.');
-    try {
-      localStorage.setItem('noa_banned_' + (activeClassCode || ''), '1');
-    } catch (e) {}
+    try { localStorage.setItem('noa_banned_' + (activeClassCode || ''), '1'); } catch (e) {}
     endClass();
   });
 
@@ -3462,187 +3515,137 @@ function ensureSocket() {
     removePeer(id);
     delete peerMeta[id];
     updateParticipantUI();
+    renderRosterList();
     const st = document.getElementById('classStatus');
     if (st) st.textContent = (name || 'A student') + ' was removed';
   });
 
-  socket.on('signal', async ({ from, data }) => {
-    await handleSignal(from, data);
-  });
+  socket.on('signal', async ({ from, data }) => { await handleSignal(from, data); });
 
-  socket.on('wb-draw', ({ stroke }) => {
-    if (stroke) applyRemoteStroke(stroke);
+  // ---- Whiteboard sync ----
+  socket.on('wb-draw', ({ stroke }) => { if (stroke) { pushStroke(stroke); applyRemoteStroke(stroke); } });
+  socket.on('wb-clear', () => { boardStrokes = []; redrawBoard(); });
+  socket.on('wb-history', ({ strokes, open }) => {
+    boardStrokes = Array.isArray(strokes) ? strokes.slice(-4000) : [];
+    if (open && !whiteboardOpen) toggleWhiteboardPanel(true);
+    resizeBoardCanvas();
+    redrawBoard();
   });
-  socket.on('wb-clear', () => {
-    const canvas = document.getElementById('whiteboardCanvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#020617';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  socket.on('wb-request-state', ({ from }) => {
+    if (isClassHost || boardStrokes.length) {
+      socket.emit('wb-history', { code: activeClassCode, to: from, strokes: boardStrokes.slice(-4000), open: whiteboardOpen });
+    }
   });
   socket.on('board-visibility', ({ open }) => {
-    // Students mirror host board visibility (view-only unless unlocked)
     if (isClassHost) return;
-    if (open) {
-      toggleWhiteboardPanel(true);
-      canDrawBoard = boardUnlockedForStudents;
-      updateBoardLockUI();
-    } else {
-      toggleWhiteboardPanel(false);
-    }
+    if (open) { if (!whiteboardOpen) toggleWhiteboardPanel(true); }
+    else toggleWhiteboardPanel(false);
   });
-
   socket.on('board-permission', ({ allowed }) => {
     boardUnlockedForStudents = !!allowed;
-    if (!isClassHost) {
-      canDrawBoard = !!allowed;
-      updateBoardLockUI();
-    }
+    if (!isClassHost) { canDrawBoard = !!allowed; updateBoardLockUI(); }
   });
-  socket.on('file-share', ({ file }) => {
-    if (file) showSharedFileFromData(file);
+
+  socket.on('media-state', ({ from, mic, cam }) => {
+    if (peerMeta[from]) { peerMeta[from].micOn = !!mic; peerMeta[from].camOn = !!cam; }
+    renderRosterList();
+    const slot = peerSlotMap[from];
+    if (slot) slot.style.display = cam ? '' : 'none';
   });
+
+  socket.on('file-share', ({ file }) => { if (file) showSharedFileFromData(file); });
 
   return socket;
 }
 
-/** Star topology: host ↔ each student only (no student–student video mesh). */
+/** Star topology: host connects to everyone; students only to the host. Scales to 500. */
 function shouldWebRTCWith(remote) {
   if (!remote) return false;
-  if (isClassHost) return true; // host connects to every participant
-  return !!remote.isHost; // students only connect to the host
+  if (isClassHost) return true;
+  return !!remote.isHost;
 }
 
 function updateParticipantUI() {
   const rosterN = Number(window._roomParticipantCount);
-  const n = Number.isFinite(rosterN) && rosterN > 0
-    ? rosterN
-    : (Object.keys(peerMeta).length + 1);
-  const st = document.getElementById('classStatus');
+  const n = (Number.isFinite(rosterN) && rosterN > 0) ? rosterN : (Object.keys(peerMeta).length + 1);
   const badge = document.getElementById('participantCountBadge');
-  if (st && activeClassCode) st.textContent = 'Live · ' + activeClassCode;
   if (badge) badge.textContent = n + ' in class';
+  const inline = document.getElementById('rosterCountInline');
+  if (inline) inline.textContent = String(n);
+  const st = document.getElementById('classStatus');
+  if (st && activeClassCode && !/joined|left|Reconnected/.test(st.textContent)) st.textContent = 'Live · ' + activeClassCode;
 }
 
+/** Compact participant lines: dot + name + mic waves + CAM tag. No boxes for camera-off users. */
 function renderRosterList() {
   const el = document.getElementById('classRosterList');
   if (!el) return;
-  const rows = [];
+  const meName = (user && (user.name || user.username)) || 'You';
+  let rows = [{ id: 'me', name: meName + (isClassHost ? ' (host)' : ''), isHost: isClassHost, live: true, micOn: micOn, camOn: camOn, me: true }];
   Object.keys(peerMeta).forEach(id => {
     const m = peerMeta[id] || {};
-    rows.push({
-      id,
-      name: m.name || 'Participant',
-      isHost: !!m.isHost,
-      live: !!peers[id]
-    });
+    rows.push({ id, name: m.name || 'Participant', isHost: !!m.isHost, live: !!peers[id], micOn: !!m.micOn, camOn: m.camOn !== false });
   });
-  rows.sort((a, b) => (b.isHost - a.isHost) || a.name.localeCompare(b.name));
-  if (!rows.length) {
-    el.innerHTML = '<p class="text-[11px] text-slate-500 px-1">Waiting for participants…</p>';
-    return;
-  }
+  rows.sort((a, b) => (b.isHost - a.isHost) || String(a.name).localeCompare(String(b.name)));
   el.innerHTML = rows.map(r =>
-    '<div class="flex items-center justify-between gap-2 px-2 py-1 rounded-lg ' +
-    (r.isHost ? 'bg-emerald-900/40' : 'bg-slate-800/80') + '">' +
-    '<span class="text-[11px] text-slate-200 truncate">' +
-    (r.isHost ? '👑 ' : '') + String(r.name).replace(/</g, '') +
-    '</span>' +
-    '<span class="text-[10px] ' + (r.live ? 'text-emerald-400' : 'text-slate-500') + '">' +
-    (r.live ? 'live' : 'in room') + '</span></div>'
+    '<div class="roster-row">' +
+    '<span class="roster-dot ' + (r.isHost ? 'bg-amber-400' : (r.live ? 'bg-emerald-400' : 'bg-slate-600')) + '"></span>' +
+    '<span class="text-[11px] text-slate-200 truncate flex-1">' + String(r.name).replace(/</g, '') + '</span>' +
+    (r.micOn ? '<span class="mic-waves" title="Mic on"><span></span><span></span><span></span></span>' : '<i class="fas fa-microphone-slash text-[9px] text-slate-600"></i>') +
+    (r.camOn ? '<span class="text-[9px] font-bold text-emerald-400">CAM</span>' : '') +
+    '</div>'
   ).join('');
+}
+
+function broadcastMediaState() {
+  if (socket && activeClassCode) socket.emit('media-state', { code: activeClassCode, mic: !!micOn, cam: !!camOn });
 }
 
 async function getLocalMedia() {
   if (mediaStream) return mediaStream;
   try {
-    // Host keeps higher quality; students use lighter video so the host can take many links
     const videoConstraints = isClassHost
-      ? {
-          width: { min: 640, ideal: 1280, max: 1920 },
-          height: { min: 480, ideal: 720, max: 1080 },
-          frameRate: { ideal: 30, max: 30 },
-          facingMode: 'user',
-          aspectRatio: { ideal: 16 / 9 }
-        }
-      : {
-          width: { ideal: 640, max: 960 },
-          height: { ideal: 360, max: 540 },
-          frameRate: { ideal: 20, max: 24 },
-          facingMode: 'user'
-        };
+      ? { width: { min: 640, ideal: 1280, max: 1920 }, height: { min: 480, ideal: 720, max: 1080 }, frameRate: { ideal: 30, max: 30 }, facingMode: 'user' }
+      : { width: { ideal: 640, max: 960 }, height: { ideal: 360, max: 540 }, frameRate: { ideal: 20, max: 24 }, facingMode: 'user' };
     mediaStream = await navigator.mediaDevices.getUserMedia({
       video: videoConstraints,
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
-      }
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
     });
-    try {
-      const vTrack = mediaStream.getVideoTracks()[0];
-      if (vTrack && vTrack.applyConstraints) {
-        if (isClassHost) {
-          await vTrack.applyConstraints({
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            frameRate: { ideal: 30 }
-          });
-        } else {
-          await vTrack.applyConstraints({
-            width: { ideal: 640 },
-            height: { ideal: 360 },
-            frameRate: { ideal: 20 }
-          });
-        }
-      }
-    } catch (e) { /* keep stream as-is */ }
-    camOn = true;
-    micOn = true;
+    camOn = true; micOn = true;
     const lv = document.getElementById('localVideo');
-    if (lv) {
-      lv.srcObject = mediaStream;
-      lv.muted = true; // prevent local echo
-      lv.setAttribute('playsinline', '');
-      lv.style.objectFit = 'contain';
-      lv.style.background = '#000';
-      try { await lv.play(); } catch (e) {}
-    }
+    if (lv) { lv.srcObject = mediaStream; lv.muted = true; lv.setAttribute('playsinline', ''); try { await lv.play(); } catch (e) {} }
+    setTimeout(broadcastMediaState, 400);
+    renderRosterList();
     return mediaStream;
   } catch (err) {
     console.error('getUserMedia', err);
-    document.getElementById('classStatus').textContent = 'Camera/mic blocked — check browser permissions';
+    const st = document.getElementById('classStatus');
+    if (st) st.textContent = 'Camera/mic blocked — check browser permissions';
     return null;
   }
 }
 
 async function createPeerConnection(remoteId, remoteName, shouldOffer) {
   if (peers[remoteId]) return peers[remoteId];
-  // Guard: never form student–student mesh links
   const meta = peerMeta[remoteId] || { name: remoteName, isHost: false };
-  if (!isClassHost && !meta.isHost) return null;
+  if (!isClassHost && !meta.isHost) return null; // never build student↔student mesh
   await ensureIceConfig();
   const pc = new RTCPeerConnection(ICE_SERVERS);
   peers[remoteId] = pc;
   pc._name = remoteName || 'Peer';
-  peerMeta[remoteId] = peerMeta[remoteId] || { name: remoteName, isHost: false };
 
-  // Ensure we have local media before adding tracks
   if (!mediaStream) await getLocalMedia();
   if (mediaStream) {
     mediaStream.getTracks().forEach((track) => {
       try {
         const sender = pc.addTrack(track, mediaStream);
-        // Cap student uplink so host can accept many connections
-        if (!isClassHost && track.kind === 'video' && sender && sender.setParameters) {
+        if (track.kind === 'video' && sender && sender.setParameters) {
           try {
             const params = sender.getParameters();
-            params.encodings = params.encodings && params.encodings.length
-              ? params.encodings
-              : [{}];
+            params.encodings = params.encodings && params.encodings.length ? params.encodings : [{}];
             params.encodings.forEach(enc => {
-              enc.maxBitrate = 350000; // ~350 kbps
-              enc.maxFramerate = 20;
+              enc.maxBitrate = isClassHost ? 900000 : 300000; // host sends quality; students stay light
+              enc.maxFramerate = isClassHost ? 30 : 20;
             });
             sender.setParameters(params);
           } catch (e) {}
@@ -3653,17 +3656,16 @@ async function createPeerConnection(remoteId, remoteName, shouldOffer) {
 
   pc.ontrack = (event) => {
     const stream = event.streams[0] || new MediaStream([event.track]);
-    attachRemoteStream(remoteId, peerMeta[remoteId]?.name || remoteName, stream);
+    attachRemoteStream(remoteId, (peerMeta[remoteId] || {}).name || remoteName, stream);
   };
-
   pc.onicecandidate = (event) => {
-    if (event.candidate && socket) {
-      socket.emit('signal', { to: remoteId, data: { type: 'ice', candidate: event.candidate } });
-    }
+    if (event.candidate && socket) socket.emit('signal', { to: remoteId, data: { type: 'ice', candidate: event.candidate } });
   };
-
   pc.onconnectionstatechange = () => {
-    if (pc.connectionState === 'failed') {
+    if (pc.connectionState === 'failed') { try { pc.restartIce(); } catch (e) {} }
+  };
+  pc.oniceconnectionstatechange = () => {
+    if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
       try { pc.restartIce(); } catch (e) {}
     }
   };
@@ -3673,9 +3675,7 @@ async function createPeerConnection(remoteId, remoteName, shouldOffer) {
       const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
       await pc.setLocalDescription(offer);
       socket.emit('signal', { to: remoteId, data: { type: 'offer', sdp: pc.localDescription } });
-    } catch (e) {
-      console.error('Offer error', e);
-    }
+    } catch (e) { console.error('Offer error', e); }
   }
   return pc;
 }
@@ -3684,7 +3684,6 @@ async function handleSignal(fromId, data) {
   let pc = peers[fromId];
   if (!pc) {
     const meta = peerMeta[fromId] || {};
-    // Ignore student↔student signals (star topology)
     if (!isClassHost && !meta.isHost) return;
     pc = await createPeerConnection(fromId, meta.name || 'Peer', false);
   }
@@ -3692,7 +3691,6 @@ async function handleSignal(fromId, data) {
   try {
     if (data.type === 'offer') {
       await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
-      // Ensure local tracks before answering
       if (mediaStream) {
         const senders = pc.getSenders();
         mediaStream.getTracks().forEach((track) => {
@@ -3706,19 +3704,13 @@ async function handleSignal(fromId, data) {
     } else if (data.type === 'answer') {
       await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
     } else if (data.type === 'ice' && data.candidate) {
-      try {
-        await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-      } catch (e) {
-        console.warn('ICE', e);
-      }
+      try { await pc.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch (e) { console.warn('ICE', e); }
     }
-  } catch (e) {
-    console.error('Signal handle', e);
-  }
+  } catch (e) { console.error('Signal handle', e); }
 }
 
 function attachRemoteStream(peerId, name, stream) {
-  peerMeta[peerId] = peerMeta[peerId] || { name: name || 'Peer' };
+  peerMeta[peerId] = peerMeta[peerId] || { name: name || 'Peer', micOn: true, camOn: true };
   peerMeta[peerId].stream = stream;
 
   let slot = peerSlotMap[peerId];
@@ -3726,18 +3718,15 @@ function attachRemoteStream(peerId, name, stream) {
     const grid = document.getElementById('remoteVideos');
     if (!grid) return;
     slot = document.createElement('div');
-    slot.className = 'peer-slot aspect-video bg-slate-800 rounded-xl overflow-hidden relative cursor-pointer ring-0 hover:ring-2 hover:ring-emerald-400 transition';
+    slot.className = 'peer-slot aspect-video bg-slate-800 rounded-xl overflow-hidden relative cursor-pointer hover:ring-2 hover:ring-emerald-400 transition';
     slot.title = 'Click to enlarge';
     slot.onclick = () => focusPeer(peerId);
     grid.appendChild(slot);
     peerSlotMap[peerId] = slot;
   }
-  slot.dataset.empty = '0';
   slot.innerHTML = '';
   const video = document.createElement('video');
-  video.autoplay = true;
-  video.playsInline = true;
-  video.muted = false; // hear remote audio
+  video.autoplay = true; video.playsInline = true; video.muted = false;
   video.srcObject = stream;
   video.className = 'w-full h-full object-contain bg-black';
   video.play().catch(() => {});
@@ -3746,6 +3735,8 @@ function attachRemoteStream(peerId, name, stream) {
   label.className = 'absolute bottom-1 left-1 px-2 py-0.5 rounded bg-black/60 text-white text-[10px] pointer-events-none';
   label.textContent = name || 'Participant';
   slot.appendChild(label);
+  const camAllowed = peerMeta[peerId].camOn !== false;
+  slot.style.display = camAllowed ? '' : 'none';
   updateParticipantUI();
 
   if (focusedPeerId === peerId) {
@@ -3760,32 +3751,22 @@ function focusPeer(peerId) {
   focusedPeerId = peerId;
   const lv = document.getElementById('localVideo');
   const fv = document.getElementById('focusVideo');
-  const label = document.getElementById('mainStageLabel');
-  const btn = document.getElementById('btnClearFocus');
-  const card = document.getElementById('focusedStudentCard');
   if (lv) lv.classList.add('hidden');
-  if (fv) {
-    fv.classList.remove('hidden');
-    fv.srcObject = meta.stream;
-    fv.muted = false;
-    fv.play().catch(() => {});
-  }
+  if (fv) { fv.classList.remove('hidden'); fv.srcObject = meta.stream; fv.muted = false; fv.play().catch(() => {}); }
+  const label = document.getElementById('mainStageLabel');
   if (label) label.textContent = meta.name || 'Participant';
-  if (btn) btn.classList.remove('hidden');
+  document.getElementById('btnClearFocus')?.classList.remove('hidden');
+  const card = document.getElementById('focusedStudentCard');
   if (card) {
     card.classList.remove('hidden');
     document.getElementById('fsName').textContent = meta.name || 'Participant';
     const bits = [];
-    if (meta.isHost) bits.push('Role: Host');
-    else bits.push('Role: Student / participant');
-    bits.push('Socket: ' + String(peerId).slice(0, 8) + '…');
+    bits.push(meta.isHost ? 'Role: Host' : 'Role: Student / participant');
     if (meta.email) bits.push('Email: ' + meta.email);
     if (meta.username) bits.push('Username: ' + meta.username);
-    bits.push(meta.stream.getVideoTracks().some(t => t.enabled) ? 'Camera: on' : 'Camera: off');
-    bits.push(meta.stream.getAudioTracks().some(t => t.enabled) ? 'Mic: on' : 'Mic: off');
+    bits.push((meta.micOn !== false) ? 'Mic: on' : 'Mic: off');
     document.getElementById('fsMeta').textContent = bits.join(' · ');
-    const hostAct = document.getElementById('fsHostActions');
-    if (hostAct) hostAct.classList.toggle('hidden', !isClassHost || !!meta.isHost);
+    document.getElementById('fsHostActions')?.classList.toggle('hidden', !isClassHost || !!meta.isHost);
   }
   Object.keys(peerSlotMap).forEach(id => {
     peerSlotMap[id].classList.toggle('ring-2', id === peerId);
@@ -3797,14 +3778,12 @@ function clearFocusPeer() {
   focusedPeerId = null;
   const lv = document.getElementById('localVideo');
   const fv = document.getElementById('focusVideo');
-  const label = document.getElementById('mainStageLabel');
-  const btn = document.getElementById('btnClearFocus');
-  const card = document.getElementById('focusedStudentCard');
   if (fv) { fv.classList.add('hidden'); fv.srcObject = null; }
   if (lv) lv.classList.remove('hidden');
+  const label = document.getElementById('mainStageLabel');
   if (label) label.textContent = isScreenSharing ? 'Your screen' : 'You';
-  if (btn) btn.classList.add('hidden');
-  if (card) card.classList.add('hidden');
+  document.getElementById('btnClearFocus')?.classList.add('hidden');
+  document.getElementById('focusedStudentCard')?.classList.add('hidden');
   Object.values(peerSlotMap).forEach(s => s.classList.remove('ring-2', 'ring-emerald-400'));
 }
 
@@ -3813,14 +3792,7 @@ function kickFocusedStudent() {
   const meta = peerMeta[focusedPeerId] || {};
   if (meta.isHost) return;
   if (!confirm('Remove ' + (meta.name || 'this student') + ' from this class? They will not be able to rejoin this code.')) return;
-  if (socket) {
-    socket.emit('kick-participant', {
-      code: activeClassCode,
-      targetId: focusedPeerId,
-      name: meta.name || ''
-    });
-  }
-  // Local cleanup; server will notify room
+  if (socket) socket.emit('kick-participant', { code: activeClassCode, targetId: focusedPeerId, name: meta.name || '' });
   clearFocusPeer();
 }
 
@@ -3829,7 +3801,7 @@ function removePeer(peerId) {
   if (pc) { try { pc.close(); } catch (e) {} delete peers[peerId]; }
   const slot = peerSlotMap[peerId];
   if (slot) { slot.remove(); delete peerSlotMap[peerId]; }
-  delete peerMeta[peerId];
+  if (peerMeta[peerId]) delete peerMeta[peerId].stream;
 }
 
 function closeAllPeers() {
@@ -3837,52 +3809,35 @@ function closeAllPeers() {
 }
 
 async function replaceVideoTrackForAll(newTrack) {
-  const jobs = Object.values(peers).map(async (pc) => {
+  await Promise.all(Object.values(peers).map(async (pc) => {
     const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
     if (sender && newTrack) await sender.replaceTrack(newTrack);
-  });
-  await Promise.all(jobs);
+  }));
 }
-
 
 async function toggleClassRecording() {
   const btn = document.getElementById('btnRecordClass');
-  if (isClassRecording && classMediaRecorder) {
-    classMediaRecorder.stop();
-    return;
-  }
+  if (isClassRecording && classMediaRecorder) { classMediaRecorder.stop(); return; }
   const shell = document.getElementById('liveClassShell');
   if (!shell) return;
   try {
     let stream;
-    if (shell.captureStream) {
-      stream = shell.captureStream(30);
-    } else if (shell.mozCaptureStream) {
-      stream = shell.mozCaptureStream(30);
-    } else {
-      // Fallback: record local camera + mic
-      stream = mediaStream || await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    }
-    // Prefer adding mic audio if captureStream has no audio
-    if (mediaStream && stream.getAudioTracks().length === 0) {
-      mediaStream.getAudioTracks().forEach(t => stream.addTrack(t));
-    }
+    if (shell.captureStream) stream = shell.captureStream(30);
+    else if (shell.mozCaptureStream) stream = shell.mozCaptureStream(30);
+    else stream = mediaStream || await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    if (mediaStream && stream.getAudioTracks().length === 0) mediaStream.getAudioTracks().forEach(t => stream.addTrack(t));
     classRecordChunks = [];
-    const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
-      ? 'video/webm;codecs=vp9,opus'
-      : (MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : '');
+    const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' : (MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : '');
     classMediaRecorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
     classMediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size) classRecordChunks.push(e.data); };
     classMediaRecorder.onstop = () => {
       isClassRecording = false;
-      if (btn) btn.innerHTML = '<i class="fas fa-circle mr-1 text-xs"></i><span>Record</span>';
+      if (btn) btn.innerHTML = '<i class="fas fa-circle mr-1 text-[10px]"></i><span>Record</span>';
       const blob = new Blob(classRecordChunks, { type: 'video/webm' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = 'NOA-class-' + (activeClassCode || 'session') + '-' + Date.now() + '.webm';
-      a.click();
-      URL.revokeObjectURL(url);
+      a.href = url; a.download = 'NOA-class-' + (activeClassCode || 'session') + '-' + Date.now() + '.webm';
+      a.click(); URL.revokeObjectURL(url);
       classMediaRecorder = null;
     };
     classMediaRecorder.start(1000);
@@ -3911,8 +3866,7 @@ async function toggleScreenShare() {
       screenTrack.onended = () => { if (isScreenSharing) toggleScreenShare(); };
     } else {
       if (screenStream) screenStream.getTracks().forEach(t => t.stop());
-      screenStream = null;
-      isScreenSharing = false;
+      screenStream = null; isScreenSharing = false;
       document.getElementById('screenShareBadge')?.classList.add('hidden');
       document.getElementById('btnScreenShare').innerHTML = '<i class="fas fa-desktop mr-1"></i>Share Screen';
       if (mediaStream) {
@@ -3932,39 +3886,29 @@ async function toggleScreenShare() {
 function joinSocketRoom(code, asHost) {
   const s = ensureSocket();
   if (!s) return;
-  const name = (user && (user.name || user.username)) || 'Participant';
   isClassHost = !!asHost;
-  canDrawBoard = isClassHost; // host can always draw
+  activeClassCode = String(code).toUpperCase();
+  myRoomJoin = roomJoinPayload();
+  canDrawBoard = isClassHost;
   updateBoardLockUI();
-  const btnPerm = document.getElementById('btnBoardPerm');
-  if (btnPerm) btnPerm.classList.toggle('hidden', !isClassHost);
-  const btnRec = document.getElementById('btnRecordClass');
-  if (btnRec) btnRec.classList.toggle('hidden', !isClassHost);
-  const doJoin = () => s.emit('join-room', {
-    code: String(code).toUpperCase(),
-    name,
-    isHost: isClassHost,
-    userId: user && user.id,
-    email: user && user.email,
-    username: user && user.username
-  });
-  if (s.connected) doJoin();
-  else s.once('connect', doJoin);
+  document.getElementById('btnBoardPerm')?.classList.toggle('hidden', !isClassHost);
+  document.getElementById('btnRecordClass')?.classList.toggle('hidden', !isClassHost);
+  if (s.connected) emitRoomJoin();
+  else s.once('connect', emitRoomJoin);
 }
 
 function leaveSocketRoom() {
   if (socket) socket.emit('leave-room');
   closeAllPeers();
+  window._roomParticipantCount = 0;
 }
 
 function generateClassCode() {
-  const code = 'NOA-' + Math.random().toString(36).slice(2, 8).toUpperCase();
   const el = document.getElementById('hostClassCode');
-  if (el) el.value = code;
+  if (el) el.value = 'NOA-' + Math.random().toString(36).slice(2, 8).toUpperCase();
 }
 
 function generateClassPort() {
-  // Dynamic suggestion only — host may edit to any 1–65535
   const port = 10000 + Math.floor(Math.random() * 50000);
   const el = document.getElementById('hostClassPort');
   if (el) el.value = String(port);
@@ -3975,9 +3919,7 @@ function ensureHostPortReady() {
   const el = document.getElementById('hostClassPort');
   if (!el) return generateClassPort();
   const n = parseInt(String(el.value || '').trim(), 10);
-  if (!Number.isFinite(n) || n < 1 || n > 65535) {
-    return generateClassPort();
-  }
+  if (!Number.isFinite(n) || n < 1 || n > 65535) return generateClassPort();
   return n;
 }
 
@@ -3996,45 +3938,40 @@ async function startClassWithCode() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.msg || 'Could not start class');
     activeClassCode = data.code;
-    window.activeClassPort = data.port != null ? Number(data.port) : port;
+    activeClassPort = data.port != null ? Number(data.port) : port;
+    boardStrokes = [];
     const badge = document.getElementById('classCodeBadge');
-    if (badge) {
-      badge.textContent = 'Code: ' + data.code + (data.port != null ? ' · Port: ' + data.port : '');
-      badge.classList.remove('hidden');
-    }
-    document.getElementById('classStatus').textContent = 'Live · ' + (title || 'Class');
+    if (badge) { badge.textContent = 'Code: ' + data.code + (data.port != null ? ' · Port: ' + data.port : ''); badge.classList.remove('hidden'); }
+    const st = document.getElementById('classStatus');
+    if (st) st.textContent = 'Live · ' + (title || 'Class');
     document.getElementById('codeSetupPanel')?.classList.add('hidden');
     document.getElementById('waitingAfterStart')?.classList.remove('hidden');
-    const hint = document.getElementById('shareCodeHint');
-    if (hint) hint.textContent = data.code;
-    const ph = document.getElementById('sharePortHint');
-    if (ph) ph.textContent = String(data.port != null ? data.port : port);
-    // Media FIRST, then signaling — critical for remote peers to receive tracks
+    const hint = document.getElementById('shareCodeHint'); if (hint) hint.textContent = data.code;
+    const ph = document.getElementById('sharePortHint'); if (ph) ph.textContent = String(data.port != null ? data.port : port);
     await getLocalMedia();
     joinSocketRoom(data.code, true);
-  } catch (err) {
-    alert(err.message);
-  }
-}
-
-async function initClassroomMedia() {
-  await getLocalMedia();
+    updateParticipantUI();
+    renderRosterList();
+  } catch (err) { alert(err.message); }
 }
 
 async function initClassroom() {
   document.getElementById('codeSetupPanel')?.classList.remove('hidden');
   document.getElementById('waitingAfterStart')?.classList.add('hidden');
-  document.getElementById('sharedFilePanel')?.classList.add('hidden');
+  closeSharedFile();
   if (!activeClassCode) {
-    document.getElementById('classStatus').textContent = 'Set class code + port to start';
-    // Suggest a port when opening Host Class (host can edit freely)
+    const st = document.getElementById('classStatus'); if (st) st.textContent = 'Set class code + port to start';
     const portEl = document.getElementById('hostClassPort');
     if (portEl && !String(portEl.value || '').trim()) generateClassPort();
     const codeEl = document.getElementById('hostClassCode');
     if (codeEl && !String(codeEl.value || '').trim()) generateClassCode();
+    const ov = document.getElementById('waitingOverlay');
+    if (ov) ov.style.display = 'flex';
   }
   whiteboardOpen = false;
   document.getElementById('whiteboardPanel')?.classList.add('hidden');
+  initFileViewerChrome();
+  initBoardChrome();
 }
 
 function joinClass() {
@@ -4061,161 +3998,285 @@ function joinClass() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.msg || 'Class not found');
     activeClassCode = code;
-    window.activeClassPort = data.port != null ? Number(data.port) : port;
+    activeClassPort = data.port != null ? Number(data.port) : port;
+    boardStrokes = [];
     showSection('startClass');
     setTimeout(async () => {
       document.getElementById('codeSetupPanel')?.classList.add('hidden');
       document.getElementById('waitingAfterStart')?.classList.add('hidden');
-      const ov = document.getElementById('waitingOverlay');
-      if (ov) ov.style.display = 'none';
+      const ov = document.getElementById('waitingOverlay'); if (ov) ov.style.display = 'none';
       const badge = document.getElementById('classCodeBadge');
-      if (badge) {
-        badge.textContent = 'Code: ' + code + (window.activeClassPort ? ' · Port: ' + window.activeClassPort : '');
-        badge.classList.remove('hidden');
-      }
-      document.getElementById('classStatus').textContent = 'Joined · Host: ' + (data.host || '—');
+      if (badge) { badge.textContent = 'Code: ' + code + (activeClassPort ? ' · Port: ' + activeClassPort : ''); badge.classList.remove('hidden'); }
+      const st = document.getElementById('classStatus'); if (st) st.textContent = 'Joined · Host: ' + (data.host || '—');
       await getLocalMedia();
       joinSocketRoom(code, false);
+      updateParticipantUI();
+      renderRosterList();
     }, 200);
   }).catch((err) => alert(err.message));
 }
 
 function endClass() {
   if (isClassHost && activeClassCode) {
-    if (confirm('Save a class summary for this session?')) {
-      try { openSaveClassSummary(); } catch (e) {}
-    }
+    if (confirm('Save a class summary for this session?')) { try { openSaveClassSummary(); } catch (e) {} }
   }
-
   leaveSocketRoom();
-  if (isScreenSharing && screenStream) {
-    screenStream.getTracks().forEach(t => t.stop());
-    screenStream = null;
-    isScreenSharing = false;
-  }
-  if (mediaStream) {
-    mediaStream.getTracks().forEach(t => t.stop());
-    mediaStream = null;
-  }
-  const lv = document.getElementById('localVideo');
-  if (lv) lv.srcObject = null;
+  if (isScreenSharing && screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; isScreenSharing = false; }
+  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+  const lv = document.getElementById('localVideo'); if (lv) lv.srcObject = null;
   clearFocusPeer();
-  const ov = document.getElementById('waitingOverlay');
-  if (ov) ov.style.display = 'flex';
-  document.getElementById('classStatus').textContent = 'Class ended';
+  closeSharedFile();
+  boardStrokes = [];
+  const ov = document.getElementById('waitingOverlay'); if (ov) ov.style.display = 'flex';
+  const st = document.getElementById('classStatus'); if (st) st.textContent = 'Class ended';
   document.getElementById('classCodeBadge')?.classList.add('hidden');
-  document.getElementById('sharedFilePanel')?.classList.add('hidden');
-  if (activeClassCode && isClassHost) {
-    fetch('/api/classes/' + activeClassCode, { method: 'DELETE' }).catch(() => {});
-  }
-  activeClassCode = null;
+  if (activeClassCode && isClassHost) fetch('/api/classes/' + activeClassCode, { method: 'DELETE' }).catch(() => {});
+  activeClassCode = null; activeClassPort = null; myRoomJoin = null;
   isClassHost = false;
-  boardUnlockedForStudents = false;
-  canDrawBoard = false;
+  boardUnlockedForStudents = false; canDrawBoard = false;
   if (document.fullscreenElement) document.exitFullscreen?.();
+  updateParticipantUI();
+  renderRosterList();
   showSection('overview');
 }
+
+window.addEventListener('beforeunload', () => { if (activeClassCode) leaveSocketRoom(); });
+document.addEventListener('visibilitychange', () => { /* keep media alive; nothing to do */ });
 
 function dismissWaiting() {
   const ov = document.getElementById('waitingOverlay');
   if (ov) ov.style.display = 'none';
+  const st = document.getElementById('classStatus');
+  if (st) st.textContent = 'Class in progress';
 }
 
 function toggleCamera() {
   if (!mediaStream) return;
   const track = mediaStream.getVideoTracks()[0];
   if (!track) return;
-  camOn = !camOn;
-  track.enabled = camOn;
+  camOn = !camOn; track.enabled = camOn;
   document.getElementById('btnToggleCam').innerHTML = camOn
-    ? '<i class="fas fa-video mr-1"></i>Cam' : '<i class="fas fa-video-slash mr-1"></i>Cam Off';
+    ? '<i class="fas fa-video mr-1"></i><span class="hidden sm:inline">Cam</span>'
+    : '<i class="fas fa-video-slash mr-1"></i><span class="hidden sm:inline">Cam Off</span>';
+  broadcastMediaState();
+  renderRosterList();
 }
 
 function toggleMic() {
   if (!mediaStream) return;
   const track = mediaStream.getAudioTracks()[0];
   if (!track) return;
-  micOn = !micOn;
-  track.enabled = micOn;
+  micOn = !micOn; track.enabled = micOn;
   document.getElementById('btnToggleMic').innerHTML = micOn
-    ? '<i class="fas fa-microphone mr-1"></i>Mic' : '<i class="fas fa-microphone-slash mr-1"></i>Mic Off';
+    ? '<i class="fas fa-microphone mr-1"></i><span class="hidden sm:inline">Mic</span>'
+    : '<i class="fas fa-microphone-slash mr-1"></i><span class="hidden sm:inline">Mic Off</span>';
+  broadcastMediaState();
+  renderRosterList();
 }
 
+// ===================== WHITEBOARD v2 =====================
 function toggleWhiteboardPanel(force) {
   const panel = document.getElementById('whiteboardPanel');
-  const handle = document.getElementById('boardResizeHandle');
   if (!panel) return;
   const open = force === false ? false : force === true ? true : panel.classList.contains('hidden');
   whiteboardOpen = open;
   panel.classList.toggle('hidden', !open);
-  if (handle) handle.classList.toggle('hidden', !open);
   if (open) {
-    if (!panel.style.width) panel.style.width = '360px';
-    setTimeout(() => { try { initWhiteboard(); initBoardResize(); } catch (e) {} }, 50);
+    setTimeout(() => { resizeBoardCanvas(); initBoardChrome(); }, 40);
     updateBoardLockUI();
   }
-  // Host opening/closing board syncs to all students (view-only until permitted)
   if (isClassHost && activeClassCode && socket) {
     socket.emit('board-visibility', { code: activeClassCode, open: whiteboardOpen });
   }
 }
 
-function setBoardWidthPct(pct) {
-  const row = document.getElementById('classLayoutRow');
-  const panel = document.getElementById('whiteboardPanel');
-  if (!row || !panel) return;
-  if (panel.classList.contains('hidden')) toggleWhiteboardPanel(true);
-  const w = Math.max(180, Math.min(row.clientWidth - 200, Math.round(row.clientWidth * pct)));
-  panel.style.width = w + 'px';
-  panel.style.flex = '0 0 auto';
-  setTimeout(() => { try { initWhiteboard(); } catch (e) {} }, 30);
+function boardCanvas() { return document.getElementById('whiteboardCanvas'); }
+
+/** Canvas fills wrap width; height is independent and scrollable. */
+function resizeBoardCanvas(preserve) {
+  const canvas = boardCanvas();
+  const wrap = document.getElementById('boardScrollWrap');
+  if (!canvas || !wrap) return;
+  const w = Math.max(240, wrap.clientWidth);
+  const h = Math.max(300, boardCanvasH);
+  if (canvas.width !== w || canvas.height !== h) {
+    canvas.width = w; canvas.height = h;
+    redrawBoard();
+  }
 }
 
-function initBoardResize() {
-  const handle = document.getElementById('boardResizeHandle');
-  const panel = document.getElementById('whiteboardPanel');
-  const row = document.getElementById('classLayoutRow');
-  if (!handle || !panel || !row || handle.dataset.ready === '1') return;
-  handle.dataset.ready = '1';
-  let dragging = false;
-  handle.addEventListener('mousedown', (e) => {
+function pushStroke(stroke) {
+  boardStrokes.push(stroke);
+  if (boardStrokes.length > 4000) boardStrokes = boardStrokes.slice(-4000);
+}
+
+function redrawBoard() {
+  const canvas = boardCanvas();
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#020617';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  for (const s of boardStrokes) paintStroke(ctx, s);
+}
+
+function paintStroke(ctx, s) {
+  const W = ctx.canvas.width, H = ctx.canvas.height;
+  ctx.beginPath();
+  ctx.moveTo(s.x0 * W, s.y0 * H);
+  ctx.lineTo(s.x1 * W, s.y1 * H);
+  ctx.strokeStyle = s.c;
+  ctx.lineWidth = Math.max(1, s.w * (W / 1000));
+  ctx.lineCap = 'round';
+  ctx.stroke();
+}
+
+function applyRemoteStroke(s) {
+  const canvas = boardCanvas();
+  if (!canvas) return;
+  paintStroke(canvas.getContext('2d'), s);
+}
+
+function getBoardPos(e) {
+  const canvas = boardCanvas();
+  const r = canvas.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return { x: clientX - r.left, y: clientY - r.top };
+}
+
+function initWhiteboard() {
+  const canvas = boardCanvas();
+  if (!canvas || canvas.dataset.ready === '1') return;
+  canvas.dataset.ready = '1';
+  resizeBoardCanvas();
+  const start = (e) => {
+    if (!canDrawBoard) return;
+    drawing = true;
+    const p = getBoardPos(e);
+    lastX = p.x; lastY = p.y;
+  };
+  const move = (e) => {
+    if (!drawing || !canDrawBoard) return;
     e.preventDefault();
-    dragging = true;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
+    const p = getBoardPos(e);
+    const W = canvas.width, H = canvas.height;
+    const strokeColor = tool === 'eraser' ? '#020617' : color;
+    const strokeWidth = tool === 'eraser' ? 26 : 3;
+    const ctx = canvas.getContext('2d');
+    ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y);
+    ctx.strokeStyle = strokeColor; ctx.lineWidth = strokeWidth; ctx.lineCap = 'round'; ctx.stroke();
+    const norm = { x0: lastX / W, y0: lastY / H, x1: p.x / W, y1: p.y / H, c: strokeColor, w: strokeWidth / (W / 1000) };
+    pushStroke(norm);
+    if (socket && activeClassCode) socket.emit('wb-draw', { code: activeClassCode, stroke: norm });
+    lastX = p.x; lastY = p.y;
+  };
+  const stop = () => { drawing = false; };
+  canvas.onmousedown = start; canvas.onmousemove = move; canvas.onmouseup = stop; canvas.onmouseleave = stop;
+  canvas.ontouchstart = start; canvas.ontouchmove = move; canvas.ontouchend = stop;
+  document.querySelectorAll('.tool-btn').forEach((b) => {
+    b.onclick = () => {
+      document.querySelectorAll('.tool-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active'); tool = b.dataset.tool;
+    };
   });
-  window.addEventListener('mousemove', (e) => {
-    if (!dragging) return;
-    const rect = row.getBoundingClientRect();
-    // Board is on the right: width = right edge - mouse
-    const newW = Math.max(160, Math.min(rect.width - 220, rect.right - e.clientX));
-    panel.style.width = newW + 'px';
-    panel.style.flex = '0 0 auto';
+  document.querySelectorAll('.color-btn').forEach((b) => {
+    b.onclick = () => {
+      color = b.dataset.color; tool = 'pen';
+      document.querySelectorAll('.tool-btn').forEach(x => x.classList.remove('active'));
+      document.querySelector('[data-tool="pen"]')?.classList.add('active');
+    };
   });
-  window.addEventListener('mouseup', () => {
-    if (!dragging) return;
-    dragging = false;
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-    try { initWhiteboard(); } catch (e) {}
+  window.addEventListener('resize', () => { if (whiteboardOpen) { resizeBoardCanvas(); } });
+}
+
+function clearBoard() {
+  if (!canDrawBoard) { alert('Drawing is locked by the host'); return; }
+  boardStrokes = [];
+  redrawBoard();
+  if (socket && activeClassCode) socket.emit('wb-clear', { code: activeClassCode });
+}
+
+function adjustBoardHeight(delta) {
+  boardCanvasH = Math.max(300, Math.min(4000, boardCanvasH + delta));
+  resizeBoardCanvas();
+}
+
+/** Desktop: drag the board by its header; corner grip resizes; lock pins it. */
+function initBoardChrome() {
+  initWhiteboard();
+  const panel = document.getElementById('whiteboardPanel');
+  const header = document.getElementById('boardHeader');
+  const grip = document.getElementById('boardResizeGrip');
+  const wrap = document.getElementById('stageWrap');
+  if (!panel || !header || panel.dataset.chrome === '1') return;
+  panel.dataset.chrome = '1';
+  if (window.innerWidth >= 1024 && !panel.style.width) panel.style.width = '400px';
+
+  let drag = null;
+  header.addEventListener('pointerdown', (e) => {
+    if (window.innerWidth < 1024 || boardLocked) return;
+    if (e.target.closest('button') || e.target.closest('.color-btn')) return;
+    drag = { dx: e.clientX - panel.offsetLeft, dy: e.clientY - panel.offsetTop };
+    header.setPointerCapture(e.pointerId);
   });
+  header.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const parent = wrap || panel.parentElement;
+    const pr = parent.getBoundingClientRect();
+    let left = e.clientX - drag.dx;
+    let top = e.clientY - drag.top0;
+    top = e.clientY - (drag.dy - 0); // keep simple
+    top = e.clientY - drag.dy;
+    left = Math.max(4, Math.min(pr.width - 80, left - pr.left));
+    top = Math.max(4, Math.min(pr.height - 40, top - pr.top));
+    panel.style.left = left + 'px';
+    panel.style.top = top + 'px';
+    panel.style.right = 'auto';
+  });
+  header.addEventListener('pointerup', () => { drag = null; });
+
+  let rs = null;
+  if (grip) {
+    grip.addEventListener('pointerdown', (e) => {
+      if (window.innerWidth < 1024) return;
+      e.preventDefault();
+      rs = { x: e.clientX, y: e.clientY, w: panel.offsetWidth, h: panel.offsetHeight };
+      grip.setPointerCapture(e.pointerId);
+    });
+    grip.addEventListener('pointermove', (e) => {
+      if (!rs) return;
+      panel.style.width = Math.max(260, Math.min(window.innerWidth - 40, rs.w + e.clientX - rs.x)) + 'px';
+      panel.style.height = Math.max(220, Math.min(window.innerHeight * 0.85, rs.h + e.clientY - rs.y)) + 'px';
+      resizeBoardCanvas();
+    });
+    grip.addEventListener('pointerup', () => { rs = null; });
+  }
+}
+
+function toggleBoardLock() {
+  boardLocked = !boardLocked;
+  const panel = document.getElementById('whiteboardPanel');
+  const btn = document.getElementById('boardLockBtn');
+  if (panel) panel.classList.toggle('board-locked', boardLocked);
+  if (btn) {
+    btn.innerHTML = boardLocked ? '<i class="fas fa-lock"></i>' : '<i class="fas fa-lock-open"></i>';
+    btn.title = boardLocked ? 'Board position locked — click to unlock' : 'Lock board position';
+  }
 }
 
 function updateBoardLockUI() {
   const hint = document.getElementById('boardLockHint');
-  const canvas = document.getElementById('whiteboardCanvas');
+  const canvas = boardCanvas();
   if (isClassHost) {
     canDrawBoard = true;
     if (hint) hint.textContent = boardUnlockedForStudents ? 'Students may draw' : 'Students locked';
   } else {
-    if (hint) hint.textContent = canDrawBoard ? 'Drawing allowed' : 'View only — ask host';
+    if (hint) hint.textContent = canDrawBoard ? 'Drawing allowed' : 'View only';
   }
   if (canvas) canvas.style.cursor = canDrawBoard ? 'crosshair' : 'not-allowed';
   const btn = document.getElementById('btnBoardPerm');
   if (btn && isClassHost) {
-    btn.innerHTML = boardUnlockedForStudents
-      ? '<i class="fas fa-lock mr-1"></i>Lock Draw'
-      : '<i class="fas fa-pen-fancy mr-1"></i>Allow Draw';
+    btn.innerHTML = boardUnlockedForStudents ? '<i class="fas fa-lock mr-1"></i>Lock Draw' : '<i class="fas fa-pen-fancy mr-1"></i>Allow Draw';
   }
 }
 
@@ -4226,113 +4287,182 @@ function toggleBoardPermission() {
   updateBoardLockUI();
 }
 
-function applyRemoteStroke(stroke) {
-  const canvas = document.getElementById('whiteboardCanvas');
-  if (!canvas || !stroke) return;
-  const ctx = canvas.getContext('2d');
-  ctx.beginPath();
-  ctx.moveTo(stroke.x0, stroke.y0);
-  ctx.lineTo(stroke.x1, stroke.y1);
-  ctx.strokeStyle = stroke.color || '#ffffff';
-  ctx.lineWidth = stroke.width || 3;
-  ctx.lineCap = 'round';
-  ctx.stroke();
-}
-
-function initWhiteboard() {
-  const canvas = document.getElementById('whiteboardCanvas');
-  if (!canvas) return;
-  if (canvas.dataset.ready === '1') {
-    // resize if needed
-    const parent = canvas.parentElement;
-    if (parent) {
-      const rect = parent.getBoundingClientRect();
-      if (canvas.width !== Math.max(200, rect.width - 8)) {
-        canvas.dataset.ready = '0';
-      }
-    }
-  }
-  if (canvas.dataset.ready === '1') return;
-  canvas.dataset.ready = '1';
-  const ctx = canvas.getContext('2d');
-  const parent = canvas.parentElement;
-  if (parent) {
-    const rect = parent.getBoundingClientRect();
-    canvas.width = Math.max(200, rect.width - 8);
-    canvas.height = Math.max(240, (rect.height || 280) - 60);
-  }
-  ctx.fillStyle = '#020617';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  const getPos = (e) => {
-    const r = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return { x: clientX - r.left, y: clientY - r.top };
-  };
-  const start = (e) => {
-    if (!canDrawBoard) return;
-    drawing = true;
-    const p = getPos(e);
-    lastX = p.x; lastY = p.y;
-  };
-  const move = (e) => {
-    if (!drawing || !canDrawBoard) return;
+// ===================== FILE VIEWER v2 (zoom / pan / PDF pages) =====================
+function initFileViewerChrome() {
+  const wrap = document.getElementById('fileViewScroll');
+  if (!wrap || wrap.dataset.chrome === '1') return;
+  wrap.dataset.chrome = '1';
+  // Zoom with the wheel WITHOUT touching page zoom
+  wrap.addEventListener('wheel', (e) => {
+    if (!fileView.kind) return;
     e.preventDefault();
-    const p = getPos(e);
-    const strokeColor = tool === 'eraser' ? '#020617' : color;
-    const strokeWidth = tool === 'eraser' ? 24 : 3;
-    ctx.beginPath();
-    ctx.moveTo(lastX, lastY);
-    ctx.lineTo(p.x, p.y);
-    ctx.strokeStyle = strokeColor;
-    ctx.lineWidth = strokeWidth;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-    if (socket && activeClassCode) {
-      socket.emit('wb-draw', {
-        code: activeClassCode,
-        stroke: { x0: lastX, y0: lastY, x1: p.x, y1: p.y, color: strokeColor, width: strokeWidth }
-      });
+    fileSetZoom(fileView.zoom * (e.deltaY < 0 ? 1.12 : 0.9));
+  }, { passive: false });
+  // Swipe left/right to turn PDF pages
+  let tx = 0, ty = 0;
+  wrap.addEventListener('touchstart', (e) => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });
+  wrap.addEventListener('touchend', (e) => {
+    if (fileView.kind !== 'pdf') return;
+    const dx = e.changedTouches[0].clientX - tx;
+    const dy = e.changedTouches[0].clientY - ty;
+    if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+      if (dx < 0) fileNextPage(); else filePrevPage();
     }
-    lastX = p.x; lastY = p.y;
-  };
-  const stop = () => { drawing = false; };
-  canvas.onmousedown = start;
-  canvas.onmousemove = move;
-  canvas.onmouseup = stop;
-  canvas.onmouseleave = stop;
-  canvas.ontouchstart = start;
-  canvas.ontouchmove = move;
-  canvas.ontouchend = stop;
-  document.querySelectorAll('.tool-btn').forEach((b) => {
-    b.onclick = () => {
-      document.querySelectorAll('.tool-btn').forEach(x => x.classList.remove('active'));
-      b.classList.add('active');
-      tool = b.dataset.tool;
-    };
-  });
-  document.querySelectorAll('.color-btn').forEach((b) => {
-    b.onclick = () => {
-      color = b.dataset.color;
-      tool = 'pen';
-      document.querySelectorAll('.tool-btn').forEach(x => x.classList.remove('active'));
-      document.querySelector('[data-tool="pen"]')?.classList.add('active');
-    };
-  });
+  }, { passive: true });
 }
 
-function clearBoard() {
-  if (!canDrawBoard) { alert('Drawing is locked'); return; }
-  const canvas = document.getElementById('whiteboardCanvas');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#020617';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  if (socket && activeClassCode) socket.emit('wb-clear', { code: activeClassCode });
+function fileSetZoom(z) {
+  fileView.zoom = Math.max(0.25, Math.min(4, z));
+  const label = document.getElementById('fileZoomLabel');
+  if (label) label.textContent = Math.round(fileView.zoom * 100) + '%';
+  if (fileView.kind === 'img') renderImageFile();
+  else if (fileView.kind === 'pdf') renderPdfPage();
+}
+function fileZoomIn() { fileSetZoom(fileView.zoom * 1.25); }
+function fileZoomOut() { fileSetZoom(fileView.zoom / 1.25); }
+function fileZoomFit() {
+  fileView.zoom = 1;
+  if (fileView.kind === 'img') renderImageFile(true);
+  else if (fileView.kind === 'pdf') renderPdfPage(true);
+  else fileSetZoom(1);
+}
+
+function renderImageFile(fit) {
+  const content = document.getElementById('fileViewContent');
+  const img = content && content.querySelector('img');
+  if (!img) return;
+  const wrap = document.getElementById('fileViewScroll');
+  if (fit) {
+    const avail = Math.max(200, wrap.clientWidth - 40);
+    fileView.zoom = Math.min(1, avail / (fileView.baseW || avail));
+  }
+  img.style.width = Math.round((fileView.baseW || 600) * fileView.zoom) + 'px';
+  const label = document.getElementById('fileZoomLabel');
+  if (label) label.textContent = Math.round(fileView.zoom * 100) + '%';
+}
+
+async function renderPdfPage(fit) {
+  const content = document.getElementById('fileViewContent');
+  if (!content || !fileView.pdfDoc) return;
+  const wrap = document.getElementById('fileViewScroll');
+  if (fit) fileView.zoom = 1;
+  const page = await fileView.pdfDoc.getPage(fileView.pdfPage);
+  const base = page.getViewport({ scale: 1 });
+  const avail = Math.max(200, wrap.clientWidth - 48);
+  const scale = (avail / base.width) * (fit ? 1 : fileView.zoom);
+  const viewport = page.getViewport({ scale });
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.floor(viewport.width * (window.devicePixelRatio || 1));
+  canvas.height = Math.floor(viewport.height * (window.devicePixelRatio || 1));
+  canvas.style.width = Math.floor(viewport.width) + 'px';
+  canvas.style.height = Math.floor(viewport.height) + 'px';
+  content.innerHTML = '';
+  content.appendChild(canvas);
+  await page.render({
+    canvasContext: canvas.getContext('2d'),
+    viewport,
+    transform: window.devicePixelRatio ? [window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0] : null
+  }).promise;
+  const label = document.getElementById('filePageLabel');
+  if (label) label.textContent = fileView.pdfPage + '/' + fileView.pageCount;
+  const zlabel = document.getElementById('fileZoomLabel');
+  if (zlabel) zlabel.textContent = Math.round((fit ? 1 : fileView.zoom) * 100) + '%';
+}
+
+function filePrevPage() {
+  if (fileView.kind !== 'pdf' || fileView.pdfPage <= 1) return;
+  fileView.pdfPage--;
+  renderPdfPage();
+}
+function fileNextPage() {
+  if (fileView.kind !== 'pdf' || fileView.pdfPage >= fileView.pageCount) return;
+  fileView.pdfPage++;
+  renderPdfPage();
+}
+
+async function showSharedFileFromData(file) {
+  const panel = document.getElementById('sharedFilePanel');
+  const content = document.getElementById('fileViewContent');
+  const nameEl = document.getElementById('sharedFileName');
+  const link = document.getElementById('sharedFileLink');
+  const dl = document.getElementById('sharedFileDownload');
+  const pageWrap = document.getElementById('filePageWrap');
+  const hint = document.getElementById('fileViewHint');
+  if (!panel || !content) return;
+  if (nameEl) nameEl.textContent = file.name || 'Shared file';
+  if (link) { link.href = file.dataUrl || '#'; }
+  if (dl) { dl.href = file.dataUrl || '#'; dl.download = file.name || 'file'; }
+  initFileViewerChrome();
+
+  const type = String(file.type || '').toLowerCase();
+  const name = String(file.name || '').toLowerCase();
+  content.innerHTML = '';
+  fileView = { kind: null, zoom: 1, baseW: 0, pdfDoc: null, pdfPage: 1, pageCount: 1 };
+  if (pageWrap) pageWrap.classList.add('hidden');
+  if (pageWrap) pageWrap.classList.remove('flex');
+  if (hint) hint.classList.add('hidden');
+
+  if (type.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg)$/.test(name)) {
+    fileView.kind = 'img';
+    const img = document.createElement('img');
+    img.src = file.dataUrl;
+    img.className = 'rounded-lg shadow-lg';
+    img.style.maxWidth = 'none';
+    img.onload = () => {
+      fileView.baseW = img.naturalWidth || 800;
+      fileZoomFit();
+      if (hint) hint.classList.remove('hidden');
+    };
+    content.appendChild(img);
+  } else if (type === 'application/pdf' || name.endsWith('.pdf')) {
+    fileView.kind = 'pdf';
+    if (pageWrap) { pageWrap.classList.remove('hidden'); pageWrap.classList.add('flex'); }
+    if (hint) hint.classList.remove('hidden');
+    try {
+      const raw = atob(String(file.dataUrl).split(',')[1] || '');
+      const bytes = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+      fileView.pdfDoc = await pdfjsLib.getDocument({ data: bytes }).promise;
+      fileView.pageCount = fileView.pdfDoc.numPages;
+      fileView.pdfPage = 1;
+      await renderPdfPage(true);
+    } catch (e) {
+      console.error('pdf render', e);
+      fileView.kind = 'other';
+      const iframe = document.createElement('iframe');
+      iframe.src = file.dataUrl; iframe.className = 'w-full rounded-lg bg-white border-0';
+      iframe.style.height = '70vh';
+      content.appendChild(iframe);
+      if (pageWrap) { pageWrap.classList.add('hidden'); pageWrap.classList.remove('flex'); }
+    }
+  } else if (type.startsWith('video/') || /\.(mp4|webm|ogg|mov)$/.test(name)) {
+    fileView.kind = 'other';
+    const v = document.createElement('video');
+    v.src = file.dataUrl; v.controls = true; v.className = 'w-full max-h-[70vh] rounded-lg bg-black';
+    content.appendChild(v);
+  } else {
+    fileView.kind = 'other';
+    const iframe = document.createElement('iframe');
+    iframe.src = file.dataUrl; iframe.className = 'w-full rounded-lg bg-white border-0';
+    iframe.style.height = '70vh';
+    content.appendChild(iframe);
+    const p = document.createElement('p');
+    p.className = 'text-slate-500 text-xs mt-2';
+    p.innerHTML = 'Preview may be unavailable for this file type — use <strong>Open</strong> or <strong>Save</strong> above.';
+    content.appendChild(p);
+  }
+  panel.classList.remove('hidden');
+}
+
+function closeSharedFile() {
+  document.getElementById('sharedFilePanel')?.classList.add('hidden');
+  const content = document.getElementById('fileViewContent');
+  if (content) content.innerHTML = '';
+  fileView = { kind: null, zoom: 1, baseW: 0, pdfDoc: null, pdfPage: 1, pageCount: 1 };
 }
 
 function triggerShareFile() {
-  if (!activeClassCode) { alert('Start or join a class first'); return; }
+  if (!activeClassCode) { alert('Start or join a class first, then share a file.'); return; }
   document.getElementById('shareFileInput').click();
 }
 
@@ -4343,59 +4473,14 @@ function onShareFileSelected(e) {
   reader.onload = () => {
     const payload = { name: file.name, type: file.type || 'application/octet-stream', dataUrl: reader.result };
     showSharedFileFromData(payload);
-    if (socket && activeClassCode) {
-      // Share smaller files inline; large files still show locally with download
-      if (file.size < 4 * 1024 * 1024) {
-        socket.emit('file-share', { code: activeClassCode, file: payload });
-      } else {
-        alert('File is large — shown on your screen. For class-wide share use a file under 4MB or Share Screen.');
-      }
+    if (socket && activeClassCode && file.size < 4 * 1024 * 1024) {
+      socket.emit('file-share', { code: activeClassCode, file: payload });
+    } else if (file.size >= 4 * 1024 * 1024) {
+      alert('Large file — visible on your screen only. Use Share Screen for class-wide viewing of big files.');
     }
   };
   reader.readAsDataURL(file);
   e.target.value = '';
-}
-
-function showSharedFileFromData(file) {
-  if (!file) return;
-  const panel = document.getElementById('sharedFilePanel');
-  const img = document.getElementById('sharedFileImg');
-  const frame = document.getElementById('sharedFileFrame');
-  const vid = document.getElementById('sharedFileVideo');
-  const fallback = document.getElementById('sharedFileFallback');
-  const nameEl = document.getElementById('sharedFileName');
-  const link = document.getElementById('sharedFileLink');
-  const link2 = document.getElementById('sharedFileFallbackLink');
-  if (nameEl) nameEl.textContent = file.name || 'Shared file';
-  [img, frame, vid, fallback].forEach(el => el && el.classList.add('hidden'));
-  if (link) { link.href = file.dataUrl || '#'; link.download = file.name || 'file'; }
-  if (link2) { link2.href = file.dataUrl || '#'; link2.download = file.name || 'file'; }
-  const type = (file.type || '').toLowerCase();
-  const name = (file.name || '').toLowerCase();
-  if (type.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg)$/.test(name)) {
-    img.src = file.dataUrl;
-    img.classList.remove('hidden');
-  } else if (type.startsWith('video/') || /\.(mp4|webm|ogg)$/.test(name)) {
-    vid.src = file.dataUrl;
-    vid.classList.remove('hidden');
-  } else if (type === 'application/pdf' || name.endsWith('.pdf') || type.startsWith('text/')) {
-    frame.src = file.dataUrl;
-    frame.classList.remove('hidden');
-  } else {
-    // try iframe anyway, plus fallback download
-    frame.src = file.dataUrl;
-    frame.classList.remove('hidden');
-    fallback.classList.remove('hidden');
-  }
-  panel.classList.remove('hidden');
-}
-
-function closeSharedFile() {
-  document.getElementById('sharedFilePanel')?.classList.add('hidden');
-  const frame = document.getElementById('sharedFileFrame');
-  const vid = document.getElementById('sharedFileVideo');
-  if (frame) frame.src = '';
-  if (vid) vid.removeAttribute('src');
 }
 
 function toggleClassFullscreen() {
@@ -4404,7 +4489,6 @@ function toggleClassFullscreen() {
   if (!document.fullscreenElement) shell.requestFullscreen?.();
   else document.exitFullscreen?.();
 }
-
 
 function openPersonDetail(key) {
   const p = (window.__dirPeople || {})[key];
@@ -6854,6 +6938,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 </body></html>
