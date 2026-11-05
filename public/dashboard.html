@@ -1338,7 +1338,7 @@
                 <div class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shrink-0"></div>
                 <span class="text-white font-semibold text-sm">Live Class</span>
                 <span id="classCodeBadge" class="hidden text-[11px] font-mono px-2 py-1 rounded-lg bg-brand/20 text-emerald-300 border border-emerald-500/30"></span>
-                <span id="participantCountBadge" class="text-[11px] px-2 py-1 rounded-full bg-slate-700/90 text-slate-100 font-bold">1 in class</span>
+                <span id="participantCountBadge" class="text-[11px] px-2 py-1 rounded-full bg-slate-700/90 text-slate-100 font-bold">0 participants</span>
                 <span id="classStatus" class="text-[11px] text-slate-400 truncate max-w-[200px]">Set a class code to start</span>
               </div>
               <div class="flex items-center gap-1.5 flex-wrap">
@@ -1393,7 +1393,7 @@
                         <button type="button" onclick="fileZoomOut()" class="w-8 h-8 rounded-lg bg-slate-800 text-white hover:bg-slate-700" title="Zoom out"><i class="fas fa-search-minus"></i></button>
                         <span id="fileZoomLabel" class="text-slate-300 font-mono w-12 text-center">100%</span>
                         <button type="button" onclick="fileZoomIn()" class="w-8 h-8 rounded-lg bg-slate-800 text-white hover:bg-slate-700" title="Zoom in"><i class="fas fa-search-plus"></i></button>
-                        <button type="button" onclick="fileZoomFit()" class="px-2.5 h-8 rounded-lg bg-slate-800 text-white hover:bg-slate-700 font-semibold" title="Fit to window">Fit</button>
+                        <button type="button" id="fileZoomFitBtn" onclick="fileZoomFit()" class="px-2.5 h-8 rounded-lg bg-slate-800 text-white hover:bg-slate-700 font-semibold" title="Fit to screen — press again to unlock">Fit</button>
                         <span id="filePageWrap" class="hidden items-center gap-1 px-1">
                           <button type="button" onclick="filePrevPage()" class="w-8 h-8 rounded-lg bg-slate-800 text-white hover:bg-slate-700" title="Previous page"><i class="fas fa-chevron-left"></i></button>
                           <span id="filePageLabel" class="text-slate-300 font-mono px-1">1/1</span>
@@ -1406,7 +1406,7 @@
                     </div>
                     <div id="fileViewScroll" class="flex-1 min-h-0 overflow-auto bg-slate-900 relative">
                       <div id="fileViewContent" class="inline-block p-4 min-w-full"></div>
-                      <div id="fileViewHint" class="hidden absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] text-slate-500 bg-slate-900/80 px-3 py-1 rounded-full pointer-events-none">Scroll to move · buttons or swipe to change page</div>
+                      <div id="fileViewHint" class="hidden absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] text-slate-400 bg-slate-900/85 px-3 py-1.5 rounded-full pointer-events-none opacity-0 transition-opacity duration-500">Scroll to move · buttons or swipe to change page</div>
                     </div>
                   </div>
 
@@ -1430,10 +1430,12 @@
                     <span id="boardLockHint" class="text-[10px] text-amber-300/90 mr-1 whitespace-nowrap"></span>
                     <button type="button" onclick="adjustBoardHeight(-140)" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600" title="Make board shorter"><i class="fas fa-compress-alt"></i></button>
                     <button type="button" onclick="adjustBoardHeight(140)" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600" title="Make board longer (scrollable)"><i class="fas fa-expand-alt"></i></button>
+                    <button type="button" id="boardBgBtn" onclick="toggleBoardBg()" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600" title="Switch board background (white / black)"><i class="fas fa-circle-half-stroke"></i></button>
                     <button type="button" id="boardLockBtn" onclick="toggleBoardLock()" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600 hidden lg:inline-flex items-center justify-center" title="Lock / unlock board position"><i class="fas fa-lock-open"></i></button>
                     <button class="tool-btn active w-7 h-7 rounded-lg bg-slate-700 text-white text-xs" data-tool="pen" title="Pen"><i class="fas fa-pen"></i></button>
                     <button class="tool-btn w-7 h-7 rounded-lg bg-slate-700 text-white text-xs" data-tool="eraser" title="Eraser"><i class="fas fa-eraser"></i></button>
-                    <button class="color-btn w-5 h-5 rounded-full bg-white border-2 border-transparent" data-color="#ffffff" title="White"></button>
+                    <button class="color-btn w-5 h-5 rounded-full bg-white border-2 border-slate-400" data-color="#ffffff" title="White"></button>
+                    <button class="color-btn w-5 h-5 rounded-full bg-slate-950 border border-slate-500" data-color="#000000" title="Black"></button>
                     <button class="color-btn w-5 h-5 rounded-full bg-red-400" data-color="#f87171" title="Red"></button>
                     <button class="color-btn w-5 h-5 rounded-full bg-yellow-300" data-color="#fde047" title="Yellow"></button>
                     <button class="color-btn w-5 h-5 rounded-full bg-emerald-400" data-color="#34d399" title="Green"></button>
@@ -1441,7 +1443,7 @@
                     <button type="button" onclick="clearBoard()" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600" title="Clear board"><i class="fas fa-trash"></i></button>
                     <button type="button" onclick="toggleWhiteboardPanel(false)" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600" title="Hide board"><i class="fas fa-times"></i></button>
                   </div>
-                  <div id="boardScrollWrap" class="flex-1 min-h-0 overflow-auto bg-slate-950">
+                  <div id="boardScrollWrap" class="flex-1 min-h-0 overflow-auto" style="background:#020617">
                     <canvas id="whiteboardCanvas" style="display:block;cursor:crosshair;touch-action:none"></canvas>
                   </div>
                   <div id="boardResizeGrip" title="Drag to resize board"><i class="fas fa-caret-up" style="transform:rotate(45deg)"></i></div>
@@ -1453,7 +1455,7 @@
               <!-- PARTICIPANTS: compact lines; cameras only when on -->
               <div id="participantsWrap" class="px-3 sm:px-4 pb-4 pt-1 space-y-1.5">
                 <div class="flex items-center justify-between">
-                  <p class="text-slate-400 text-[11px] font-semibold uppercase tracking-wide">Participants — <span id="rosterCountInline">1</span></p>
+                  <p class="text-slate-400 text-[11px] font-semibold uppercase tracking-wide">Participants — <span id="rosterCountInline">0</span></p>
                   <span id="livePeerHint" class="text-[10px] text-slate-500">Tap a camera to enlarge</span>
                 </div>
                 <div id="classRosterList" class="space-y-1 max-h-40 overflow-y-auto pr-1"></div>
@@ -3304,7 +3306,7 @@ function initWhiteboard() {
     if (!drawing) return;
     e.preventDefault();
     const p = getPos(e);
-    const strokeColor = tool === 'eraser' ? '#020617' : color;
+    const strokeColor = tool === 'eraser' ? 'ERASER' : color;
     const strokeWidth = tool === 'eraser' ? 24 : 3;
     ctx.beginPath();
     ctx.moveTo(lastX, lastY);
@@ -3371,6 +3373,8 @@ let canDrawBoard = false;
 let whiteboardOpen = false;
 let boardLocked = false;
 let boardStrokes = [];          // normalized strokes (0..1 coords) — full board history
+let boardBg = '#020617';        // board background: black or white
+let boardTouch = null, touchPan = null;
 let boardCanvasH = 480;         // logical canvas height; wrap scrolls when taller than panel
 let drawing = false, tool = 'pen', color = '#ffffff', lastX = 0, lastY = 0;
 let focusedPeerId = null;
@@ -3392,7 +3396,8 @@ let ICE_SERVERS = {
   iceCandidatePoolSize: 10
 };
 let iceConfigReady = null;
-let fileView = { kind: null, zoom: 1, baseW: 0, pdfDoc: null, pdfPage: 1, pageCount: 1, rendering: false };
+let fileView = { kind: null, zoom: 1, baseW: 0, pdfDoc: null, pdfPage: 1, pageCount: 1, rendering: false, fitMode: false };
+let fileHintTimer = null;
 
 if (window.pdfjsLib) {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -3463,6 +3468,7 @@ function ensureSocket() {
   });
 
   socket.on('user-joined', async ({ id, name, isHost, email, username, userId, count }) => {
+    if (id === socket.id) return;
     if (count != null) window._roomParticipantCount = Number(count) || 0;
     peerMeta[id] = { name, isHost, email, username, userId, micOn: true, camOn: true };
     if (shouldWebRTCWith({ id, isHost })) await createPeerConnection(id, name, false);
@@ -3482,7 +3488,7 @@ function ensureSocket() {
     if (count != null) window._roomParticipantCount = Number(count) || 0;
     if (Array.isArray(members)) {
       members.forEach(m => {
-        if (m && m.id) {
+        if (m && m.id && m.id !== socket.id) {
           peerMeta[m.id] = Object.assign({ micOn: true, camOn: true }, peerMeta[m.id] || {}, {
             name: m.name, isHost: m.isHost, email: m.email, username: m.username, userId: m.userId
           });
@@ -3555,6 +3561,12 @@ function ensureSocket() {
 
   socket.on('file-share', ({ file }) => { if (file) showSharedFileFromData(file); });
 
+  socket.on('class-ended', () => {
+    if (isClassHost) return;
+    alert('The host has ended this class.');
+    endClass();
+  });
+
   return socket;
 }
 
@@ -3568,10 +3580,11 @@ function shouldWebRTCWith(remote) {
 function updateParticipantUI() {
   const rosterN = Number(window._roomParticipantCount);
   const n = (Number.isFinite(rosterN) && rosterN > 0) ? rosterN : (Object.keys(peerMeta).length + 1);
+  const participants = Math.max(0, n - 1); // host is host — never counted as a participant
   const badge = document.getElementById('participantCountBadge');
-  if (badge) badge.textContent = n + ' in class';
+  if (badge) badge.textContent = participants + (participants === 1 ? ' participant' : ' participants');
   const inline = document.getElementById('rosterCountInline');
-  if (inline) inline.textContent = String(n);
+  if (inline) inline.textContent = String(participants);
   const st = document.getElementById('classStatus');
   if (st && activeClassCode && !/joined|left|Reconnected/.test(st.textContent)) st.textContent = 'Live · ' + activeClassCode;
 }
@@ -3581,20 +3594,40 @@ function renderRosterList() {
   const el = document.getElementById('classRosterList');
   if (!el) return;
   const meName = (user && (user.name || user.username)) || 'You';
-  let rows = [{ id: 'me', name: meName + (isClassHost ? ' (host)' : ''), isHost: isClassHost, live: true, micOn: micOn, camOn: camOn, me: true }];
+  const seen = {};
+  const hostRows = [];
+  const partRows = [];
+  const pushRow = (r) => {
+    const key = (r.userKey) || String(r.name || '').trim().toLowerCase();
+    if (!key || seen[key]) return;
+    seen[key] = 1;
+    if (r.isHost) hostRows.push(r); else partRows.push(r);
+  };
+  // me — as host I sit in the Host row; as joiner I am one of the participants
+  pushRow({ name: meName + (isClassHost ? ' (you)' : ' (you)'), isHost: !!isClassHost, me: true, micOn: !!micOn, camOn: !!camOn, live: true, userKey: 'me' });
   Object.keys(peerMeta).forEach(id => {
+    if (socket && id === socket.id) return;
     const m = peerMeta[id] || {};
-    rows.push({ id, name: m.name || 'Participant', isHost: !!m.isHost, live: !!peers[id], micOn: !!m.micOn, camOn: m.camOn !== false });
+    pushRow({
+      name: m.name || 'Participant',
+      isHost: !!m.isHost,
+      live: !!peers[id],
+      micOn: !!m.micOn,
+      camOn: m.camOn !== false,
+      userKey: m.userId ? ('u' + m.userId) : (m.email ? ('e' + String(m.email).toLowerCase()) : ('s' + id))
+    });
   });
-  rows.sort((a, b) => (b.isHost - a.isHost) || String(a.name).localeCompare(String(b.name)));
-  el.innerHTML = rows.map(r =>
+  const rowHtml = (r) =>
     '<div class="roster-row">' +
     '<span class="roster-dot ' + (r.isHost ? 'bg-amber-400' : (r.live ? 'bg-emerald-400' : 'bg-slate-600')) + '"></span>' +
-    '<span class="text-[11px] text-slate-200 truncate flex-1">' + String(r.name).replace(/</g, '') + '</span>' +
+    '<span class="text-[11px] truncate flex-1 ' + (r.isHost ? 'text-amber-200 font-bold' : 'text-slate-200') + '">' + String(r.name).replace(/</g, '') + '</span>' +
     (r.micOn ? '<span class="mic-waves" title="Mic on"><span></span><span></span><span></span></span>' : '<i class="fas fa-microphone-slash text-[9px] text-slate-600"></i>') +
     (r.camOn ? '<span class="text-[9px] font-bold text-emerald-400">CAM</span>' : '') +
-    '</div>'
-  ).join('');
+    '</div>';
+  let html = '';
+  if (hostRows.length) html += '<p class="text-[9px] uppercase tracking-widest text-amber-400/80 font-bold pt-1">Host</p>' + hostRows.map(rowHtml).join('');
+  if (partRows.length) html += '<p class="text-[9px] uppercase tracking-widest text-slate-500 font-bold pt-1">Participants · ' + partRows.length + '</p>' + partRows.map(rowHtml).join('');
+  el.innerHTML = html || '<p class="text-[11px] text-slate-500 px-1 py-1">Waiting for participants…</p>';
 }
 
 function broadcastMediaState() {
@@ -4017,6 +4050,10 @@ function joinClass() {
 }
 
 function endClass() {
+  // Host ends the class for EVERYONE; a joiner only leaves for themselves
+  if (isClassHost && activeClassCode && socket) {
+    socket.emit('class-ended', { code: activeClassCode });
+  }
   if (isClassHost && activeClassCode) {
     if (confirm('Save a class summary for this session?')) { try { openSaveClassSummary(); } catch (e) {} }
   }
@@ -4114,7 +4151,7 @@ function redrawBoard() {
   const canvas = boardCanvas();
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#020617';
+  ctx.fillStyle = boardBg;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   for (const s of boardStrokes) paintStroke(ctx, s);
 }
@@ -4124,7 +4161,7 @@ function paintStroke(ctx, s) {
   ctx.beginPath();
   ctx.moveTo(s.x0 * W, s.y0 * H);
   ctx.lineTo(s.x1 * W, s.y1 * H);
-  ctx.strokeStyle = s.c;
+  ctx.strokeStyle = (s.c === 'ERASER') ? boardBg : s.c;
   ctx.lineWidth = Math.max(1, s.w * (W / 1000));
   ctx.lineCap = 'round';
   ctx.stroke();
@@ -4164,7 +4201,7 @@ function initWhiteboard() {
     const strokeWidth = tool === 'eraser' ? 26 : 3;
     const ctx = canvas.getContext('2d');
     ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y);
-    ctx.strokeStyle = strokeColor; ctx.lineWidth = strokeWidth; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.strokeStyle = (strokeColor === 'ERASER') ? boardBg : strokeColor; ctx.lineWidth = strokeWidth; ctx.lineCap = 'round'; ctx.stroke();
     const norm = { x0: lastX / W, y0: lastY / H, x1: p.x / W, y1: p.y / H, c: strokeColor, w: strokeWidth / (W / 1000) };
     pushStroke(norm);
     if (socket && activeClassCode) socket.emit('wb-draw', { code: activeClassCode, stroke: norm });
@@ -4172,7 +4209,42 @@ function initWhiteboard() {
   };
   const stop = () => { drawing = false; };
   canvas.onmousedown = start; canvas.onmousemove = move; canvas.onmouseup = stop; canvas.onmouseleave = stop;
-  canvas.ontouchstart = start; canvas.ontouchmove = move; canvas.ontouchend = stop;
+  // Hold 2–3s on the board → scroll/pan mode; draw immediately if you move sooner
+  const panStart = (e) => {
+    const w = document.getElementById('boardScrollWrap');
+    touchPan = { x: e.touches[0].clientX, y: e.touches[0].clientY, w };
+  };
+  const panMove = (e) => {
+    if (!touchPan) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    touchPan.w.scrollTop -= (t.clientY - touchPan.y);
+    touchPan.w.scrollLeft -= (t.clientX - touchPan.x);
+    touchPan.y = t.clientY; touchPan.x = t.clientX;
+  };
+  canvas.ontouchstart = (e) => {
+    if (!canDrawBoard) { panStart(e); return; }
+    boardTouch = { t: Date.now(), x: e.touches[0].clientX, y: e.touches[0].clientY, moved: 0, pan: false };
+    start(e);
+  };
+  canvas.ontouchmove = (e) => {
+    if (touchPan) { panMove(e); return; }
+    if (boardTouch) {
+      const t0 = e.touches[0];
+      boardTouch.moved += Math.abs(t0.clientY - boardTouch.y) + Math.abs(t0.clientX - boardTouch.x);
+      boardTouch.y = t0.clientY; boardTouch.x = t0.clientX;
+      if (!boardTouch.pan && (Date.now() - boardTouch.t) > 2300 && boardTouch.moved < 40) {
+        boardTouch.pan = true;
+        drawing = false;
+        boardToast('Scroll mode — drag to move the board');
+        panStart(e);
+        return;
+      }
+      if (boardTouch.pan) { panMove(e); return; }
+    }
+    move(e);
+  };
+  canvas.ontouchend = () => { touchPan = null; boardTouch = null; stop(); };
   document.querySelectorAll('.tool-btn').forEach((b) => {
     b.onclick = () => {
       document.querySelectorAll('.tool-btn').forEach(x => x.classList.remove('active'));
@@ -4194,6 +4266,32 @@ function clearBoard() {
   boardStrokes = [];
   redrawBoard();
   if (socket && activeClassCode) socket.emit('wb-clear', { code: activeClassCode });
+}
+
+function boardToast(msg) {
+  const panel = document.getElementById('whiteboardPanel');
+  if (!panel) return;
+  let t = document.getElementById('boardToast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'boardToast';
+    t.className = 'absolute top-11 left-1/2 -translate-x-1/2 z-20 px-3 py-1.5 rounded-full bg-emerald-600 text-white text-[11px] font-semibold shadow-lg pointer-events-none whitespace-nowrap';
+    panel.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(t._t);
+  t._t = setTimeout(() => { t.style.display = 'none'; }, 1800);
+}
+
+function toggleBoardBg() {
+  boardBg = (boardBg === '#020617') ? '#ffffff' : '#020617';
+  const wrap = document.getElementById('boardScrollWrap');
+  if (wrap) wrap.style.background = boardBg;
+  redrawBoard();
+  const btn = document.getElementById('boardBgBtn');
+  if (btn) btn.classList.toggle('bg-slate-200', boardBg === '#ffffff');
+  boardToast(boardBg === '#ffffff' ? 'White board' : 'Black board');
 }
 
 function adjustBoardHeight(delta) {
@@ -4288,16 +4386,50 @@ function toggleBoardPermission() {
 }
 
 // ===================== FILE VIEWER v2 (zoom / pan / PDF pages) =====================
+function showFileHint(sec) {
+  if (!hint) return;
+  clearTimeout(fileHintTimer);
+  hint.classList.remove('hidden');
+  requestAnimationFrame(() => { hint.style.opacity = '1'; });
+  fileHintTimer = setTimeout(() => {
+    hint.style.opacity = '0';
+    setTimeout(() => hint.classList.add('hidden'), 600);
+  }, (sec || 4) * 1000);
+}
+
+function updateFitBtn() {
+  const btn = document.getElementById('fileZoomFitBtn');
+  if (!btn) return;
+  btn.classList.toggle('bg-emerald-600', !!fileView.fitMode);
+  btn.classList.toggle('bg-slate-800', !fileView.fitMode);
+  btn.title = fileView.fitMode ? 'Fit to screen is LOCKED — press again to unlock' : 'Fit to screen — press to lock';
+}
+
 function initFileViewerChrome() {
   const wrap = document.getElementById('fileViewScroll');
   if (!wrap || wrap.dataset.chrome === '1') return;
   wrap.dataset.chrome = '1';
-  // Zoom with the wheel WITHOUT touching page zoom
+  // Zoom with the wheel WITHOUT touching page zoom (locked while Fit is on)
   wrap.addEventListener('wheel', (e) => {
-    if (!fileView.kind) return;
+    if (!fileView.kind || fileView.fitMode) return;
     e.preventDefault();
     fileSetZoom(fileView.zoom * (e.deltaY < 0 ? 1.12 : 0.9));
   }, { passive: false });
+  // Double-tap (or double-click) reveals the hint; it fades on its own
+  let lastTap = 0;
+  wrap.addEventListener('dblclick', () => showFileHint(4));
+  wrap.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    if (now - lastTap < 320 && Math.abs((e.changedTouches[0].clientX) - (wrap._tapX || 0)) < 40) showFileHint(4);
+    lastTap = now;
+    wrap._tapX = e.changedTouches[0].clientX;
+  }, { passive: true });
+  // While Fit is locked, keep fitting if the window resizes — nothing shifts
+  window.addEventListener('resize', () => {
+    if (!fileView.fitMode) return;
+    if (fileView.kind === 'img') renderImageFile(true);
+    else if (fileView.kind === 'pdf') renderPdfPage(true);
+  });
   // Swipe left/right to turn PDF pages
   let tx = 0, ty = 0;
   wrap.addEventListener('touchstart', (e) => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });
@@ -4312,6 +4444,7 @@ function initFileViewerChrome() {
 }
 
 function fileSetZoom(z) {
+  if (fileView.fitMode) return; // locked — only the Fit button can change this
   fileView.zoom = Math.max(0.25, Math.min(4, z));
   const label = document.getElementById('fileZoomLabel');
   if (label) label.textContent = Math.round(fileView.zoom * 100) + '%';
@@ -4321,10 +4454,17 @@ function fileSetZoom(z) {
 function fileZoomIn() { fileSetZoom(fileView.zoom * 1.25); }
 function fileZoomOut() { fileSetZoom(fileView.zoom / 1.25); }
 function fileZoomFit() {
-  fileView.zoom = 1;
-  if (fileView.kind === 'img') renderImageFile(true);
-  else if (fileView.kind === 'pdf') renderPdfPage(true);
-  else fileSetZoom(1);
+  fileView.fitMode = !fileView.fitMode; // toggle lock
+  if (fileView.fitMode) {
+    fileView.zoom = 1;
+    if (fileView.kind === 'img') renderImageFile(true);
+    else if (fileView.kind === 'pdf') renderPdfPage(true);
+  } else {
+    fileView.zoom = 1;
+    if (fileView.kind === 'img') renderImageFile();
+    else if (fileView.kind === 'pdf') renderPdfPage();
+  }
+  updateFitBtn();
 }
 
 function renderImageFile(fit) {
@@ -4332,7 +4472,7 @@ function renderImageFile(fit) {
   const img = content && content.querySelector('img');
   if (!img) return;
   const wrap = document.getElementById('fileViewScroll');
-  if (fit) {
+  if (fit || fileView.fitMode) {
     const avail = Math.max(200, wrap.clientWidth - 40);
     fileView.zoom = Math.min(1, avail / (fileView.baseW || avail));
   }
@@ -4387,7 +4527,6 @@ async function showSharedFileFromData(file) {
   const link = document.getElementById('sharedFileLink');
   const dl = document.getElementById('sharedFileDownload');
   const pageWrap = document.getElementById('filePageWrap');
-  const hint = document.getElementById('fileViewHint');
   if (!panel || !content) return;
   if (nameEl) nameEl.textContent = file.name || 'Shared file';
   if (link) { link.href = file.dataUrl || '#'; }
@@ -4397,10 +4536,10 @@ async function showSharedFileFromData(file) {
   const type = String(file.type || '').toLowerCase();
   const name = String(file.name || '').toLowerCase();
   content.innerHTML = '';
-  fileView = { kind: null, zoom: 1, baseW: 0, pdfDoc: null, pdfPage: 1, pageCount: 1 };
+  fileView = { kind: null, zoom: 1, baseW: 0, pdfDoc: null, pdfPage: 1, pageCount: 1, fitMode: false };
+  updateFitBtn();
   if (pageWrap) pageWrap.classList.add('hidden');
   if (pageWrap) pageWrap.classList.remove('flex');
-  if (hint) hint.classList.add('hidden');
 
   if (type.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg)$/.test(name)) {
     fileView.kind = 'img';
@@ -4410,14 +4549,14 @@ async function showSharedFileFromData(file) {
     img.style.maxWidth = 'none';
     img.onload = () => {
       fileView.baseW = img.naturalWidth || 800;
-      fileZoomFit();
-      if (hint) hint.classList.remove('hidden');
+      renderImageFile(true);
+      showFileHint(5);
     };
     content.appendChild(img);
   } else if (type === 'application/pdf' || name.endsWith('.pdf')) {
     fileView.kind = 'pdf';
     if (pageWrap) { pageWrap.classList.remove('hidden'); pageWrap.classList.add('flex'); }
-    if (hint) hint.classList.remove('hidden');
+    showFileHint(5);
     try {
       const raw = atob(String(file.dataUrl).split(',')[1] || '');
       const bytes = new Uint8Array(raw.length);

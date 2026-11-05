@@ -5540,6 +5540,12 @@ io.on('connection', (socket) => {
     socket.to(String(code).toUpperCase()).emit('media-state', { from: socket.id, mic: !!mic, cam: !!cam });
   });
 
+  // Host ended the class — tell every joiner (they leave; room is closed by host API call)
+  socket.on('class-ended', ({ code }) => {
+    if (!code) return;
+    socket.to(String(code).toUpperCase()).emit('class-ended', { from: socket.id });
+  });
+
   // File share announce
   socket.on('file-share', ({ code, file }) => {
     if (!code) return;
