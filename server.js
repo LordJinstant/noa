@@ -5540,12 +5540,6 @@ io.on('connection', (socket) => {
     socket.to(String(code).toUpperCase()).emit('media-state', { from: socket.id, mic: !!mic, cam: !!cam });
   });
 
-  // Host ended the class — tell every joiner (they leave; room is closed by host API call)
-  socket.on('class-ended', ({ code }) => {
-    if (!code) return;
-    socket.to(String(code).toUpperCase()).emit('class-ended', { from: socket.id });
-  });
-
   // File share announce
   socket.on('file-share', ({ code, file }) => {
     if (!code) return;
@@ -5593,6 +5587,36 @@ io.on('connection', (socket) => {
 
   socket.on('leave-room', () => {
     leaveCurrentRoom(socket);
+  });
+
+  socket.on('end-class', ({ code }) => {
+    const roomCode = String(code || socket.data.roomCode || '').toUpperCase();
+    if (!roomCode) return;
+    if (!socket.data.isHost || socket.data.roomCode !== roomCode) return;
+    io.to(roomCode).emit('class-ended', { reason: 'The host ended this class.', code: roomCode });
+    const room = socketRooms.get(roomCode);
+    if (room) {
+      room.forEach((_, id) => {
+        const s = io.sockets.sockets.get(id);
+        if (s) {
+          try { s.leave(roomCode); } catch (e) {}
+          s.data.roomCode = null;
+        }
+      });
+      socketRooms.delete(roomCode);
+    }
+    try {
+      if (typeof liveClasses !== 'undefined' && liveClasses.has(roomCode)) liveClasses.delete(roomCode);
+      if (typeof deleteLiveClassFromDb === 'function') deleteLiveClassFromDb(roomCode);
+      if (typeof closeClassHistory === 'function') closeClassHistory(roomCode);
+    } catch (e) { console.error('end-class', e.message); }
+    console.log('Class ended by host:', roomCode);
+  });
+
+  socket.on('board-bg', ({ code, color }) => {
+    const roomCode = String(code || socket.data.roomCode || '').toUpperCase();
+    if (!roomCode || !socket.data.isHost) return;
+    socket.to(roomCode).emit('board-bg', { color, code: roomCode });
   });
 
   socket.on('disconnect', () => {
