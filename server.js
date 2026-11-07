@@ -2751,14 +2751,22 @@ app.post('/api/classes/start', (req, res) => {
     }
   }
   const createdAt = new Date().toISOString();
+  let durationMinutes = parseInt(req.body.durationMinutes, 10);
+  if (!Number.isFinite(durationMinutes) || durationMinutes < 0) durationMinutes = 0;
+  if (durationMinutes > 12 * 60) durationMinutes = 12 * 60;
+  const endsAt = durationMinutes > 0
+    ? new Date(Date.now() + durationMinutes * 60 * 1000).toISOString()
+    : null;
   const room = {
     host,
     hostId,
     title: req.body.title || 'Olympiad Class',
     port,
     createdAt,
+    endsAt,
+    durationMinutes,
     participants: [],
-    banned: [], // names / userIds / emails that cannot rejoin this code
+    banned: [],
     sharedFile: null
   };
   liveClasses.set(code, room);
@@ -2770,10 +2778,11 @@ app.post('/api/classes/start', (req, res) => {
     hostId,
     title: req.body.title || 'Olympiad Class',
     createdAt,
+    endsAt,
     status: 'live',
     endedAt: null
   });
-  return res.json({ msg: 'Class started', code, port, host });
+  return res.json({ msg: 'Class started', code, port, host, endsAt, durationMinutes });
 });
 
 /** Admin / moderator: list ongoing + closed classes in a time window */
@@ -2802,6 +2811,7 @@ app.get('/api/classes/monitor', (req, res) => {
         hostId: room.hostId || '',
         title: room.title || 'Olympiad Class',
         createdAt: room.createdAt,
+        endsAt: room.endsAt || null,
         endedAt: null,
         status: 'live',
         participants: (room.participants || []).length
@@ -2904,8 +2914,63 @@ app.post('/api/classes/:code/join', (req, res) => {
     port: room.port,
     host: room.host,
     title: room.title,
+    endsAt: room.endsAt || null,
     participants: room.participants
   });
+});
+
+/** Admin / moderator: force-end any live class for everyone */
+app.post('/api/classes/:code/force-end', (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ msg: 'Login required' });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (!isAdminLikeRole(decoded)) {
+      return res.status(403).json({ msg: 'Only admins and moderators can force-end classes' });
+    }
+    const code = String(req.params.code || '').toUpperCase();
+    if (!code) return res.status(400).json({ msg: 'Class code required' });
+
+    // Notify all sockets in the room
+    try {
+      io.to(code).emit('class-ended', { reason: 'An admin ended this class.', code });
+      const room = socketRooms.get(code);
+      if (room) {
+        room.forEach((_, id) => {
+          const s = io.sockets.sockets.get(id);
+          if (s) {
+            try { s.leave(code); } catch (e) {}
+            s.data.roomCode = null;
+          }
+        });
+        socketRooms.delete(code);
+      }
+    } catch (e) {
+      console.error('force-end socket', e.message);
+    }
+
+    if (liveClasses.has(code)) {
+      const lc = liveClasses.get(code);
+      closeClassHistory(code);
+      try {
+        const sessions = loadClassHistory();
+        const row = sessions.find(s => String(s.code).toUpperCase() === code && s.endedAt);
+        if (row && lc) {
+          row.participantsCount = (lc.participants || []).length;
+          row.title = lc.title || row.title;
+          row.host = lc.host || row.host;
+          saveClassHistory(sessions);
+        }
+      } catch (e) {}
+      liveClasses.delete(code);
+      try { deleteLiveClassFromDb(code); } catch (e) {}
+    } else {
+      closeClassHistory(code);
+    }
+    return res.json({ msg: 'Class force-ended', code });
+  } catch (e) {
+    return res.status(401).json({ msg: 'Invalid or expired token' });
+  }
 });
 
 app.post('/api/classes/:code/share', (req, res) => {
@@ -6810,6 +6875,44 @@ if (process.env.NOA_SCHEMA_ONLY === '1') {
 }
 
 setInterval(() => { try { pruneExpiredConversations(readAiConv()); } catch (e) {} }, 60 * 60 * 1000);
+
+
+function forceEndLiveClassByCode(code, reason) {
+  code = String(code || '').toUpperCase();
+  if (!code) return;
+  try {
+    io.to(code).emit('class-ended', { reason: reason || 'Class time ended.', code });
+    const room = socketRooms.get(code);
+    if (room) {
+      room.forEach((_, id) => {
+        const s = io.sockets.sockets.get(id);
+        if (s) {
+          try { s.leave(code); } catch (e) {}
+          s.data.roomCode = null;
+        }
+      });
+      socketRooms.delete(code);
+    }
+  } catch (e) {}
+  if (liveClasses.has(code)) {
+    try { closeClassHistory(code); } catch (e) {}
+    liveClasses.delete(code);
+    try { deleteLiveClassFromDb(code); } catch (e) {}
+  }
+}
+
+function expireTimedLiveClasses() {
+  const now = Date.now();
+  const toEnd = [];
+  liveClasses.forEach((room, code) => {
+    if (room && room.endsAt) {
+      const t = Date.parse(room.endsAt);
+      if (Number.isFinite(t) && t <= now) toEnd.push(code);
+    }
+  });
+  toEnd.forEach((code) => forceEndLiveClassByCode(code, 'Class time is up.'));
+}
+setInterval(expireTimedLiveClasses, 15000);
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on http://localhost:${PORT}`);

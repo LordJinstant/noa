@@ -1064,6 +1064,51 @@
       #remoteVideos{max-height:200px}
       #classToolbar{position:sticky;top:0;z-index:40;background:#0f172a}
     }
+
+    /* ================= PHONE / TABLET RESPONSIVE ================= */
+    #sidebarBackdrop{
+      display:none;position:fixed;inset:0;background:rgba(2,6,23,.55);
+      backdrop-filter:blur(4px);z-index:45;-webkit-backdrop-filter:blur(4px);
+    }
+    #btnMobileMenu{
+      display:none;align-items:center;justify-content:center;
+      width:2.5rem;height:2.5rem;border-radius:0.85rem;
+      background:linear-gradient(135deg,#19A975,#0f766e);color:#fff;
+      box-shadow:0 8px 20px rgba(25,169,117,.35);border:0;flex-shrink:0;
+    }
+    body.sidebar-open{overflow:hidden}
+
+    @media (max-width: 1023px) {
+      #sidebar{
+        position:fixed;left:0;top:0;bottom:0;height:100%;
+        width:min(18rem,88vw);
+        transform:translateX(-105%);
+        transition:transform .28s cubic-bezier(.22,1,.36,1);
+        z-index:50;box-shadow:none;
+      }
+      body.sidebar-open #sidebar{
+        transform:translateX(0);
+        box-shadow:24px 0 60px rgba(0,0,0,.25);
+      }
+      body.sidebar-open #sidebarBackdrop{display:block}
+      #btnMobileMenu{display:inline-flex}
+      main.flex-1{width:100%;min-width:0}
+      header.sticky{
+        padding-left:0.75rem;padding-right:0.75rem;padding-top:0.65rem;padding-bottom:0.65rem;
+        gap:0.5rem;
+      }
+      header.sticky #pageTitle{font-size:1.05rem;line-height:1.2}
+      header.sticky #pageSubtitle{font-size:0.72rem}
+      main > div.p-6{padding:0.85rem !important;max-width:100%}
+    }
+
+
+    /* Class area always scrollable (roster can grow beyond viewport) */
+    #section-startClass { overflow: visible; }
+    #liveClassShell { overflow: visible; }
+    #participantsWrap { overflow: visible; }
+    #classRosterList { -webkit-overflow-scrolling: touch; }
+    #whiteboardPanel.board-locked { /* position locked only — page still scrolls */ }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -1078,6 +1123,7 @@
 
 
   <div class="flex min-h-screen">
+    <div id="sidebarBackdrop" onclick="closeMobileSidebar()" aria-hidden="true"></div>
     <aside id="sidebar" class="w-72 bg-white border-r border-slate-200 flex flex-col sticky top-0 h-screen shadow-sm z-40">
       <div class="p-6 border-b border-slate-100">
         <div class="flex items-center gap-3">
@@ -1126,9 +1172,15 @@
       </div>
     </aside>
     <main class="flex-1 overflow-y-auto">
-      <header class="sticky top-0 z-30 glass px-6 py-4 flex items-center justify-between border-b border-slate-200/60">
-        <div><h2 id="pageTitle" class="text-xl font-bold">Performance Overview</h2><p id="pageSubtitle" class="text-sm text-slate-500">Track your Olympiad journey</p></div>
-        <span class="hidden sm:inline-flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full bg-green-50 text-brand"><span class="w-2 h-2 rounded-full bg-brand animate-pulse"></span> Live session ready</span>
+      <header class="sticky top-0 z-30 glass px-6 py-4 flex items-center justify-between border-b border-slate-200/60 gap-3">
+        <div class="flex items-center gap-2.5 min-w-0 flex-1">
+          <button type="button" id="btnMobileMenu" onclick="toggleMobileSidebar()" aria-label="Open menu"><i class="fas fa-bars"></i></button>
+          <div class="min-w-0">
+            <h2 id="pageTitle" class="text-xl font-bold truncate">Performance Overview</h2>
+            <p id="pageSubtitle" class="text-sm text-slate-500 truncate">Track your Olympiad journey</p>
+          </div>
+        </div>
+        <span class="hidden sm:inline-flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full bg-green-50 text-brand shrink-0"><span class="w-2 h-2 rounded-full bg-brand animate-pulse"></span> Live session ready</span>
       </header>
       <div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
 
@@ -1350,6 +1402,8 @@
                 <button id="btnToggleBoard" type="button" onclick="toggleWhiteboardPanel()" class="px-2.5 py-2 rounded-xl bg-slate-700 text-white text-xs hover:bg-slate-600" title="Show or hide whiteboard"><i class="fas fa-chalkboard mr-1"></i><span class="hidden sm:inline">Board</span></button>
                 <button id="btnBoardPerm" type="button" onclick="toggleBoardPermission()" class="hidden px-2.5 py-2 rounded-xl bg-amber-600 text-white text-xs hover:bg-amber-500" title="Allow students to draw"><i class="fas fa-pen-fancy mr-1"></i>Draw</button>
                 <button type="button" onclick="toggleClassFullscreen()" class="px-2.5 py-2 rounded-xl bg-slate-700 text-white text-xs hover:bg-slate-600" title="Fullscreen"><i class="fas fa-expand"></i></button>
+                <button type="button" id="btnCopyClassLink" onclick="copyClassInviteLink()" class="hidden px-2.5 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-500" title="Copy invite link (code + port)"><i class="fas fa-link mr-1"></i><span class="hidden sm:inline">Link</span></button>
+                <span id="classEndsInBadge" class="hidden text-[10px] px-2 py-1 rounded-lg bg-amber-500/20 text-amber-200 border border-amber-500/30 font-mono"></span>
                 <button type="button" onclick="endClass()" class="px-2.5 py-2 rounded-xl bg-red-600 text-white text-xs hover:bg-red-500" title="End class"><i class="fas fa-phone-slash mr-1"></i>End</button>
               </div>
             </div>
@@ -1370,19 +1424,27 @@
                         <input id="hostClassCode" type="text" placeholder="Class code" class="flex-1 px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-600 text-sm font-mono uppercase">
                         <button type="button" onclick="generateClassCode()" class="px-3 rounded-xl bg-slate-700 text-sm">Gen</button>
                       </div>
-                      <div class="flex gap-2 mb-3">
+                      <div class="flex gap-2 mb-2">
                         <input id="hostClassPort" type="number" min="1" max="65535" placeholder="Class port" class="flex-1 px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-600 text-sm font-mono" title="Everyone joining must use this same port number">
                         <button type="button" onclick="generateClassPort()" class="px-3 rounded-xl bg-slate-700 text-sm" title="Suggest a new port">Port</button>
                       </div>
-                      <p class="text-[11px] text-slate-400 mb-3 text-left leading-relaxed">Class port is chosen here (suggested or your own). Joiners must enter the <strong class="text-slate-300">same code and port</strong>. Supports 20–500 participants.</p>
+                      <div class="mb-3 text-left">
+                        <label class="text-[11px] text-slate-400 block mb-1">Auto-end after</label>
+                        <select id="hostClassDuration" class="w-full px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-600 text-sm text-white">
+                          <option value="0">No limit</option>
+                          <option value="15">15 minutes</option>
+                          <option value="30" selected>30 minutes</option>
+                          <option value="45">45 minutes</option>
+                          <option value="60">1 hour</option>
+                          <option value="90">1.5 hours</option>
+                          <option value="120">2 hours</option>
+                          <option value="180">3 hours</option>
+                        </select>
+                      </div>
+                      <p class="text-[11px] text-slate-400 mb-3 text-left leading-relaxed">Share <strong class="text-slate-300">code + port</strong> or a <strong class="text-slate-300">copy link</strong>. Joiners enter live immediately — no waiting room.</p>
                       <button onclick="startClassWithCode()" class="w-full py-3 rounded-xl bg-brand font-semibold hover:opacity-90">Start Class &amp; Open Camera</button>
                     </div>
-                    <div id="waitingAfterStart" class="hidden text-center">
-                      <p class="text-lg font-semibold">Waiting for students…</p>
-                      <p class="text-sm text-slate-400 mt-2">Share code <span id="shareCodeHint" class="font-mono text-emerald-300"></span>
-                        · port <span id="sharePortHint" class="font-mono text-amber-300"></span></p>
-                      <button type="button" onclick="dismissWaiting()" class="mt-4 text-sm text-emerald-300 underline">Hide this overlay</button>
-                    </div>
+                    <div id="waitingAfterStart" class="hidden"></div>
                   </div>
 
                   <!-- Shared file viewer: zoom / pan / PDF pages, all inside this box -->
@@ -1459,7 +1521,7 @@
                   <p class="text-slate-400 text-[11px] font-semibold uppercase tracking-wide">In class — <span id="rosterCountInline">1</span></p>
                   <span id="livePeerHint" class="text-[10px] text-slate-500">Double-tap a camera for options</span>
                 </div>
-                <div id="classRosterList" class="space-y-1 max-h-40 overflow-y-auto pr-1"></div>
+                <div id="classRosterList" class="space-y-1 max-h-[min(50vh,28rem)] overflow-y-auto overscroll-contain pr-1" style="webkit-overflow-scrolling:touch"></div>
               </div>
             </div>
           </div>
@@ -2093,7 +2155,20 @@ let performanceChart = null, currentPeriod = 'week', currentSubject = '', curren
 let classMediaRecorder = null, classRecordChunks = [], isClassRecording = false;
 let lastCertificatePayload = null;
 
+function toggleMobileSidebar(force) {
+  const open = force === true ? true : force === false ? false : !document.body.classList.contains('sidebar-open');
+  document.body.classList.toggle('sidebar-open', open);
+  const btn = document.getElementById('btnMobileMenu');
+  if (btn) {
+    btn.innerHTML = open ? '<i class="fas fa-times"></i>' : '<i class="fas fa-bars"></i>';
+    btn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+  }
+}
+function closeMobileSidebar() { toggleMobileSidebar(false); }
+function openMobileSidebar() { toggleMobileSidebar(true); }
+
 function showSection(id) {
+  try { closeMobileSidebar(); } catch (e) {}
   // Assessments stay staff/admin-only. Live classroom (startClass) is allowed for
   // everyone so students can Join Class as participants.
   if (id === 'assessments' && !canHostClass()) {
@@ -2113,7 +2188,7 @@ function showSection(id) {
   const titles = {
     overview: ['Performance Overview', 'Track your Olympiad journey'],
     platform: ['Platform Directory', 'Students & staff connected to live records'],
-    startClass: ['Host · Live Classroom', 'Camera · Whiteboard · Waiting room'],
+    startClass: ['Live Classroom', 'Host or join · camera · board · files'],
     assessments: ['Students Assessments', 'Score entry & bulk CSV upload'],
     quizSetup: ['Quiz Setup', 'Build, enable, and manage student quizzes'],
     quizzes: ['Quizzes', 'Enabled exams you can attempt once'],
@@ -4033,17 +4108,83 @@ function ensureHostPortReady() {
   return n;
 }
 
+let classAutoEndTimer = null;
+let classEndsAt = null;
+
+function clearClassAutoEndTimer() {
+  if (classAutoEndTimer) { clearInterval(classAutoEndTimer); classAutoEndTimer = null; }
+  classEndsAt = null;
+  const b = document.getElementById('classEndsInBadge');
+  if (b) { b.classList.add('hidden'); b.textContent = ''; }
+}
+
+function startClassAutoEndCountdown(endsAtIso) {
+  clearClassAutoEndTimer();
+  if (!endsAtIso) return;
+  const ends = Date.parse(endsAtIso);
+  if (!Number.isFinite(ends)) return;
+  classEndsAt = ends;
+  const badge = document.getElementById('classEndsInBadge');
+  const tick = () => {
+    const left = classEndsAt - Date.now();
+    if (left <= 0) {
+      clearClassAutoEndTimer();
+      if (isClassHost && activeClassCode) {
+        alert('Class time is up — ending the session.');
+        endClass();
+      } else if (activeClassCode) {
+        leaveLocalClassSession('Class time ended');
+      }
+      return;
+    }
+    if (badge) {
+      const m = Math.floor(left / 60000);
+      const s = Math.floor((left % 60000) / 1000);
+      badge.textContent = 'Ends in ' + m + ':' + String(s).padStart(2, '0');
+      badge.classList.remove('hidden');
+    }
+  };
+  tick();
+  classAutoEndTimer = setInterval(tick, 1000);
+}
+
+function buildClassInviteLink(code, port) {
+  const u = new URL(window.location.href);
+  u.search = '';
+  u.hash = '';
+  // Prefer dashboard path
+  if (!/dashboard\.html$/i.test(u.pathname)) {
+    u.pathname = u.pathname.replace(/\/[^/]*$/, '/') + 'dashboard.html';
+  }
+  u.searchParams.set('join', String(code || '').toUpperCase());
+  if (port != null && port !== '') u.searchParams.set('port', String(port));
+  return u.toString();
+}
+
+async function copyClassInviteLink() {
+  if (!activeClassCode) { alert('Start or join a class first.'); return; }
+  const link = buildClassInviteLink(activeClassCode, activeClassPort);
+  try {
+    await navigator.clipboard.writeText(link);
+    alert('Invite link copied.\n\n' + link);
+  } catch (e) {
+    prompt('Copy this invite link:', link);
+  }
+}
+
 async function startClassWithCode() {
   if (!canHostClass()) { alert('Only approved staff and administrators can start a class.'); return; }
   let code = (document.getElementById('hostClassCode').value || '').trim().toUpperCase();
   const title = (document.getElementById('hostClassTitle').value || 'Olympiad Class').trim();
   if (!code) { generateClassCode(); code = document.getElementById('hostClassCode').value; }
   const port = ensureHostPortReady();
+  const durationEl = document.getElementById('hostClassDuration');
+  const durationMinutes = durationEl ? parseInt(durationEl.value, 10) || 0 : 0;
   try {
     const res = await fetch('/api/classes/start', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
-      body: JSON.stringify({ code, title, port })
+      body: JSON.stringify({ code, title, port, durationMinutes })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.msg || 'Could not start class');
@@ -4055,9 +4196,11 @@ async function startClassWithCode() {
     const st = document.getElementById('classStatus');
     if (st) st.textContent = 'Live · ' + (title || 'Class');
     document.getElementById('codeSetupPanel')?.classList.add('hidden');
-    document.getElementById('waitingAfterStart')?.classList.remove('hidden');
-    const hint = document.getElementById('shareCodeHint'); if (hint) hint.textContent = data.code;
-    const ph = document.getElementById('sharePortHint'); if (ph) ph.textContent = String(data.port != null ? data.port : port);
+    document.getElementById('waitingAfterStart')?.classList.add('hidden');
+    const ov = document.getElementById('waitingOverlay');
+    if (ov) ov.style.display = 'none'; // no waiting room — go live immediately
+    document.getElementById('btnCopyClassLink')?.classList.remove('hidden');
+    if (data.endsAt) startClassAutoEndCountdown(data.endsAt);
     await getLocalMedia();
     joinSocketRoom(data.code, true);
     updateParticipantUI();
@@ -4117,6 +4260,8 @@ function joinClass() {
       const ov = document.getElementById('waitingOverlay'); if (ov) ov.style.display = 'none';
       const badge = document.getElementById('classCodeBadge');
       if (badge) { badge.textContent = 'Code: ' + code + (activeClassPort ? ' · Port: ' + activeClassPort : ''); badge.classList.remove('hidden'); }
+      document.getElementById('btnCopyClassLink')?.classList.remove('hidden');
+      if (data.endsAt) startClassAutoEndCountdown(data.endsAt);
       const st = document.getElementById('classStatus'); if (st) st.textContent = 'Joined · Host: ' + (data.host || '—');
       await getLocalMedia();
       joinSocketRoom(code, false);
@@ -4144,6 +4289,8 @@ function endClass() {
 
 /** Local cleanup after host ends or joiner leaves */
 function leaveLocalClassSession(statusMsg) {
+  clearClassAutoEndTimer();
+  document.getElementById('btnCopyClassLink')?.classList.add('hidden');
   try { leaveSocketRoom(); } catch (e) {}
   // Remove hidden student-audio elements
   document.querySelectorAll('audio[id^="raudio-"]').forEach(function (a) { try { a.remove(); } catch (e) {} });
@@ -6838,28 +6985,35 @@ function renderClassMonitor(ongoing, closed) {
     var ended = item.endedAt ? ' · ended ' + formatClassTime(item.endedAt) : '';
     var code = safeCode ? '<span class="font-mono text-[11px] text-slate-500">' + safeCode + '</span>' : '';
     var portBadge = safePort ? '<span class="font-mono text-[11px] text-amber-700 ml-2">port ' + safePort + '</span>' : '';
-    var joinHint = isLive
-      ? '<p class="text-[11px] text-emerald-700 font-semibold mt-1"><i class="fas fa-sign-in-alt mr-1"></i>Tap to join · code + port ready</p>'
+    var endsNote = (isLive && item.endsAt)
+      ? '<p class="text-[10px] text-amber-700 mt-0.5">Auto-ends ' + formatClassTime(item.endsAt) + '</p>'
       : '';
-    var clickable = isLive && safeCode
-      ? ' role="button" tabindex="0" onclick="joinClassFromMonitor(\'' + safeCode.replace(/'/g, '') + '\',' + (safePort || 'null') + ')" onkeydown="if(event.key===\'Enter\')joinClassFromMonitor(\'' + safeCode.replace(/'/g, '') + '\',' + (safePort || 'null') + ')" class="cursor-pointer hover:ring-2 hover:ring-emerald-300 transition '
-      : ' class="';
+    var cEsc = safeCode.replace(/'/g, "\\'");
+    var pArg = safePort || 'null';
+    var actions = '';
+    if (isLive && safeCode) {
+      actions =
+        '<div class="flex flex-col gap-1.5 mt-1 items-stretch min-w-[7.5rem]">' +
+        '<button type="button" onclick="event.stopPropagation();joinClassFromMonitor(\'' + cEsc + '\',' + pArg + ')" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-[11px] font-bold hover:bg-emerald-500">Join</button>' +
+        '<button type="button" onclick="event.stopPropagation();copyMonitorClassLink(\'' + cEsc + '\',' + pArg + ')" class="px-2.5 py-1.5 rounded-lg bg-slate-800 text-white text-[11px] font-bold hover:bg-slate-700">Copy link</button>' +
+        '<button type="button" onclick="event.stopPropagation();adminForceEndClass(\'' + cEsc + '\')" class="px-2.5 py-1.5 rounded-lg bg-red-600 text-white text-[11px] font-bold hover:bg-red-500">End meeting</button>' +
+        '</div>';
+    }
     return (
-      '<div' + clickable + 'flex items-start justify-between gap-3 px-4 py-3 rounded-2xl border ' +
+      '<div class="flex items-start justify-between gap-3 px-4 py-3 rounded-2xl border ' +
       (faded
         ? 'border-slate-100 bg-slate-50/80 opacity-70'
         : 'border-emerald-100 bg-emerald-50/60 shadow-sm') +
       '">' +
-        '<div class="min-w-0">' +
+        '<div class="min-w-0 flex-1">' +
           '<p class="font-semibold text-slate-800 truncate">' + label + '</p>' +
           '<p class="text-xs text-slate-500 mt-0.5">Started ' + started + ended +
             (item.title ? ' · ' + String(item.title).replace(/</g, '').slice(0, 40) : '') +
           '</p>' +
           (code || portBadge ? '<p class="mt-1">' + code + portBadge + '</p>' : '') +
-          joinHint +
+          endsNote +
         '</div>' +
-        '<div class="shrink-0 flex flex-col items-end gap-1">' + extra +
-          (isLive ? '<span class="text-[10px] text-emerald-600 font-bold">Join →</span>' : '') +
+        '<div class="shrink-0 flex flex-col items-end gap-1">' + extra + actions +
         '</div>' +
       '</div>'
     );
@@ -6913,6 +7067,38 @@ function classMonitorAskMore() {
 }
 
 /** Admin/mod: join using host code + port (suggested automatically from monitor) */
+async function adminForceEndClass(code) {
+  if (!isAdminModRole()) {
+    alert('Only admins and moderators can end meetings from this list.');
+    return;
+  }
+  code = String(code || '').trim().toUpperCase();
+  if (!code) return;
+  if (!confirm('End this live meeting for everyone?\n\nCode: ' + code)) return;
+  try {
+    const res = await fetch('/api/classes/' + encodeURIComponent(code) + '/force-end', {
+      method: 'POST',
+      headers: token ? { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }
+    });
+    const data = await res.json().catch(function () { return {}; });
+    if (!res.ok) throw new Error(data.msg || 'Could not end class');
+    alert('Meeting ended.');
+    openClassMonitor(classMonitorHours);
+  } catch (e) {
+    alert(e.message || 'Failed to end meeting');
+  }
+}
+
+async function copyMonitorClassLink(code, port) {
+  const link = buildClassInviteLink(code, port);
+  try {
+    await navigator.clipboard.writeText(link);
+    alert('Invite link copied.\n\n' + link);
+  } catch (e) {
+    prompt('Copy this invite link:', link);
+  }
+}
+
 function joinClassFromMonitor(code, port) {
   if (!isAdminModRole()) {
     alert('Only admins and moderators can join from this list.');
@@ -6940,8 +7126,74 @@ function joinClassFromMonitor(code, port) {
   }, 120);
 }
 
+
+/** Deep link: dashboard.html?join=CODE&port=12345 — after login, join immediately */
+function storePendingClassJoin(code, port) {
+  try {
+    localStorage.setItem('noa_pending_join', JSON.stringify({
+      code: String(code || '').toUpperCase(),
+      port: port != null ? Number(port) : null,
+      at: Date.now()
+    }));
+  } catch (e) {}
+}
+function readPendingClassJoin() {
+  try {
+    const raw = localStorage.getItem('noa_pending_join');
+    if (!raw) return null;
+    const o = JSON.parse(raw);
+    if (!o || !o.code) return null;
+    if (o.at && Date.now() - o.at > 6 * 60 * 60 * 1000) {
+      localStorage.removeItem('noa_pending_join');
+      return null;
+    }
+    return o;
+  } catch (e) { return null; }
+}
+function clearPendingClassJoin() {
+  try { localStorage.removeItem('noa_pending_join'); } catch (e) {}
+}
+async function consumePendingClassJoin() {
+  const pending = readPendingClassJoin();
+  const params = new URLSearchParams(window.location.search || '');
+  let code = (params.get('join') || params.get('code') || '').trim().toUpperCase();
+  let port = params.get('port');
+  if (code) {
+    storePendingClassJoin(code, port);
+  } else if (pending) {
+    code = pending.code;
+    port = pending.port;
+  }
+  if (!code) return;
+  if (!token || !user) {
+    // Not logged in: keep pending and send to login page with return URL
+    storePendingClassJoin(code, port);
+    const ret = encodeURIComponent(window.location.pathname + '?join=' + encodeURIComponent(code) + (port != null && port !== '' ? '&port=' + encodeURIComponent(port) : ''));
+    window.location.href = 'index.html?next=' + ret;
+    return;
+  }
+  clearPendingClassJoin();
+  // Clean URL
+  try {
+    const u = new URL(window.location.href);
+    u.searchParams.delete('join'); u.searchParams.delete('code'); u.searchParams.delete('port');
+    history.replaceState({}, '', u.pathname + (u.search || ''));
+  } catch (e) {}
+  const joinCodeEl = document.getElementById('joinCode');
+  const joinPortEl = document.getElementById('joinPort');
+  if (joinCodeEl) joinCodeEl.value = code;
+  if (joinPortEl && port != null && port !== '') joinPortEl.value = String(port);
+  try {
+    showSection('joinClass');
+    setTimeout(function () { joinClass(); }, 200);
+  } catch (e) {
+    console.error('auto join', e);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   try { initMessageNav(); } catch (e) {}
+  setTimeout(function () { try { consumePendingClassJoin(); } catch (e) {} }, 400);
   try {
     const btn = document.getElementById('msgSoundToggle');
     if (btn) {
