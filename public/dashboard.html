@@ -1109,6 +1109,49 @@
     #participantsWrap { overflow: visible; }
     #classRosterList { -webkit-overflow-scrolling: touch; }
     #whiteboardPanel.board-locked { /* position locked only — page still scrolls */ }
+
+    /* Local camera mirror + slight polish */
+    #localVideo.cam-mirror {
+      transform: scaleX(-1);
+      filter: contrast(1.05) saturate(1.08) brightness(1.03);
+    }
+    /* Board fullscreen mode (host + students) */
+    #whiteboardPanel.board-fs {
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-height: none !important;
+      z-index: 80 !important;
+      border-radius: 0 !important;
+      margin: 0 !important;
+      box-shadow: none !important;
+    }
+    #whiteboardPanel.board-fs #boardScrollWrap { max-height: none !important; flex: 1; }
+    #btnBoardFs {
+      display: none;
+    }
+    #whiteboardPanel:not(.hidden) #btnBoardFs { display: inline-flex; }
+    /* File toolbar auto-hide */
+    #sharedFilePanel .file-chrome {
+      transition: opacity .35s ease, transform .35s ease;
+    }
+    #sharedFilePanel.file-chrome-hidden .file-chrome {
+      opacity: 0; pointer-events: none; transform: translateY(-6px);
+    }
+    #sharedFilePanel.file-chrome-hidden #fileViewScroll {
+      /* full area for content when chrome hidden */
+    }
+    /* Setup overlay: scroll so Start button stays reachable */
+    #waitingOverlay {
+      overflow-y: auto; -webkit-overflow-scrolling: touch;
+      align-items: flex-start !important;
+      padding-top: 1.25rem !important;
+      padding-bottom: 2rem !important;
+    }
+    #codeSetupPanel { margin: auto; padding-bottom: 1rem; }
+    #stageWrap { overflow: visible; }
+    #mainStage { position: relative; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -1449,7 +1492,7 @@
 
                   <!-- Shared file viewer: zoom / pan / PDF pages, all inside this box -->
                   <div id="sharedFilePanel" class="hidden absolute inset-0 z-20 bg-slate-950 flex flex-col">
-                    <div class="flex items-center justify-between px-3 py-2 bg-slate-900 border-b border-slate-700 gap-2 flex-wrap">
+                    <div class="file-chrome flex items-center justify-between px-3 py-2 bg-slate-900 border-b border-slate-700 gap-2 flex-wrap">
                       <span id="sharedFileName" class="text-white text-xs truncate font-medium max-w-[38%]">Shared file</span>
                       <div class="flex items-center gap-1 text-xs flex-wrap">
                         <button type="button" onclick="fileZoomOut()" class="w-8 h-8 rounded-lg bg-slate-800 text-white hover:bg-slate-700" title="Zoom out"><i class="fas fa-search-minus"></i></button>
@@ -1493,6 +1536,7 @@
                     <span id="boardLockHint" class="text-[10px] text-amber-300/90 mr-1 whitespace-nowrap"></span>
                     <button type="button" onclick="adjustBoardHeight(-140)" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600" title="Make board shorter"><i class="fas fa-compress-alt"></i></button>
                     <button type="button" onclick="adjustBoardHeight(140)" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600" title="Make board longer (scrollable)"><i class="fas fa-expand-alt"></i></button>
+                    <button type="button" id="btnBoardFs" onclick="toggleBoardFullscreen()" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600 items-center justify-center" title="Toggle full-screen board"><i class="fas fa-expand"></i></button>
                     <button type="button" id="boardLockBtn" onclick="toggleBoardLock()" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600 hidden lg:inline-flex items-center justify-center" title="Lock / unlock board position"><i class="fas fa-lock-open"></i></button>
                     <button class="tool-btn active w-7 h-7 rounded-lg bg-slate-700 text-white text-xs" data-tool="pen" title="Pen"><i class="fas fa-pen"></i></button>
                     <button class="tool-btn w-7 h-7 rounded-lg bg-slate-700 text-white text-xs" data-tool="eraser" title="Eraser"><i class="fas fa-eraser"></i></button>
@@ -3551,13 +3595,12 @@ function ensureSocket() {
     if (isClassHost) {
       // Bring the new joiner up to speed: board content + visibility + draw permission
       socket.emit('wb-history', { code: activeClassCode, to: id, strokes: boardStrokes.slice(-4000), open: whiteboardOpen });
-      socket.emit('board-visibility', { code: activeClassCode, open: whiteboardOpen });
+      socket.emit('board-visibility', { code: activeClassCode, open: whiteboardOpen, full: boardFullscreen });
       socket.emit('board-permission', { code: activeClassCode, allowed: boardUnlockedForStudents });
     }
   });
 
   socket.on('room-roster', ({ count, members }) => {
-    if (count != null) window._roomParticipantCount = Number(count) || 0;
     if (Array.isArray(members)) {
       members.forEach(m => {
         if (m && m.id) {
@@ -3631,10 +3674,22 @@ function ensureSocket() {
       socket.emit('wb-history', { code: activeClassCode, to: from, strokes: boardStrokes.slice(-4000), open: whiteboardOpen });
     }
   });
-  socket.on('board-visibility', ({ open }) => {
+  socket.on('board-visibility', ({ open, full }) => {
     if (isClassHost) return;
-    if (open) { if (!whiteboardOpen) toggleWhiteboardPanel(true); }
-    else toggleWhiteboardPanel(false);
+    if (typeof full === 'boolean') boardFullscreen = full;
+    if (open) {
+      if (!whiteboardOpen) toggleWhiteboardPanel(true);
+      else applyBoardFullscreenUI();
+    } else {
+      toggleWhiteboardPanel(false);
+    }
+  });
+  socket.on('board-fs', ({ full }) => {
+    if (isClassHost) return;
+    if (typeof full === 'boolean') {
+      boardFullscreen = full;
+      applyBoardFullscreenUI();
+    }
   });
   socket.on('board-permission', ({ allowed }) => {
     boardUnlockedForStudents = !!allowed;
@@ -3679,6 +3734,7 @@ function playRemoteAudioOnly(peerId, stream) {
 }
 
 function updateParticipantUI() {
+  try { prunePeerMetaDuplicates(); } catch (e) {}
   const unique = collectRosterUnique();
   const n = unique.total;
   window._roomParticipantCount = n;
@@ -3692,42 +3748,81 @@ function updateParticipantUI() {
   }
 }
 
+function personKey(m) {
+  if (!m) return '';
+  if (m.userId) return 'uid:' + String(m.userId).toLowerCase();
+  if (m.email) return 'em:' + String(m.email).toLowerCase();
+  if (m.username) return 'un:' + String(m.username).toLowerCase();
+  return 'nm:' + String(m.name || 'participant').trim().toLowerCase();
+}
+
+/** Deduplicate peers: same person must appear once even if socket reconnects. */
 function collectRosterUnique() {
-  const byId = new Map();
   const mySockId = (socket && socket.id) || null;
   const meName = (user && (user.name || user.username)) || 'You';
-  byId.set(mySockId || 'me', {
+  const meKey = personKey({
+    userId: user && user.id,
+    email: user && user.email,
+    username: user && user.username,
+    name: meName
+  }) || 'me';
+
+  // identityKey -> best row (prefer live + with stream)
+  const byPerson = new Map();
+
+  function consider(row) {
+    const key = row.personKey || personKey(row) || row.id;
+    const prev = byPerson.get(key);
+    if (!prev) { byPerson.set(key, row); return; }
+    const score = (row.live ? 2 : 0) + (row.hasStream ? 1 : 0) + (row.me ? 4 : 0);
+    const prevScore = (prev.live ? 2 : 0) + (prev.hasStream ? 1 : 0) + (prev.me ? 4 : 0);
+    if (score >= prevScore) byPerson.set(key, row);
+  }
+
+  consider({
     id: mySockId || 'me',
     name: meName,
     isHost: !!isClassHost,
     live: true,
+    hasStream: !!mediaStream,
     micOn: !!micOn,
     camOn: camOn !== false,
-    me: true
+    me: true,
+    personKey: meKey
   });
+
   Object.keys(peerMeta).forEach(function (id) {
     if (!id) return;
     if (mySockId && id === mySockId) return;
     const m = peerMeta[id] || {};
-    byId.set(id, {
+    const pk = personKey(m) || ('sid:' + id);
+    // Skip if this is clearly me under another id
+    if (pk === meKey) return;
+    consider({
       id: id,
       name: m.name || 'Participant',
       isHost: !!m.isHost,
       live: !!peers[id] || !!m.stream,
+      hasStream: !!m.stream,
       micOn: m.micOn !== false,
       camOn: m.camOn !== false,
-      me: false
+      me: false,
+      personKey: pk,
+      userId: m.userId,
+      email: m.email,
+      username: m.username
     });
   });
-  const all = Array.from(byId.values());
+
+  const all = Array.from(byPerson.values());
   const hosts = [];
   const participants = [];
-  const hostNames = new Set();
+  const hostKeys = new Set();
   all.forEach(function (r) {
     if (r.isHost) {
-      const key = String(r.name || '').toLowerCase();
-      if (hostNames.has(key) && !r.me) return;
-      hostNames.add(key);
+      const k = r.personKey || String(r.name).toLowerCase();
+      if (hostKeys.has(k) && !r.me) return;
+      hostKeys.add(k);
       hosts.push(r);
     } else {
       participants.push(r);
@@ -3736,6 +3831,34 @@ function collectRosterUnique() {
   hosts.sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); });
   participants.sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); });
   return { hosts: hosts, participants: participants, total: hosts.length + participants.length };
+}
+
+/** When roster arrives, drop stale socket ids for the same person. */
+function prunePeerMetaDuplicates() {
+  const best = new Map(); // personKey -> socketId
+  Object.keys(peerMeta).forEach(function (id) {
+    const m = peerMeta[id] || {};
+    const k = personKey(m) || ('sid:' + id);
+    const prev = best.get(k);
+    const live = !!peers[id] || !!m.stream;
+    if (!prev) {
+      best.set(k, { id: id, live: live });
+      return;
+    }
+    if (live && !prev.live) {
+      // replace stale
+      delete peerMeta[prev.id];
+      try { removePeer(prev.id); } catch (e) {}
+      best.set(k, { id: id, live: live });
+    } else if (!live && prev.live) {
+      delete peerMeta[id];
+      try { removePeer(id); } catch (e) {}
+    } else if (id !== prev.id) {
+      // same liveness — keep first, drop this
+      delete peerMeta[id];
+      try { removePeer(id); } catch (e) {}
+    }
+  });
 }
 
 function renderRosterList() {
@@ -3791,7 +3914,7 @@ async function getLocalMedia() {
     });
     camOn = true; micOn = true;
     const lv = document.getElementById('localVideo');
-    if (lv) { lv.srcObject = mediaStream; lv.muted = true; lv.setAttribute('playsinline', ''); try { await lv.play(); } catch (e) {} }
+    if (lv) { lv.srcObject = mediaStream; lv.muted = true; lv.setAttribute('playsinline', ''); lv.classList.add('cam-mirror'); try { await lv.play(); } catch (e) {} }
     setTimeout(broadcastMediaState, 400);
     renderRosterList();
     return mediaStream;
@@ -3944,6 +4067,8 @@ function focusPeer(peerId) {
   const card = document.getElementById('focusedStudentCard');
   if (card) {
     card.classList.remove('hidden');
+    card.style.opacity = '1';
+    card.style.transition = 'opacity 0.5s ease';
     document.getElementById('fsName').textContent = meta.name || 'Participant';
     const bits = [];
     bits.push(meta.isHost ? 'Role: Host' : 'Role: Student / participant');
@@ -3952,6 +4077,13 @@ function focusPeer(peerId) {
     bits.push((meta.micOn !== false) ? 'Mic: on' : 'Mic: off');
     document.getElementById('fsMeta').textContent = bits.join(' · ');
     document.getElementById('fsHostActions')?.classList.toggle('hidden', !isClassHost || !!meta.isHost);
+    clearTimeout(window._focusCardTimer);
+    window._focusCardTimer = setTimeout(function () {
+      card.style.opacity = '0';
+      setTimeout(function () {
+        if (card.style.opacity === '0') card.classList.add('hidden');
+      }, 500);
+    }, 3000);
   }
   Object.keys(peerSlotMap).forEach(id => {
     peerSlotMap[id].classList.toggle('ring-2', id === peerId);
@@ -4356,18 +4488,51 @@ function toggleMic() {
 }
 
 // ===================== WHITEBOARD v2 =====================
+let boardFullscreen = true; // default full when host opens board
+
+function applyBoardFullscreenUI() {
+  const panel = document.getElementById('whiteboardPanel');
+  const btn = document.getElementById('btnBoardFs');
+  if (!panel) return;
+  panel.classList.toggle('board-fs', !!boardFullscreen && !!whiteboardOpen);
+  if (btn) {
+    btn.innerHTML = boardFullscreen ? '<i class="fas fa-compress"></i>' : '<i class="fas fa-expand"></i>';
+    btn.title = boardFullscreen ? 'Exit full-screen board' : 'Full-screen board';
+  }
+  setTimeout(function () { try { resizeBoardCanvas(); } catch (e) {} }, 50);
+}
+
+function toggleBoardFullscreen() {
+  if (!whiteboardOpen) return;
+  // Only host controls size mode for the room; students can also toggle local view
+  boardFullscreen = !boardFullscreen;
+  applyBoardFullscreenUI();
+  if (isClassHost && socket && activeClassCode) {
+    socket.emit('board-fs', { code: activeClassCode, full: boardFullscreen });
+  }
+}
+
 function toggleWhiteboardPanel(force) {
   const panel = document.getElementById('whiteboardPanel');
   if (!panel) return;
+  // Students cannot open/close board themselves — host controls visibility
+  if (!isClassHost && force === undefined) {
+    // allow local only if already opened by host
+    if (!whiteboardOpen && panel.classList.contains('hidden')) return;
+  }
   const open = force === false ? false : force === true ? true : panel.classList.contains('hidden');
   whiteboardOpen = open;
   panel.classList.toggle('hidden', !open);
   if (open) {
-    setTimeout(() => { resizeBoardCanvas(); initBoardChrome(); }, 40);
+    if (isClassHost) boardFullscreen = true; // host activation starts full-screen both sides
+    applyBoardFullscreenUI();
+    setTimeout(function () { resizeBoardCanvas(); initBoardChrome(); }, 40);
     updateBoardLockUI();
+  } else {
+    panel.classList.remove('board-fs');
   }
   if (isClassHost && activeClassCode && socket) {
-    socket.emit('board-visibility', { code: activeClassCode, open: whiteboardOpen });
+    socket.emit('board-visibility', { code: activeClassCode, open: whiteboardOpen, full: boardFullscreen });
   }
 }
 
@@ -4663,6 +4828,21 @@ function initFileViewerChrome() {
       lastTap = 0;
     } else lastTap = now;
   }, { passive: true });
+
+  // Show chrome on interaction; auto-hide after 3s idle
+  const panel = document.getElementById('sharedFilePanel');
+  function bumpFileChrome() {
+    if (!panel) return;
+    panel.classList.remove('file-chrome-hidden');
+    clearTimeout(window._fileChromeTimer);
+    window._fileChromeTimer = setTimeout(function () {
+      panel.classList.add('file-chrome-hidden');
+    }, 3000);
+  }
+  panel && panel.addEventListener('pointerdown', bumpFileChrome);
+  wrap.addEventListener('pointerdown', bumpFileChrome);
+  wrap.addEventListener('mousemove', bumpFileChrome);
+  bumpFileChrome();
 }
 
 let fileFitLocked = false;
@@ -4849,6 +5029,9 @@ async function showSharedFileFromData(file) {
     content.appendChild(p);
   }
   panel.classList.remove('hidden');
+  panel.classList.remove('file-chrome-hidden');
+  clearTimeout(window._fileChromeTimer);
+  window._fileChromeTimer = setTimeout(function () { panel.classList.add('file-chrome-hidden'); }, 3000);
 }
 
 function closeSharedFile() {

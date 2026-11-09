@@ -5642,10 +5642,20 @@ io.on('connection', (socket) => {
     });
   });
 
-  socket.on('board-visibility', ({ code, open }) => {
+  socket.on('board-visibility', ({ code, open, full }) => {
     if (!code) return;
     socket.to(String(code).toUpperCase()).emit('board-visibility', {
       open: !!open,
+      full: full !== undefined ? !!full : true,
+      from: socket.id
+    });
+  });
+
+  socket.on('board-fs', ({ code, full }) => {
+    if (!code) return;
+    if (!socket.data.isHost) return;
+    socket.to(String(code).toUpperCase()).emit('board-fs', {
+      full: !!full,
       from: socket.id
     });
   });
