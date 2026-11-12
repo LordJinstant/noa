@@ -1541,6 +1541,9 @@
               <div id="stageWrap" class="relative flex-1 min-w-0 p-3 sm:p-4 space-y-3">
                 <div id="mainStage" class="relative aspect-video bg-slate-950 rounded-2xl overflow-hidden border border-slate-700">
                   <video id="localVideo" autoplay muted playsinline class="w-full h-full object-contain bg-black"></video>
+                  <div id="hostAudioMeter" title="Your audio level" aria-hidden="true">
+                    <span class="am-bar"></span><span class="am-bar"></span><span class="am-bar"></span><span class="am-bar"></span><span class="am-bar"></span>
+                  </div>
                   <video id="focusVideo" autoplay playsinline class="hidden w-full h-full object-contain bg-black"></video>
                   <div id="screenShareBadge" class="hidden absolute top-3 left-3 px-3 py-1 rounded-lg bg-indigo-600 text-white text-xs font-semibold z-10"><i class="fas fa-desktop mr-1"></i>Screen sharing</div>
                   <div id="waitingOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/95 text-white p-6 z-10">
@@ -3812,6 +3815,154 @@ function isSelfMeta(m) {
   return false;
 }
 
+
+// ===================== LIVE AUDIO METERS =====================
+const audioMeterMap = {}; // key -> { ctx, analyser, data, raf, els }
+let sharedAudioCtx = null;
+
+function getAudioCtx() {
+  if (!sharedAudioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    sharedAudioCtx = new AC();
+  }
+  if (sharedAudioCtx.state === 'suspended') {
+    sharedAudioCtx.resume().catch(function () {});
+  }
+  return sharedAudioCtx;
+}
+
+function meterBarsHtml(n) {
+  n = n || 5;
+  let h = '';
+  for (let i = 0; i < n; i++) h += '<span class="am-bar"></span>';
+  return h;
+}
+
+function applyMeterLevel(el, level, micOn) {
+  if (!el) return;
+  const bars = el.querySelectorAll('.am-bar');
+  if (!bars.length) return;
+  if (!micOn) {
+    el.classList.add('am-off');
+    el.classList.remove('am-live', 'am-hot');
+    bars.forEach(function (b) { b.style.height = '2px'; });
+    return;
+  }
+  el.classList.remove('am-off');
+  const hot = level > 0.72;
+  el.classList.toggle('am-hot', hot);
+  el.classList.toggle('am-live', !hot && level > 0.04);
+  const n = bars.length;
+  bars.forEach(function (b, i) {
+    const threshold = (i + 1) / (n + 0.5);
+    const active = level >= threshold * 0.85;
+    const h = active ? Math.max(2, Math.round(2 + level * 12 * ((i + 1) / n))) : 2;
+    b.style.height = h + 'px';
+  });
+}
+
+function stopAudioMeter(key) {
+  const m = audioMeterMap[key];
+  if (!m) return;
+  if (m.raf) cancelAnimationFrame(m.raf);
+  try { if (m.source) m.source.disconnect(); } catch (e) {}
+  try { if (m.analyser) m.analyser.disconnect(); } catch (e) {}
+  delete audioMeterMap[key];
+}
+
+function bindMeterElement(key, el) {
+  if (!el) return;
+  const m = audioMeterMap[key];
+  if (!m) { el._meterKey = key; return; }
+  m.els = m.els || new Set();
+  m.els.add(el);
+  el._meterKey = key;
+}
+
+function startAudioMeter(key, stream, micOnGetter) {
+  if (!stream) return;
+  if (!stream.getAudioTracks || !stream.getAudioTracks().length) return;
+  if (audioMeterMap[key] && audioMeterMap[key].stream === stream) {
+    audioMeterMap[key].micOnGetter = micOnGetter;
+    return;
+  }
+  stopAudioMeter(key);
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  var source;
+  try { source = ctx.createMediaStreamSource(stream); } catch (e) { return; }
+  const analyser = ctx.createAnalyser();
+  analyser.fftSize = 256;
+  analyser.smoothingTimeConstant = 0.7;
+  source.connect(analyser);
+  const data = new Uint8Array(analyser.frequencyBinCount);
+  const entry = { stream: stream, source: source, analyser: analyser, data: data, els: new Set(), micOnGetter: micOnGetter || function () { return true; }, raf: 0 };
+  audioMeterMap[key] = entry;
+  function tick() {
+    const m = audioMeterMap[key];
+    if (!m) return;
+    const micOn = !!(m.micOnGetter && m.micOnGetter());
+    var level = 0;
+    if (micOn) {
+      m.analyser.getByteFrequencyData(m.data);
+      var sum = 0, count = 0;
+      var len = m.data.length;
+      var start = Math.floor(len * 0.05);
+      var end = Math.floor(len * 0.55);
+      for (var i = start; i < end; i++) { sum += m.data[i]; count++; }
+      level = count ? Math.min(1, (sum / count) / 140) : 0;
+      level = Math.pow(level, 0.85);
+    }
+    m.els.forEach(function (el) {
+      if (el && el.isConnected) applyMeterLevel(el, level, micOn);
+    });
+    document.querySelectorAll('[data-audio-meter="' + key + '"]').forEach(function (el) {
+      applyMeterLevel(el, level, micOn);
+    });
+    m.raf = requestAnimationFrame(tick);
+  }
+  tick();
+}
+
+function refreshAllMeterBindings() {
+  if (mediaStream) {
+    startAudioMeter('local', mediaStream, function () { return !!micOn; });
+    var hostEl = document.getElementById('hostAudioMeter');
+    if (hostEl) { hostEl.classList.add('show'); bindMeterElement('local', hostEl); }
+  }
+  Object.keys(peerMeta).forEach(function (id) {
+    var meta = peerMeta[id];
+    if (!meta || !meta.stream) return;
+    var key = 'peer:' + id;
+    startAudioMeter(key, meta.stream, function () {
+      return peerMeta[id] && peerMeta[id].micOn !== false;
+    });
+    var slot = peerSlotMap[id];
+    if (slot) {
+      var el = slot.querySelector('.peer-audio-meter');
+      if (!el) {
+        el = document.createElement('div');
+        el.className = 'peer-audio-meter';
+        el.innerHTML = meterBarsHtml(5);
+        slot.appendChild(el);
+      }
+      bindMeterElement(key, el);
+    }
+  });
+}
+
+function teardownAllAudioMeters() {
+  Object.keys(audioMeterMap).forEach(stopAudioMeter);
+  var hostEl = document.getElementById('hostAudioMeter');
+  if (hostEl) hostEl.classList.remove('show');
+}
+
+document.addEventListener('pointerdown', function () {
+  var c = getAudioCtx();
+  if (c && c.state === 'suspended') c.resume().catch(function () {});
+}, { passive: true });
+
 function shouldWebRTCWith(remote) {
   if (!remote) return false;
   if (isSelfPeerId(remote.id)) return false;
@@ -4017,12 +4168,16 @@ function renderRosterList() {
   if (badge) badge.textContent = total + ' in class';
   function rowHtml(r, roleLabel) {
     const display = String(r.name || 'Participant').replace(/</g, '') + (r.me ? ' (you)' : '');
+    const meterKey = r.me ? 'local' : ('peer:' + r.id);
+    const meterClass = 'audio-meter' + (r.micOn ? '' : ' am-off');
+    const meter = '<span class="' + meterClass + '" data-audio-meter="' + meterKey + '" title="Audio level">' +
+      '<span class="am-bar"></span><span class="am-bar"></span><span class="am-bar"></span><span class="am-bar"></span><span class="am-bar"></span></span>';
     return (
       '<div class="roster-row">' +
       '<span class="roster-dot ' + (r.isHost ? 'bg-amber-400' : (r.live ? 'bg-emerald-400' : 'bg-slate-600')) + '"></span>' +
       '<span class="text-[10px] font-bold uppercase tracking-wide ' + (r.isHost ? 'text-amber-300' : 'text-slate-500') + ' w-16 shrink-0">' + roleLabel + '</span>' +
       '<span class="text-[11px] text-slate-200 truncate flex-1">' + display + '</span>' +
-      (r.micOn ? '<span class="mic-waves" title="Mic on"><span></span><span></span><span></span></span>' : '<i class="fas fa-microphone-slash text-[9px] text-slate-600"></i>') +
+      meter +
       (r.camOn ? '<span class="text-[9px] font-bold text-emerald-400">CAM</span>' : '') +
       '</div>'
     );
@@ -4039,6 +4194,7 @@ function renderRosterList() {
     participants.forEach(function (r) { html += rowHtml(r, 'Student'); });
   }
   el.innerHTML = html;
+  try { refreshAllMeterBindings(); } catch (e) {}
 }
 
 function broadcastMediaState() {
@@ -4321,6 +4477,17 @@ function attachRemoteStream(peerId, name, stream) {
   label.className = 'absolute bottom-1 left-1 px-2 py-0.5 rounded bg-black/60 text-white text-[10px] pointer-events-none';
   label.textContent = name || 'Participant';
   slot.appendChild(label);
+  var meterEl = document.createElement('div');
+  meterEl.className = 'peer-audio-meter';
+  meterEl.innerHTML = meterBarsHtml(5);
+  slot.appendChild(meterEl);
+  try {
+    var key = 'peer:' + peerId;
+    startAudioMeter(key, stream, function () {
+      return peerMeta[peerId] && peerMeta[peerId].micOn !== false;
+    });
+    bindMeterElement(key, meterEl);
+  } catch (e) {}
   const camAllowed = peerMeta[peerId].camOn !== false;
   slot.style.display = camAllowed ? '' : 'none';
   updateParticipantUI();
@@ -4901,6 +5068,7 @@ function leaveLocalClassSession(statusMsg) {
     Object.keys(peerSlotMap).forEach(function (k) { delete peerSlotMap[k]; });
     document.getElementById('hostSelfSlot')?.classList.add('hidden');
     document.getElementById('fileCamPip')?.classList.remove('show');
+    try { teardownAllAudioMeters(); } catch (e) {}
   } catch (e) {}
   const lv = document.getElementById('localVideo');
   if (lv) { lv.srcObject = null; lv.classList.remove('hidden'); }
@@ -4977,6 +5145,7 @@ function toggleMic() {
     : '<i class="fas fa-microphone-slash mr-1"></i><span class="hidden sm:inline">Mic Off</span>';
   broadcastMediaState();
   renderRosterList();
+  try { refreshAllMeterBindings(); } catch (e) {}
 }
 
 // ===================== WHITEBOARD v2 =====================
