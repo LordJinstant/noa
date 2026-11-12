@@ -1209,6 +1209,33 @@
       color: #64748b; font-size: 0.85rem; pointer-events: none;
     }
     #mainStage.stage-file #localVideo { opacity: 0; }
+
+    /* Host camera PIP inside the file display area */
+    #fileCamPip {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      width: min(28%, 200px);
+      aspect-ratio: 16 / 10;
+      z-index: 28;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid rgba(52, 211, 153, 0.55);
+      box-shadow: 0 10px 28px rgba(0,0,0,.45);
+      background: #020617;
+      display: none;
+    }
+    #fileCamPip.show { display: block; }
+    #fileCamPip video {
+      width: 100%; height: 100%; object-fit: cover; background: #000;
+      transform: scaleX(-1);
+      filter: contrast(1.05) saturate(1.08) brightness(1.03);
+    }
+    #fileCamPip .pip-label {
+      position: absolute; left: 6px; bottom: 6px;
+      font-size: 10px; color: #fff; background: rgba(0,0,0,.55);
+      padding: 2px 6px; border-radius: 6px; pointer-events: none;
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -1585,10 +1612,14 @@
                       <button type="button" class="w-5 h-5 rounded-full bg-sky-400" data-file-color="#38bdf8" title="Blue"></button>
                       <button type="button" onclick="clearFileAnnotations()" class="w-8 h-8 rounded-full bg-slate-700 text-white text-xs" title="Clear drawings"><i class="fas fa-trash"></i></button>
                     </div>
+                    <div id="fileCamPip" title="Your camera">
+                      <video id="fileCamPipVideo" autoplay muted playsinline></video>
+                      <span class="pip-label">You</span>
+                    </div>
                   </div>
 
                   <div class="absolute bottom-3 left-3 px-3 py-1 rounded-lg bg-black/60 text-white text-xs z-10" id="mainStageLabel">You</div>
-                  <button type="button" id="btnClearFocus" onclick="clearFocusPeer()" class="hidden absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-black/70 text-white text-xs hover:bg-black z-10">Back to my camera</button>
+                  <button type="button" id="btnClearFocus" onclick="clearFocusPeer()" class="hidden absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-black/70 text-white text-xs hover:bg-black z-10"><i class="fas fa-user mr-1"></i>Back to my view</button>
                   <div id="focusedStudentCard" class="hidden absolute bottom-3 right-3 max-w-xs w-[min(100%,280px)] bg-slate-900/95 border border-slate-600 rounded-2xl p-3 text-white shadow-xl z-10">
                     <p class="text-[10px] uppercase tracking-wide text-slate-400 mb-1">Participant</p>
                     <p id="fsName" class="font-bold text-sm truncate">—</p>
@@ -1628,9 +1659,9 @@
                 </div>
 
                 <div id="hostPeerRow" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 max-h-[240px] overflow-y-auto pr-1">
-                  <div id="hostSelfSlot" class="hidden peer-slot aspect-video bg-slate-800 rounded-xl overflow-hidden relative border border-emerald-500/40 order-first">
+                  <div id="hostSelfSlot" role="button" tabindex="0" onclick="clearFocusPeer()" class="hidden peer-slot aspect-video bg-slate-800 rounded-xl overflow-hidden relative border border-emerald-500/40 order-first cursor-pointer hover:ring-2 hover:ring-emerald-400" title="Back to my view">
                     <video id="hostSelfVideo" autoplay muted playsinline class="w-full h-full object-cover bg-black cam-mirror"></video>
-                    <div class="absolute bottom-1 left-1 px-2 py-0.5 rounded bg-black/60 text-white text-[10px] pointer-events-none">You</div>
+                    <div class="absolute bottom-1 left-1 px-2 py-0.5 rounded bg-black/60 text-white text-[10px] pointer-events-none">You · tap to return</div>
                   </div>
                   <div id="remoteVideos" class="contents"></div>
                 </div>
@@ -3608,6 +3639,7 @@ function ensureSocket() {
     if (count != null) window._roomParticipantCount = Number(count) || 0;
     let hostId = null;
     for (const p of existing || []) {
+      if (!p || !p.id || isSelfPeerId(p.id) || isSelfMeta(p)) continue;
       peerMeta[p.id] = { name: p.name, isHost: p.isHost, email: p.email, username: p.username, userId: p.userId, micOn: true, camOn: true };
       if (p.isHost) hostId = p.id;
       if (shouldWebRTCWith(p)) await createPeerConnection(p.id, p.name, true);
@@ -3622,8 +3654,9 @@ function ensureSocket() {
 
   socket.on('user-joined', async ({ id, name, isHost, email, username, userId, count }) => {
     if (count != null) window._roomParticipantCount = Number(count) || 0;
+    if (isSelfPeerId(id) || isSelfMeta({ name, isHost, email, username, userId })) return;
     peerMeta[id] = { name, isHost, email, username, userId, micOn: true, camOn: true };
-    if (shouldWebRTCWith({ id, isHost })) await createPeerConnection(id, name, false);
+    if (shouldWebRTCWith({ id, isHost, name, email, username, userId })) await createPeerConnection(id, name, false);
     updateParticipantUI();
     renderRosterList();
     const st = document.getElementById('classStatus');
@@ -3639,11 +3672,14 @@ function ensureSocket() {
   socket.on('room-roster', ({ count, members }) => {
     if (Array.isArray(members)) {
       members.forEach(m => {
-        if (m && m.id) {
-          peerMeta[m.id] = Object.assign({ micOn: true, camOn: true }, peerMeta[m.id] || {}, {
-            name: m.name, isHost: m.isHost, email: m.email, username: m.username, userId: m.userId
-          });
+        if (!m || !m.id) return;
+        if (isSelfPeerId(m.id) || isSelfMeta(m)) {
+          try { delete peerMeta[m.id]; removePeer(m.id); } catch (e) {}
+          return;
         }
+        peerMeta[m.id] = Object.assign({ micOn: true, camOn: true }, peerMeta[m.id] || {}, {
+          name: m.name, isHost: m.isHost, email: m.email, username: m.username, userId: m.userId
+        });
       });
     }
     updateParticipantUI();
@@ -3752,8 +3788,35 @@ function ensureSocket() {
 }
 
 /** Host+students video; student↔student audio-only so everyone can hear each other. */
+
+function isSelfPeerId(id) {
+  if (!id) return false;
+  if (socket && socket.id && id === socket.id) return true;
+  return false;
+}
+
+function isSelfMeta(m) {
+  if (!m) return false;
+  if (m.me) return true;
+  const uid = user && (user.id != null ? String(user.id) : '');
+  const email = user && user.email ? String(user.email).toLowerCase().trim() : '';
+  const uname = user && user.username ? String(user.username).toLowerCase().trim() : '';
+  const name = user && user.name ? String(user.name).toLowerCase().trim() : '';
+  if (uid && m.userId != null && String(m.userId) === uid) return true;
+  if (email && m.email && String(m.email).toLowerCase().trim() === email) return true;
+  if (uname && m.username && String(m.username).toLowerCase().trim() === uname) return true;
+  if (name && m.name && String(m.name).toLowerCase().trim() === name) return true;
+  // username often stored as name on join
+  if (uname && m.name && String(m.name).toLowerCase().trim() === uname) return true;
+  if (name && m.username && String(m.username).toLowerCase().trim() === name) return true;
+  return false;
+}
+
 function shouldWebRTCWith(remote) {
-  return !!remote;
+  if (!remote) return false;
+  if (isSelfPeerId(remote.id)) return false;
+  if (isSelfMeta(remote)) return false;
+  return true;
 }
 function isAudioOnlyPeer(remote) {
   if (isClassHost) return false;
@@ -3871,10 +3934,13 @@ function collectRosterUnique() {
   Object.keys(peerMeta).forEach(function (id) {
     if (!id) return;
     if (mySockId && id === mySockId) return;
+    if (isSelfPeerId(id)) return;
     const m = peerMeta[id] || {};
+    if (isSelfMeta(m)) return;
     const pk = personKey(m) || ('sid:' + id);
-    // Skip if this is clearly me under another id
     if (pk === meKey) return;
+    // Never list a second host row for the local host
+    if (isClassHost && m.isHost) return;
     consider({
       id: id,
       name: m.name || 'Participant',
@@ -4000,23 +4066,37 @@ function updateHostStageLayout() {
   const label = document.getElementById('mainStageLabel');
   const selfSlot = document.getElementById('hostSelfSlot');
   const selfVid = document.getElementById('hostSelfVideo');
+  const pip = document.getElementById('fileCamPip');
+  const pipVid = document.getElementById('fileCamPipVideo');
   const fileOpen = isSharedFileOpen();
   const camLive = isHostCamLive();
 
-  // Don't fight focused remote peer view
-  if (focusedPeerId && fv && !fv.classList.contains('hidden')) {
+  function bindSelf(vid) {
+    if (!vid || !mediaStream) return;
+    try {
+      if (vid.srcObject !== mediaStream) vid.srcObject = mediaStream;
+      vid.muted = true;
+      vid.setAttribute('playsinline', '');
+      vid.play().catch(function () {});
+    } catch (e) {}
+  }
+
+  // Always hide duplicate host tile in the grid — host is shown once only
+  // (main stage or file PIP). hostSelfSlot is reserved for "back to me" while monitoring.
+  const monitoring = !!(focusedPeerId && fv && !fv.classList.contains('hidden'));
+
+  if (monitoring) {
+    if (pip) pip.classList.remove('show');
+    // Only while monitoring someone else, show host self tile so you can return
     if (selfSlot) {
-      if (camLive) {
-        selfSlot.classList.remove('hidden');
-        if (selfVid && mediaStream) {
-          try { selfVid.srcObject = mediaStream; selfVid.play().catch(function () {}); } catch (e) {}
-        }
-      } else {
-        selfSlot.classList.add('hidden');
-      }
+      if (camLive) { selfSlot.classList.remove('hidden'); bindSelf(selfVid); }
+      else selfSlot.classList.add('hidden');
     }
     return;
   }
+
+  // Not monitoring — never show hostSelfSlot (prevents "two hosts")
+  if (selfSlot) selfSlot.classList.add('hidden');
 
   if (stage) {
     stage.classList.toggle('stage-file', fileOpen);
@@ -4024,56 +4104,28 @@ function updateHostStageLayout() {
   }
 
   if (fileOpen) {
-    // Big display = file; small = host cam if on
-    if (lv) {
-      lv.classList.add('hidden');
-    }
+    if (lv) lv.classList.add('hidden');
     if (label) label.textContent = 'Shared file';
-    if (selfSlot) {
-      if (camLive) {
-        selfSlot.classList.remove('hidden');
-        if (selfVid && mediaStream) {
-          try {
-            if (selfVid.srcObject !== mediaStream) selfVid.srcObject = mediaStream;
-            selfVid.muted = true;
-            selfVid.play().catch(function () {});
-          } catch (e) {}
-        }
-      } else {
-        selfSlot.classList.add('hidden');
-      }
+    if (camLive) {
+      if (pip) { pip.classList.add('show'); bindSelf(pipVid); }
+    } else {
+      if (pip) pip.classList.remove('show');
     }
   } else if (camLive) {
-    // Big + small host camera
+    if (pip) pip.classList.remove('show');
     if (lv) {
       lv.classList.remove('hidden');
-      try {
-        if (lv.srcObject !== mediaStream) lv.srcObject = mediaStream;
-        lv.muted = true;
-        lv.classList.add('cam-mirror');
-        lv.play().catch(function () {});
-      } catch (e) {}
+      bindSelf(lv);
+      lv.classList.add('cam-mirror');
     }
     if (label) label.textContent = 'You';
-    if (selfSlot) {
-      selfSlot.classList.remove('hidden');
-      if (selfVid && mediaStream) {
-        try {
-          if (selfVid.srcObject !== mediaStream) selfVid.srcObject = mediaStream;
-          selfVid.muted = true;
-          selfVid.play().catch(function () {});
-        } catch (e) {}
-      }
-    }
   } else {
-    // Blank main; hide small
-    if (lv) {
-      lv.classList.add('hidden');
-    }
+    if (pip) pip.classList.remove('show');
+    if (lv) lv.classList.add('hidden');
     if (label) label.textContent = 'Camera off';
-    if (selfSlot) selfSlot.classList.add('hidden');
   }
 }
+
 
 function attachLocalPreview() {
   const fv = document.getElementById('focusVideo');
@@ -4144,6 +4196,7 @@ async function getLocalMedia(forceRestart) {
 }
 
 async function createPeerConnection(remoteId, remoteName, shouldOffer) {
+  if (isSelfPeerId(remoteId)) return null;
   if (peers[remoteId]) return peers[remoteId];
   const meta = peerMeta[remoteId] || { name: remoteName, isHost: false };
   const audioOnly = isAudioOnlyPeer(meta);
@@ -4238,7 +4291,9 @@ async function handleSignal(fromId, data) {
 }
 
 function attachRemoteStream(peerId, name, stream) {
+  if (isSelfPeerId(peerId) || isSelfMeta({ name: name })) return;
   peerMeta[peerId] = peerMeta[peerId] || { name: name || 'Peer', micOn: true, camOn: true };
+  if (isSelfMeta(peerMeta[peerId])) return;
   peerMeta[peerId].stream = stream;
 
   let slot = peerSlotMap[peerId];
@@ -4276,28 +4331,79 @@ function attachRemoteStream(peerId, name, stream) {
   }
 }
 
+/** Local-only monitor: host sees a participant full-screen on main stage. Others are unaffected. */
 function focusPeer(peerId) {
   const meta = peerMeta[peerId];
-  if (!meta || !meta.stream) return;
+  if (!meta) return;
+  // Only when their camera is on / we have video
+  const camOn = meta.camOn !== false && !!meta.stream;
+  if (!camOn) {
+    // Still show info card briefly, but no full-screen swap
+    focusedPeerId = peerId;
+    const card = document.getElementById('focusedStudentCard');
+    if (card) {
+      card.classList.remove('hidden');
+      card.style.opacity = '1';
+      card.style.transition = 'opacity 0.45s ease';
+      document.getElementById('fsName').textContent = meta.name || 'Participant';
+      document.getElementById('fsMeta').textContent = 'Camera is off — cannot full-screen monitor';
+      document.getElementById('fsHostActions')?.classList.toggle('hidden', !isClassHost || !!meta.isHost);
+      clearTimeout(window._focusCardTimer);
+      window._focusCardTimer = setTimeout(function () {
+        card.style.opacity = '0';
+        setTimeout(function () { if (card.style.opacity === '0') card.classList.add('hidden'); }, 400);
+      }, 2500);
+    }
+    return;
+  }
+
+  // Remember what was on the big display so "Back" restores it (file / host cam / blank)
+  window._focusPrev = {
+    fileOpen: isSharedFileOpen(),
+    stageFile: !!(document.getElementById('mainStage') && document.getElementById('mainStage').classList.contains('stage-file')),
+    label: (document.getElementById('mainStageLabel') && document.getElementById('mainStageLabel').textContent) || 'You'
+  };
+
   focusedPeerId = peerId;
   const lv = document.getElementById('localVideo');
   const fv = document.getElementById('focusVideo');
+  const panel = document.getElementById('sharedFilePanel');
+  const pip = document.getElementById('fileCamPip');
+
+  // Hide host cam + file on THIS device only; do not touch shared file for others
   if (lv) lv.classList.add('hidden');
-  if (fv) { fv.classList.remove('hidden'); fv.srcObject = meta.stream; fv.muted = false; fv.play().catch(() => {}); }
+  if (panel) {
+    panel.classList.add('opacity-0', 'pointer-events-none');
+    panel.style.visibility = 'hidden';
+  }
+  if (pip) pip.classList.remove('show');
+
+  if (fv) {
+    fv.classList.remove('hidden');
+    fv.srcObject = meta.stream;
+    fv.muted = false;
+    fv.play().catch(function () {});
+  }
   const label = document.getElementById('mainStageLabel');
-  if (label) label.textContent = meta.name || 'Participant';
-  document.getElementById('btnClearFocus')?.classList.remove('hidden');
+  if (label) label.textContent = 'Monitoring: ' + (meta.name || 'Participant');
+  const btn = document.getElementById('btnClearFocus');
+  if (btn) {
+    btn.classList.remove('hidden');
+    btn.innerHTML = '<i class="fas fa-user mr-1"></i>Back to my view';
+  }
+
   const card = document.getElementById('focusedStudentCard');
   if (card) {
     card.classList.remove('hidden');
     card.style.opacity = '1';
-    card.style.transition = 'opacity 0.5s ease';
+    card.style.transition = 'opacity 0.45s ease';
     document.getElementById('fsName').textContent = meta.name || 'Participant';
     const bits = [];
     bits.push(meta.isHost ? 'Role: Host' : 'Role: Student / participant');
     if (meta.email) bits.push('Email: ' + meta.email);
     if (meta.username) bits.push('Username: ' + meta.username);
-    bits.push((meta.micOn !== false) ? 'Mic: on' : 'Mic: off');
+    bits.push('Mic: ' + (meta.micOn !== false ? 'on' : 'off'));
+    bits.push('Cam: on · full-screen (only you)');
     document.getElementById('fsMeta').textContent = bits.join(' · ');
     document.getElementById('fsHostActions')?.classList.toggle('hidden', !isClassHost || !!meta.isHost);
     clearTimeout(window._focusCardTimer);
@@ -4305,26 +4411,48 @@ function focusPeer(peerId) {
       card.style.opacity = '0';
       setTimeout(function () {
         if (card.style.opacity === '0') card.classList.add('hidden');
-      }, 500);
-    }, 3000);
+      }, 400);
+    }, 2500);
   }
-  Object.keys(peerSlotMap).forEach(id => {
-    peerSlotMap[id].classList.toggle('ring-2', id === peerId);
-    peerSlotMap[id].classList.toggle('ring-emerald-400', id === peerId);
+  Object.keys(peerSlotMap).forEach(function (id) {
+    if (peerSlotMap[id]) {
+      peerSlotMap[id].classList.toggle('ring-2', id === peerId);
+      peerSlotMap[id].classList.toggle('ring-emerald-400', id === peerId);
+    }
   });
+  // Host self-tile stays available as a click target if needed
+  try { updateHostStageLayout(); } catch (e) {}
 }
 
 function clearFocusPeer() {
   focusedPeerId = null;
   const lv = document.getElementById('localVideo');
   const fv = document.getElementById('focusVideo');
+  const panel = document.getElementById('sharedFilePanel');
   if (fv) { fv.classList.add('hidden'); fv.srcObject = null; }
-  if (lv) lv.classList.remove('hidden');
-  const label = document.getElementById('mainStageLabel');
-  if (label) label.textContent = isScreenSharing ? 'Your screen' : 'You';
+
+  // Restore previous big display (file or host camera) — local only
+  const prev = window._focusPrev || {};
+  window._focusPrev = null;
+  if (panel && prev.fileOpen) {
+    panel.classList.remove('opacity-0', 'pointer-events-none');
+    panel.style.visibility = '';
+    if (lv) lv.classList.add('hidden');
+  } else {
+    if (panel) {
+      // leave shared file state as-is if it was closed; just undo monitor hide
+      panel.classList.remove('opacity-0', 'pointer-events-none');
+      panel.style.visibility = '';
+    }
+  }
   document.getElementById('btnClearFocus')?.classList.add('hidden');
   document.getElementById('focusedStudentCard')?.classList.add('hidden');
-  Object.values(peerSlotMap).forEach(s => s.classList.remove('ring-2', 'ring-emerald-400'));
+  Object.values(peerSlotMap).forEach(function (s) {
+    if (s) s.classList.remove('ring-2', 'ring-emerald-400');
+  });
+  try { updateHostStageLayout(); } catch (e) {}
+  const label = document.getElementById('mainStageLabel');
+  if (label && prev.label) label.textContent = prev.label;
 }
 
 function kickFocusedStudent() {
@@ -4772,6 +4900,7 @@ function leaveLocalClassSession(statusMsg) {
     if (grid) grid.innerHTML = '';
     Object.keys(peerSlotMap).forEach(function (k) { delete peerSlotMap[k]; });
     document.getElementById('hostSelfSlot')?.classList.add('hidden');
+    document.getElementById('fileCamPip')?.classList.remove('show');
   } catch (e) {}
   const lv = document.getElementById('localVideo');
   if (lv) { lv.srcObject = null; lv.classList.remove('hidden'); }
