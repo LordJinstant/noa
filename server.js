@@ -5590,6 +5590,15 @@ io.on('connection', (socket) => {
     socket.to(String(code).toUpperCase()).emit('wb-clear', { from: socket.id });
   });
 
+  socket.on('file-annotate', ({ code, stroke }) => {
+    if (!code || !stroke) return;
+    socket.to(String(code).toUpperCase()).emit('file-annotate', { from: socket.id, stroke });
+  });
+  socket.on('file-annotate-clear', ({ code }) => {
+    if (!code) return;
+    socket.to(String(code).toUpperCase()).emit('file-annotate-clear', { from: socket.id });
+  });
+
 
   // Whiteboard state sync (late joiners) + media-state relay — LIVE CLASS v2
   socket.on('wb-request-state', ({ code, to }) => {

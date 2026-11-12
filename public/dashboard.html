@@ -1132,26 +1132,83 @@
       display: none;
     }
     #whiteboardPanel:not(.hidden) #btnBoardFs { display: inline-flex; }
-    /* File toolbar auto-hide */
+    /* File toolbar: overlays content so hiding frees full box */
+    #sharedFilePanel { position: absolute; inset: 0; display: flex; flex-direction: column; }
     #sharedFilePanel .file-chrome {
-      transition: opacity .35s ease, transform .35s ease;
+      position: absolute; top: 0; left: 0; right: 0; z-index: 30;
+      transition: opacity .3s ease, transform .3s ease, visibility .3s;
     }
     #sharedFilePanel.file-chrome-hidden .file-chrome {
-      opacity: 0; pointer-events: none; transform: translateY(-6px);
+      opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-8px);
     }
-    #sharedFilePanel.file-chrome-hidden #fileViewScroll {
-      /* full area for content when chrome hidden */
+    #sharedFilePanel #fileViewScroll {
+      position: absolute; inset: 0; z-index: 10;
+      overflow: auto; -webkit-overflow-scrolling: touch;
     }
-    /* Setup overlay: scroll so Start button stays reachable */
+    #sharedFilePanel .file-annotate-bar {
+      position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+      z-index: 25; display: none; gap: 6px; align-items: center;
+      background: rgba(15,23,42,.92); border: 1px solid #475569;
+      border-radius: 999px; padding: 6px 10px;
+    }
+    #sharedFilePanel.file-annotate-on .file-annotate-bar { display: flex; }
+    #sharedFilePanel.file-chrome-hidden .file-annotate-bar:not(.force-show) {
+      opacity: 0; visibility: hidden; pointer-events: none;
+    }
+    #fileAnnotateCanvas {
+      position: absolute; inset: 0; z-index: 15; width: 100%; height: 100%;
+      pointer-events: none; touch-action: none;
+    }
+    #sharedFilePanel.file-annotate-on #fileAnnotateCanvas { pointer-events: auto; cursor: crosshair; }
+    /* Setup overlay: scroll both directions; title stays reachable */
     #waitingOverlay {
       overflow-y: auto; -webkit-overflow-scrolling: touch;
       align-items: flex-start !important;
-      padding-top: 1.25rem !important;
-      padding-bottom: 2rem !important;
+      justify-content: flex-start !important;
+      padding: 2.5rem 1rem 3rem !important;
     }
-    #codeSetupPanel { margin: auto; padding-bottom: 1rem; }
+    #codeSetupPanel {
+      margin: 0 auto; padding-bottom: 1.5rem;
+      max-width: 24rem; width: 100%;
+    }
+    #codeSetupPanel > p.text-lg { scroll-margin-top: 1rem; }
     #stageWrap { overflow: visible; }
     #mainStage { position: relative; }
+
+    /* Start-class setup must be fully visible (not clipped by aspect-video) */
+    #mainStage.setup-visible {
+      aspect-ratio: auto !important;
+      min-height: min(70vh, 560px);
+      max-height: none;
+    }
+    #waitingOverlay.setup-visible {
+      display: flex !important;
+      position: absolute;
+      inset: 0;
+      z-index: 25;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      align-items: flex-start !important;
+      justify-content: flex-start !important;
+      padding: 1.25rem 1rem 2.5rem !important;
+      background: rgba(2, 6, 23, 0.97) !important;
+    }
+    #codeSetupPanel {
+      display: block !important;
+      margin: 0 auto;
+      width: 100%;
+      max-width: 24rem;
+      padding-bottom: 1.5rem;
+    }
+
+    #hostSelfSlot video.cam-mirror { transform: scaleX(-1); filter: contrast(1.05) saturate(1.08) brightness(1.03); }
+    #mainStage.stage-blank #localVideo { opacity: 0; }
+    #mainStage.stage-blank::after {
+      content: 'Camera off';
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      color: #64748b; font-size: 0.85rem; pointer-events: none;
+    }
+    #mainStage.stage-file #localVideo { opacity: 0; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -1491,28 +1548,42 @@
                   </div>
 
                   <!-- Shared file viewer: zoom / pan / PDF pages, all inside this box -->
-                  <div id="sharedFilePanel" class="hidden absolute inset-0 z-20 bg-slate-950 flex flex-col">
-                    <div class="file-chrome flex items-center justify-between px-3 py-2 bg-slate-900 border-b border-slate-700 gap-2 flex-wrap">
-                      <span id="sharedFileName" class="text-white text-xs truncate font-medium max-w-[38%]">Shared file</span>
+                  <div id="sharedFilePanel" class="hidden absolute inset-0 z-20 bg-slate-950">
+                    <div class="file-chrome flex items-center justify-between px-3 py-2 bg-slate-900/95 border-b border-slate-700 gap-2 flex-wrap shadow-lg">
+                      <span id="sharedFileName" class="text-white text-xs truncate font-medium max-w-[32%]">Shared file</span>
                       <div class="flex items-center gap-1 text-xs flex-wrap">
                         <button type="button" onclick="fileZoomOut()" class="w-8 h-8 rounded-lg bg-slate-800 text-white hover:bg-slate-700" title="Zoom out"><i class="fas fa-search-minus"></i></button>
                         <span id="fileZoomLabel" class="text-slate-300 font-mono w-12 text-center">100%</span>
                         <button type="button" onclick="fileZoomIn()" class="w-8 h-8 rounded-lg bg-slate-800 text-white hover:bg-slate-700" title="Zoom in"><i class="fas fa-search-plus"></i></button>
                         <button type="button" id="btnFileFit" onclick="fileZoomFit()" class="px-2.5 h-8 rounded-lg bg-slate-800 text-white hover:bg-slate-700 font-semibold" title="Fit to window (locks until pressed again)">Fit</button>
+                        <button type="button" id="btnFileAnnotateTop" onclick="toggleFileAnnotateMode()" class="px-2.5 h-8 rounded-lg bg-emerald-700 text-white hover:bg-emerald-600 font-semibold" title="Draw on file"><i class="fas fa-pen"></i></button>
                         <span id="filePageWrap" class="hidden items-center gap-1 px-1">
                           <button type="button" onclick="filePrevPage()" class="w-8 h-8 rounded-lg bg-slate-800 text-white hover:bg-slate-700" title="Previous page"><i class="fas fa-chevron-left"></i></button>
                           <span id="filePageLabel" class="text-slate-300 font-mono px-1">1/1</span>
                           <button type="button" onclick="fileNextPage()" class="w-8 h-8 rounded-lg bg-slate-800 text-white hover:bg-slate-700" title="Next page"><i class="fas fa-chevron-right"></i></button>
                         </span>
+                        <button type="button" id="btnFileAnnotate" onclick="toggleFileAnnotate()" class="px-2.5 h-8 rounded-lg bg-amber-600 text-white hover:bg-amber-500 font-semibold" title="Draw on file like the board"><i class="fas fa-pen mr-1"></i>Draw</button>
                         <a id="sharedFileLink" href="#" target="_blank" rel="noopener" class="px-2.5 h-8 inline-flex items-center rounded-lg bg-slate-800 text-emerald-300 hover:bg-slate-700 font-semibold">Open</a>
                         <a id="sharedFileDownload" href="#" download class="px-2.5 h-8 hidden sm:inline-flex items-center rounded-lg bg-slate-800 text-white hover:bg-slate-700 font-semibold">Save</a>
                         <button type="button" onclick="closeSharedFile()" class="w-8 h-8 rounded-lg bg-slate-800 text-white hover:bg-slate-700" title="Close file"><i class="fas fa-times"></i></button>
                       </div>
                     </div>
-                    <div id="fileViewScroll" class="flex-1 min-h-0 overflow-auto bg-slate-900 relative">
-                      <div id="fileViewContent" class="inline-block p-4 min-w-full"></div>
-                      <div id="fileViewHint" class="hidden absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] text-slate-200 bg-slate-900/90 px-3 py-1.5 rounded-full pointer-events-none opacity-0 transition-opacity duration-500 z-10">Scroll to move · buttons or swipe to change page</div>
-                      <div id="fileWriteup" class="hidden absolute top-2 left-1/2 -translate-x-1/2 max-w-[90%] text-[11px] text-slate-100 bg-slate-900/90 px-3 py-2 rounded-xl pointer-events-none opacity-0 transition-opacity duration-500 z-10 text-center leading-snug">Double-tap the file area for tips · pinch/scroll to zoom · swipe for pages</div>
+                    <div id="fileViewScroll" class="bg-slate-900">
+                      <div id="fileViewContent" class="inline-block p-4 min-w-full origin-top-left"></div>
+                      <canvas id="fileAnnotateCanvas"></canvas>
+                      <div id="fileViewHint" class="hidden absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] text-slate-200 bg-slate-900/90 px-3 py-1.5 rounded-full pointer-events-none opacity-0 transition-opacity duration-500 z-20">Pinch to zoom · swipe for pages · tap for tools</div>
+                      <div id="fileWriteup" class="hidden absolute top-12 left-1/2 -translate-x-1/2 max-w-[90%] text-[11px] text-slate-100 bg-slate-900/90 px-3 py-2 rounded-xl pointer-events-none opacity-0 transition-opacity duration-500 z-20 text-center leading-snug">Tap for toolbar · pinch zoom · Draw to annotate</div>
+                    </div>
+                    <div class="file-annotate-bar" id="fileAnnotateBar">
+                      <button type="button" class="file-tool active w-8 h-8 rounded-full bg-slate-700 text-white text-xs" data-file-tool="pen" title="Pen"><i class="fas fa-pen"></i></button>
+                      <button type="button" class="file-tool w-8 h-8 rounded-full bg-slate-700 text-white text-xs" data-file-tool="eraser" title="Eraser"><i class="fas fa-eraser"></i></button>
+                      <button type="button" class="w-5 h-5 rounded-full bg-black border border-slate-400" data-file-color="#000000" title="Black"></button>
+                      <button type="button" class="w-5 h-5 rounded-full bg-white border border-slate-400" data-file-color="#ffffff" title="White"></button>
+                      <button type="button" class="w-5 h-5 rounded-full bg-red-400" data-file-color="#f87171" title="Red"></button>
+                      <button type="button" class="w-5 h-5 rounded-full bg-yellow-300" data-file-color="#fde047" title="Yellow"></button>
+                      <button type="button" class="w-5 h-5 rounded-full bg-emerald-400" data-file-color="#34d399" title="Green"></button>
+                      <button type="button" class="w-5 h-5 rounded-full bg-sky-400" data-file-color="#38bdf8" title="Blue"></button>
+                      <button type="button" onclick="clearFileAnnotations()" class="w-8 h-8 rounded-full bg-slate-700 text-white text-xs" title="Clear drawings"><i class="fas fa-trash"></i></button>
                     </div>
                   </div>
 
@@ -1556,7 +1627,13 @@
                   <div id="boardResizeGrip" title="Drag to resize board"><i class="fas fa-caret-up" style="transform:rotate(45deg)"></i></div>
                 </div>
 
-                <div id="remoteVideos" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 max-h-[240px] overflow-y-auto pr-1"></div>
+                <div id="hostPeerRow" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 max-h-[240px] overflow-y-auto pr-1">
+                  <div id="hostSelfSlot" class="hidden peer-slot aspect-video bg-slate-800 rounded-xl overflow-hidden relative border border-emerald-500/40 order-first">
+                    <video id="hostSelfVideo" autoplay muted playsinline class="w-full h-full object-cover bg-black cam-mirror"></video>
+                    <div class="absolute bottom-1 left-1 px-2 py-0.5 rounded bg-black/60 text-white text-[10px] pointer-events-none">You</div>
+                  </div>
+                  <div id="remoteVideos" class="contents"></div>
+                </div>
               </div>
 
               <!-- PARTICIPANTS: compact lines; cameras only when on -->
@@ -3349,47 +3426,6 @@ function toggleMic() {
       ? '<i class="fas fa-microphone mr-1"></i>Mic' : '<i class="fas fa-microphone-slash mr-1"></i>Mic Off';
   }
 }
-function triggerShareFile() {
-  if (!activeClassCode) { alert('Start or join a class first, then share a file.'); return; }
-  document.getElementById('shareFileInput').click();
-}
-function onShareFileSelected(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const url = URL.createObjectURL(file);
-  document.getElementById('sharedFileName').textContent = file.name;
-  document.getElementById('sharedFileLink').href = url;
-  document.getElementById('sharedFileLink').download = file.name;
-  const img = document.getElementById('sharedFileImg');
-  const frame = document.getElementById('sharedFileFrame');
-  if (file.type.startsWith('image/')) {
-    img.src = url; img.classList.remove('hidden'); frame.classList.add('hidden');
-  } else {
-    frame.src = url; frame.classList.remove('hidden'); img.classList.add('hidden');
-  }
-  document.getElementById('sharedFilePanel').classList.remove('hidden');
-  fetch('/api/classes/' + activeClassCode + '/share', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ file: { name: file.name, type: file.type } })
-  }).catch(() => {});
-  if (socket && file.size < 1500000) {
-    const reader = new FileReader();
-    reader.onload = () => {
-      socket.emit('file-share', {
-        code: activeClassCode,
-        file: { name: file.name, type: file.type, dataUrl: reader.result }
-      });
-    };
-    reader.readAsDataURL(file);
-  }
-  e.target.value = '';
-}
-function closeSharedFile() {
-  document.getElementById('sharedFilePanel').classList.add('hidden');
-  document.getElementById('sharedFileFrame').src = '';
-  document.getElementById('sharedFileImg').src = '';
-}
 function toggleClassFullscreen() {
   const shell = document.getElementById('liveClassShell');
   if (!shell) return;
@@ -3680,6 +3716,11 @@ function ensureSocket() {
     if (open) {
       if (!whiteboardOpen) toggleWhiteboardPanel(true);
       else applyBoardFullscreenUI();
+      // Ask host for full stroke history so phone/laptop match
+      if (socket && activeClassCode) {
+        try { socket.emit('wb-request-state', { code: activeClassCode }); } catch (e) {}
+      }
+      setTimeout(function () { try { resizeBoardCanvas(); redrawBoard(); } catch (e) {} }, 120);
     } else {
       toggleWhiteboardPanel(false);
     }
@@ -3704,6 +3745,8 @@ function ensureSocket() {
   });
 
   socket.on('file-share', ({ file }) => { if (file) showSharedFileFromData(file); });
+  socket.on('file-annotate', ({ stroke }) => { if (stroke) applyRemoteFileStroke(stroke); });
+  socket.on('file-annotate-clear', () => { fileAnnotateStrokes = []; redrawFileAnnotations(); });
 
   return socket;
 }
@@ -3725,13 +3768,47 @@ function playRemoteAudioOnly(peerId, stream) {
     a = document.createElement('audio');
     a.id = 'raudio-' + peerId;
     a.autoplay = true;
+    a.setAttribute('playsinline', '');
     a.playsInline = true;
+    a.muted = false;
+    a.volume = 1;
     a.style.display = 'none';
     document.body.appendChild(a);
   }
-  a.srcObject = stream;
-  a.play().catch(function () {});
+  try {
+    // Prefer audio-only tracks on the element to avoid double-play with video
+    const audioTracks = stream.getAudioTracks();
+    if (audioTracks.length) {
+      a.srcObject = new MediaStream(audioTracks);
+    } else {
+      a.srcObject = stream;
+    }
+  } catch (e) {
+    a.srcObject = stream;
+  }
+  const tryPlay = function () {
+    a.muted = false;
+    a.play().catch(function () {});
+  };
+  tryPlay();
+  // Retry after gesture / short delays (autoplay policies)
+  [200, 800, 2000].forEach(function (ms) {
+    setTimeout(tryPlay, ms);
+  });
 }
+
+function resumeAllRemoteAudio() {
+  document.querySelectorAll('audio[id^="raudio-"]').forEach(function (a) {
+    try { a.muted = false; a.play().catch(function () {}); } catch (e) {}
+  });
+  document.querySelectorAll('#remoteVideos video').forEach(function (v) {
+    try { v.muted = false; v.play().catch(function () {}); } catch (e) {}
+  });
+}
+// Unlock audio on first user gesture in class
+document.addEventListener('pointerdown', function noaUnlockAudioOnce() {
+  resumeAllRemoteAudio();
+}, { passive: true });
 
 function updateParticipantUI() {
   try { prunePeerMetaDuplicates(); } catch (e) {}
@@ -3902,27 +3979,167 @@ function broadcastMediaState() {
   if (socket && activeClassCode) socket.emit('media-state', { code: activeClassCode, mic: !!micOn, cam: !!camOn });
 }
 
-async function getLocalMedia() {
-  if (mediaStream) return mediaStream;
+
+function isSharedFileOpen() {
+  const panel = document.getElementById('sharedFilePanel');
+  return !!(panel && !panel.classList.contains('hidden'));
+}
+
+function isHostCamLive() {
+  if (!camOn || !mediaStream) return false;
+  return mediaStream.getVideoTracks().some(function (tr) {
+    return tr.readyState === 'live' && tr.enabled;
+  });
+}
+
+/** Host big + small display rules */
+function updateHostStageLayout() {
+  const stage = document.getElementById('mainStage');
+  const lv = document.getElementById('localVideo');
+  const fv = document.getElementById('focusVideo');
+  const label = document.getElementById('mainStageLabel');
+  const selfSlot = document.getElementById('hostSelfSlot');
+  const selfVid = document.getElementById('hostSelfVideo');
+  const fileOpen = isSharedFileOpen();
+  const camLive = isHostCamLive();
+
+  // Don't fight focused remote peer view
+  if (focusedPeerId && fv && !fv.classList.contains('hidden')) {
+    if (selfSlot) {
+      if (camLive) {
+        selfSlot.classList.remove('hidden');
+        if (selfVid && mediaStream) {
+          try { selfVid.srcObject = mediaStream; selfVid.play().catch(function () {}); } catch (e) {}
+        }
+      } else {
+        selfSlot.classList.add('hidden');
+      }
+    }
+    return;
+  }
+
+  if (stage) {
+    stage.classList.toggle('stage-file', fileOpen);
+    stage.classList.toggle('stage-blank', !fileOpen && !camLive);
+  }
+
+  if (fileOpen) {
+    // Big display = file; small = host cam if on
+    if (lv) {
+      lv.classList.add('hidden');
+    }
+    if (label) label.textContent = 'Shared file';
+    if (selfSlot) {
+      if (camLive) {
+        selfSlot.classList.remove('hidden');
+        if (selfVid && mediaStream) {
+          try {
+            if (selfVid.srcObject !== mediaStream) selfVid.srcObject = mediaStream;
+            selfVid.muted = true;
+            selfVid.play().catch(function () {});
+          } catch (e) {}
+        }
+      } else {
+        selfSlot.classList.add('hidden');
+      }
+    }
+  } else if (camLive) {
+    // Big + small host camera
+    if (lv) {
+      lv.classList.remove('hidden');
+      try {
+        if (lv.srcObject !== mediaStream) lv.srcObject = mediaStream;
+        lv.muted = true;
+        lv.classList.add('cam-mirror');
+        lv.play().catch(function () {});
+      } catch (e) {}
+    }
+    if (label) label.textContent = 'You';
+    if (selfSlot) {
+      selfSlot.classList.remove('hidden');
+      if (selfVid && mediaStream) {
+        try {
+          if (selfVid.srcObject !== mediaStream) selfVid.srcObject = mediaStream;
+          selfVid.muted = true;
+          selfVid.play().catch(function () {});
+        } catch (e) {}
+      }
+    }
+  } else {
+    // Blank main; hide small
+    if (lv) {
+      lv.classList.add('hidden');
+    }
+    if (label) label.textContent = 'Camera off';
+    if (selfSlot) selfSlot.classList.add('hidden');
+  }
+}
+
+function attachLocalPreview() {
+  const fv = document.getElementById('focusVideo');
+  if (fv && !focusedPeerId) {
+    fv.classList.add('hidden');
+    try { fv.srcObject = null; } catch (e) {}
+  }
+  const lv = document.getElementById('localVideo');
+  if (lv && mediaStream) {
+    try {
+      if (lv.srcObject !== mediaStream) lv.srcObject = mediaStream;
+    } catch (e) {
+      lv.srcObject = mediaStream;
+    }
+    lv.muted = true;
+    lv.setAttribute('playsinline', '');
+    lv.setAttribute('autoplay', '');
+    lv.classList.add('cam-mirror');
+  }
+  updateHostStageLayout();
+  setTimeout(updateHostStageLayout, 200);
+  setTimeout(updateHostStageLayout, 800);
+}
+
+async function getLocalMedia(forceRestart) {
+  // Restart if tracks are dead or force requested
+  if (mediaStream && !forceRestart) {
+    const live = mediaStream.getTracks().some(function (tr) { return tr.readyState === 'live'; });
+    if (live) {
+      attachLocalPreview();
+      return mediaStream;
+    }
+    try { mediaStream.getTracks().forEach(function (tr) { tr.stop(); }); } catch (e) {}
+    mediaStream = null;
+  } else if (mediaStream && forceRestart) {
+    try { mediaStream.getTracks().forEach(function (tr) { tr.stop(); }); } catch (e) {}
+    mediaStream = null;
+  }
   try {
     const videoConstraints = isClassHost
-      ? { width: { min: 640, ideal: 1280, max: 1920 }, height: { min: 480, ideal: 720, max: 1080 }, frameRate: { ideal: 30, max: 30 }, facingMode: 'user' }
-      : { width: { ideal: 640, max: 960 }, height: { ideal: 360, max: 540 }, frameRate: { ideal: 20, max: 24 }, facingMode: 'user' };
+      ? { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 }, facingMode: 'user' }
+      : { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 24 }, facingMode: 'user' };
     mediaStream = await navigator.mediaDevices.getUserMedia({
       video: videoConstraints,
       audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
     });
-    camOn = true; micOn = true;
-    const lv = document.getElementById('localVideo');
-    if (lv) { lv.srcObject = mediaStream; lv.muted = true; lv.setAttribute('playsinline', ''); lv.classList.add('cam-mirror'); try { await lv.play(); } catch (e) {} }
+    camOn = true;
+    micOn = true;
+    attachLocalPreview();
     setTimeout(broadcastMediaState, 400);
     renderRosterList();
     return mediaStream;
   } catch (err) {
     console.error('getUserMedia', err);
-    const st = document.getElementById('classStatus');
-    if (st) st.textContent = 'Camera/mic blocked — check browser permissions';
-    return null;
+    // Fallback: try simpler constraints
+    try {
+      mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      camOn = true; micOn = true;
+      attachLocalPreview();
+      return mediaStream;
+    } catch (err2) {
+      console.error('getUserMedia fallback', err2);
+      const st = document.getElementById('classStatus');
+      if (st) st.textContent = 'Camera/mic blocked — check browser permissions';
+      return null;
+    }
   }
 }
 
@@ -3959,11 +4176,15 @@ async function createPeerConnection(remoteId, remoteName, shouldOffer) {
 
   pc.ontrack = (event) => {
     const stream = event.streams[0] || new MediaStream([event.track]);
-    if (audioOnly || (pc._audioOnly && event.track.kind === 'audio' && !event.track.kind === 'video')) {
+    // Always ensure remote audio can be heard
+    if (event.track.kind === 'audio' || (stream.getAudioTracks && stream.getAudioTracks().length)) {
       playRemoteAudioOnly(remoteId, stream);
-      if (event.track.kind === 'audio' && audioOnly) return;
     }
-    if (audioOnly && event.track.kind === 'video') return;
+    if (audioOnly) {
+      // student↔student: voice only — no video tile
+      if (event.track.kind === 'video') return;
+      return;
+    }
     attachRemoteStream(remoteId, (peerMeta[remoteId] || {}).name || remoteName, stream);
   };
   pc.onicecandidate = (event) => {
@@ -4037,7 +4258,9 @@ function attachRemoteStream(peerId, name, stream) {
   video.autoplay = true; video.playsInline = true; video.muted = false;
   video.srcObject = stream;
   video.className = 'w-full h-full object-contain bg-black';
-  video.play().catch(() => {});
+  video.play().catch(function () {});
+  playRemoteAudioOnly(peerId, stream);
+  setTimeout(function () { try { video.muted = false; video.play(); } catch (e) {} }, 300);
   slot.appendChild(video);
   const label = document.createElement('div');
   label.className = 'absolute bottom-1 left-1 px-2 py-0.5 rounded bg-black/60 text-white text-[10px] pointer-events-none';
@@ -4108,9 +4331,15 @@ function kickFocusedStudent() {
   if (!isClassHost || !focusedPeerId || !activeClassCode) return;
   const meta = peerMeta[focusedPeerId] || {};
   if (meta.isHost) return;
+  const id = focusedPeerId;
   if (!confirm('Remove ' + (meta.name || 'this student') + ' from this class? They will not be able to rejoin this code.')) return;
-  if (socket) socket.emit('kick-participant', { code: activeClassCode, targetId: focusedPeerId, name: meta.name || '' });
+  if (socket) socket.emit('kick-participant', { code: activeClassCode, targetId: id, name: meta.name || '' });
+  // Remove immediately on host side
+  removePeer(id);
+  delete peerMeta[id];
   clearFocusPeer();
+  updateParticipantUI();
+  renderRosterList();
 }
 
 function removePeer(peerId) {
@@ -4118,7 +4347,12 @@ function removePeer(peerId) {
   if (pc) { try { pc.close(); } catch (e) {} delete peers[peerId]; }
   const slot = peerSlotMap[peerId];
   if (slot) { slot.remove(); delete peerSlotMap[peerId]; }
-  if (peerMeta[peerId]) delete peerMeta[peerId].stream;
+  const a = document.getElementById('raudio-' + peerId);
+  if (a) { try { a.srcObject = null; a.remove(); } catch (e) {} }
+  if (peerMeta[peerId]) {
+    delete peerMeta[peerId].stream;
+    // keep meta until full delete by callers that want roster gone
+  }
 }
 
 function closeAllPeers() {
@@ -4134,35 +4368,62 @@ async function replaceVideoTrackForAll(newTrack) {
 
 async function toggleClassRecording() {
   const btn = document.getElementById('btnRecordClass');
-  if (isClassRecording && classMediaRecorder) { classMediaRecorder.stop(); return; }
-  const shell = document.getElementById('liveClassShell');
-  if (!shell) return;
+  if (isClassRecording && classMediaRecorder) {
+    try { classMediaRecorder.stop(); } catch (e) {}
+    if (window._classRecordDisplayStream) {
+      try { window._classRecordDisplayStream.getTracks().forEach(function (tr) { tr.stop(); }); } catch (e) {}
+      window._classRecordDisplayStream = null;
+    }
+    return;
+  }
   try {
-    let stream;
-    if (shell.captureStream) stream = shell.captureStream(30);
-    else if (shell.mozCaptureStream) stream = shell.mozCaptureStream(30);
-    else stream = mediaStream || await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    if (mediaStream && stream.getAudioTracks().length === 0) mediaStream.getAudioTracks().forEach(t => stream.addTrack(t));
+    // Capture the entire screen / window / tab so everything on display is recorded
+    const displayStream = await navigator.mediaDevices.getDisplayMedia({
+      video: { frameRate: 30 },
+      audio: true,
+      preferCurrentTab: true
+    });
+    window._classRecordDisplayStream = displayStream;
+    const stream = new MediaStream();
+    displayStream.getVideoTracks().forEach(function (tr) { stream.addTrack(tr); });
+    displayStream.getAudioTracks().forEach(function (tr) { stream.addTrack(tr); });
+    // Mix in mic if display has no audio
+    if (!stream.getAudioTracks().length && mediaStream) {
+      mediaStream.getAudioTracks().forEach(function (tr) { stream.addTrack(tr); });
+    }
+    displayStream.getVideoTracks()[0].addEventListener('ended', function () {
+      if (isClassRecording && classMediaRecorder) try { classMediaRecorder.stop(); } catch (e) {}
+    });
     classRecordChunks = [];
-    const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' : (MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : '');
+    const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+      ? 'video/webm;codecs=vp9,opus'
+      : (MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : '');
     classMediaRecorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
-    classMediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size) classRecordChunks.push(e.data); };
-    classMediaRecorder.onstop = () => {
+    classMediaRecorder.ondataavailable = function (e) {
+      if (e.data && e.data.size) classRecordChunks.push(e.data);
+    };
+    classMediaRecorder.onstop = function () {
       isClassRecording = false;
       if (btn) btn.innerHTML = '<i class="fas fa-circle mr-1 text-[10px]"></i><span>Record</span>';
       const blob = new Blob(classRecordChunks, { type: 'video/webm' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = 'NOA-class-' + (activeClassCode || 'session') + '-' + Date.now() + '.webm';
-      a.click(); URL.revokeObjectURL(url);
+      a.href = url;
+      a.download = 'NOA-class-' + (activeClassCode || 'session') + '-' + Date.now() + '.webm';
+      a.click();
+      URL.revokeObjectURL(url);
       classMediaRecorder = null;
+      if (window._classRecordDisplayStream) {
+        try { window._classRecordDisplayStream.getTracks().forEach(function (tr) { tr.stop(); }); } catch (e) {}
+        window._classRecordDisplayStream = null;
+      }
     };
     classMediaRecorder.start(1000);
     isClassRecording = true;
     if (btn) btn.innerHTML = '<i class="fas fa-stop mr-1"></i><span>Stop</span>';
   } catch (err) {
     console.error(err);
-    alert('Could not start recording. Use Chrome/Edge and allow permissions.');
+    alert('Could not start screen recording. Allow screen share when prompted (Chrome/Edge recommended).');
   }
 }
 
@@ -4327,36 +4588,102 @@ async function startClassWithCode() {
     if (badge) { badge.textContent = 'Code: ' + data.code + (data.port != null ? ' · Port: ' + data.port : ''); badge.classList.remove('hidden'); }
     const st = document.getElementById('classStatus');
     if (st) st.textContent = 'Live · ' + (title || 'Class');
-    document.getElementById('codeSetupPanel')?.classList.add('hidden');
-    document.getElementById('waitingAfterStart')?.classList.add('hidden');
-    const ov = document.getElementById('waitingOverlay');
-    if (ov) ov.style.display = 'none'; // no waiting room — go live immediately
+    try { hideClassSetupForm(); } catch (e) {
+      document.getElementById('codeSetupPanel')?.classList.add('hidden');
+      const ov = document.getElementById('waitingOverlay');
+      if (ov) ov.style.display = 'none';
+    }
     document.getElementById('btnCopyClassLink')?.classList.remove('hidden');
+    document.getElementById('btnRecordClass')?.classList.remove('hidden');
     if (data.endsAt) startClassAutoEndCountdown(data.endsAt);
-    await getLocalMedia();
+    isClassHost = true; // before getUserMedia so host constraints apply
+    await getLocalMedia(true);
+    attachLocalPreview();
     joinSocketRoom(data.code, true);
+    setTimeout(attachLocalPreview, 300);
     updateParticipantUI();
     renderRosterList();
   } catch (err) { alert(err.message); }
 }
 
-async function initClassroom() {
-  document.getElementById('codeSetupPanel')?.classList.remove('hidden');
+function isLiveInClass() {
+  return !!(activeClassCode && (isClassHost || myRoomJoin));
+}
+
+function showClassSetupForm() {
+  const stage = document.getElementById('mainStage');
+  const ov = document.getElementById('waitingOverlay');
+  const panel = document.getElementById('codeSetupPanel');
+  if (stage) stage.classList.add('setup-visible');
+  if (ov) {
+    ov.classList.add('setup-visible');
+    ov.classList.remove('hidden');
+    ov.style.display = 'flex';
+    ov.style.visibility = 'visible';
+    ov.style.opacity = '1';
+    ov.scrollTop = 0;
+  }
+  if (panel) {
+    panel.classList.remove('hidden');
+    panel.style.display = 'block';
+  }
   document.getElementById('waitingAfterStart')?.classList.add('hidden');
-  closeSharedFile();
-  if (!activeClassCode) {
-    const st = document.getElementById('classStatus'); if (st) st.textContent = 'Set class code + port to start';
+  const st = document.getElementById('classStatus');
+  if (st) st.textContent = 'Set class title, code + port to start';
+  // Prefill suggestions but do not auto-start
+  try {
     const portEl = document.getElementById('hostClassPort');
     if (portEl && !String(portEl.value || '').trim()) generateClassPort();
     const codeEl = document.getElementById('hostClassCode');
     if (codeEl && !String(codeEl.value || '').trim()) generateClassCode();
-    const ov = document.getElementById('waitingOverlay');
-    if (ov) ov.style.display = 'flex';
+  } catch (e) {}
+  setTimeout(function () {
+    const title = document.querySelector('#codeSetupPanel > p');
+    if (title) {
+      try { title.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) {}
+    }
+    if (ov) ov.scrollTop = 0;
+  }, 60);
+}
+
+function hideClassSetupForm() {
+  const stage = document.getElementById('mainStage');
+  const ov = document.getElementById('waitingOverlay');
+  const panel = document.getElementById('codeSetupPanel');
+  if (stage) stage.classList.remove('setup-visible');
+  if (ov) {
+    ov.classList.remove('setup-visible');
+    ov.style.display = 'none';
   }
+  if (panel) panel.classList.add('hidden');
+  document.getElementById('waitingAfterStart')?.classList.add('hidden');
+}
+
+async function initClassroom() {
+  closeSharedFile();
   whiteboardOpen = false;
   document.getElementById('whiteboardPanel')?.classList.add('hidden');
-  initFileViewerChrome();
-  initBoardChrome();
+  try { initFileViewerChrome(); } catch (e) {}
+  try { initBoardChrome(); } catch (e) {}
+
+  // Only skip setup if already live in a class. Otherwise ALWAYS show the form
+  // (title, code, port, duration, Start Class).
+  if (isLiveInClass()) {
+    hideClassSetupForm();
+    const badge = document.getElementById('classCodeBadge');
+    if (badge && activeClassCode) {
+      badge.textContent = 'Code: ' + activeClassCode + (activeClassPort ? ' · Port: ' + activeClassPort : '');
+      badge.classList.remove('hidden');
+    }
+    return;
+  }
+
+  // Clear stale session flags that would hide the form
+  activeClassCode = null;
+  activeClassPort = null;
+  myRoomJoin = null;
+  isClassHost = false;
+  showClassSetupForm();
 }
 
 function joinClass() {
@@ -4387,16 +4714,19 @@ function joinClass() {
     boardStrokes = [];
     showSection('startClass');
     setTimeout(async () => {
-      document.getElementById('codeSetupPanel')?.classList.add('hidden');
-      document.getElementById('waitingAfterStart')?.classList.add('hidden');
-      const ov = document.getElementById('waitingOverlay'); if (ov) ov.style.display = 'none';
+      try { hideClassSetupForm(); } catch (e) {
+        document.getElementById('codeSetupPanel')?.classList.add('hidden');
+        const ov = document.getElementById('waitingOverlay'); if (ov) ov.style.display = 'none';
+      }
       const badge = document.getElementById('classCodeBadge');
       if (badge) { badge.textContent = 'Code: ' + code + (activeClassPort ? ' · Port: ' + activeClassPort : ''); badge.classList.remove('hidden'); }
       document.getElementById('btnCopyClassLink')?.classList.remove('hidden');
       if (data.endsAt) startClassAutoEndCountdown(data.endsAt);
       const st = document.getElementById('classStatus'); if (st) st.textContent = 'Joined · Host: ' + (data.host || '—');
-      await getLocalMedia();
+      await getLocalMedia(true);
+      attachLocalPreview();
       joinSocketRoom(code, false);
+      setTimeout(attachLocalPreview, 300);
       updateParticipantUI();
       renderRosterList();
     }, 200);
@@ -4423,8 +4753,8 @@ function endClass() {
 function leaveLocalClassSession(statusMsg) {
   clearClassAutoEndTimer();
   document.getElementById('btnCopyClassLink')?.classList.add('hidden');
+  document.getElementById('btnRecordClass')?.classList.add('hidden');
   try { leaveSocketRoom(); } catch (e) {}
-  // Remove hidden student-audio elements
   document.querySelectorAll('audio[id^="raudio-"]').forEach(function (a) { try { a.remove(); } catch (e) {} });
   if (isScreenSharing && screenStream) {
     screenStream.getTracks().forEach(function (t) { t.stop(); });
@@ -4436,18 +4766,50 @@ function leaveLocalClassSession(statusMsg) {
   }
   Object.keys(peers).forEach(function (id) { try { removePeer(id); } catch (e) {} });
   Object.keys(peerMeta).forEach(function (id) { delete peerMeta[id]; });
-  const lv = document.getElementById('localVideo'); if (lv) lv.srcObject = null;
+  // Clear video grid slots
+  try {
+    const grid = document.getElementById('remoteVideos');
+    if (grid) grid.innerHTML = '';
+    Object.keys(peerSlotMap).forEach(function (k) { delete peerSlotMap[k]; });
+    document.getElementById('hostSelfSlot')?.classList.add('hidden');
+  } catch (e) {}
+  const lv = document.getElementById('localVideo');
+  if (lv) { lv.srcObject = null; lv.classList.remove('hidden'); }
+  const fv = document.getElementById('focusVideo');
+  if (fv) { fv.srcObject = null; fv.classList.add('hidden'); }
   try { clearFocusPeer(); } catch (e) {}
   try { closeSharedFile(); } catch (e) {}
+  // Full class property reset — new class = fresh start
   boardStrokes = [];
-  const ov = document.getElementById('waitingOverlay'); if (ov) ov.style.display = 'flex';
-  const st = document.getElementById('classStatus'); if (st) st.textContent = statusMsg || 'Class ended';
-  document.getElementById('classCodeBadge')?.classList.add('hidden');
-  activeClassCode = null; activeClassPort = null; myRoomJoin = null;
+  try { fileAnnotateStrokes = []; } catch (e) {}
+  boardUnlockedForStudents = false;
+  canDrawBoard = false;
+  whiteboardOpen = false;
+  boardFullscreen = true;
+  document.getElementById('whiteboardPanel')?.classList.add('hidden');
+  document.getElementById('whiteboardPanel')?.classList.remove('board-fs');
+  try { redrawBoard(); } catch (e) {}
+  activeClassCode = null;
+  activeClassPort = null;
+  myRoomJoin = null;
   isClassHost = false;
-  boardUnlockedForStudents = false; canDrawBoard = false;
   window._roomParticipantCount = 0;
+  focusedPeerId = null;
+  // Fresh form values for next class
+  try {
+    const titleEl = document.getElementById('hostClassTitle');
+    if (titleEl) titleEl.value = '';
+    generateClassCode();
+    generateClassPort();
+  } catch (e) {}
+  document.getElementById('classCodeBadge')?.classList.add('hidden');
+  document.getElementById('classEndsInBadge')?.classList.add('hidden');
   if (document.fullscreenElement) try { document.exitFullscreen(); } catch (e) {}
+  const st = document.getElementById('classStatus');
+  if (st) st.textContent = statusMsg || 'Class ended — start a new class when ready';
+  try { showClassSetupForm(); } catch (e) {
+    const ov = document.getElementById('waitingOverlay'); if (ov) ov.style.display = 'flex';
+  }
   updateParticipantUI();
   renderRosterList();
   try { showSection('overview'); } catch (e) {}
@@ -4473,6 +4835,7 @@ function toggleCamera() {
     : '<i class="fas fa-video-slash mr-1"></i><span class="hidden sm:inline">Cam Off</span>';
   broadcastMediaState();
   renderRosterList();
+  try { updateHostStageLayout(); } catch (e) {}
 }
 
 function toggleMic() {
@@ -4792,6 +5155,199 @@ function toggleBoardPermission() {
   updateBoardLockUI();
 }
 
+
+// ===================== FILE ANNOTATE + PINCH ZOOM =====================
+let fileAnnotateOn = false;
+let fileAnnotateTool = 'pen';
+let fileAnnotateColor = '#f87171';
+let fileAnnotateStrokes = [];
+let fileDrawing = false;
+let fileLastX = 0, fileLastY = 0;
+
+function toggleFileAnnotate() {
+  fileAnnotateOn = !fileAnnotateOn;
+  const panel = document.getElementById('sharedFilePanel');
+  if (panel) panel.classList.toggle('file-annotate-on', fileAnnotateOn);
+  const canvas = document.getElementById('fileAnnotateCanvas');
+  if (fileAnnotateOn) {
+    resizeFileAnnotateCanvas();
+    initFileAnnotateDrawing();
+  }
+  const btn = document.getElementById('btnFileAnnotate');
+  if (btn) btn.innerHTML = fileAnnotateOn
+    ? '<i class="fas fa-pen mr-1"></i>Drawing'
+    : '<i class="fas fa-pen mr-1"></i>Draw';
+}
+function toggleFileAnnotateMode() { toggleFileAnnotate(); }
+function setFileAnnotateTool(tool) { fileAnnotateTool = tool || 'pen'; }
+function setFileAnnotateColor(c) { fileAnnotateColor = c || '#f87171'; fileAnnotateTool = 'pen'; }
+
+function resizeFileAnnotateCanvas() {
+  const canvas = document.getElementById('fileAnnotateCanvas');
+  const wrap = document.getElementById('fileViewScroll');
+  if (!canvas || !wrap) return;
+  const w = Math.max(1, wrap.clientWidth);
+  const h = Math.max(1, wrap.clientHeight);
+  if (canvas.width !== w || canvas.height !== h) {
+    canvas.width = w;
+    canvas.height = h;
+    redrawFileAnnotations();
+  }
+}
+
+function redrawFileAnnotations() {
+  const canvas = document.getElementById('fileAnnotateCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  fileAnnotateStrokes.forEach(function (s) {
+    ctx.beginPath();
+    ctx.moveTo(s.x0 * canvas.width, s.y0 * canvas.height);
+    ctx.lineTo(s.x1 * canvas.width, s.y1 * canvas.height);
+    ctx.strokeStyle = s.c;
+    ctx.lineWidth = Math.max(1, s.w * (canvas.width / 1000));
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  });
+}
+
+function clearFileAnnotations() {
+  fileAnnotateStrokes = [];
+  redrawFileAnnotations();
+  if (socket && activeClassCode) {
+    socket.emit('file-annotate-clear', { code: activeClassCode });
+  }
+}
+
+function initFileAnnotateDrawing() {
+  const canvas = document.getElementById('fileAnnotateCanvas');
+  if (!canvas || canvas.dataset.ready === '1') return;
+  canvas.dataset.ready = '1';
+  const pos = function (e) {
+    const r = canvas.getBoundingClientRect();
+    const pt = e.touches ? e.touches[0] : e;
+    return { x: pt.clientX - r.left, y: pt.clientY - r.top };
+  };
+  const start = function (e) {
+    if (!fileAnnotateOn) return;
+    if (e.touches && e.touches.length > 1) return; // pinch
+    fileDrawing = true;
+    const p = pos(e);
+    fileLastX = p.x; fileLastY = p.y;
+  };
+  const move = function (e) {
+    if (!fileDrawing || !fileAnnotateOn) return;
+    if (e.touches && e.touches.length > 1) { fileDrawing = false; return; }
+    e.preventDefault();
+    const p = pos(e);
+    const W = canvas.width, H = canvas.height;
+    const strokeColor = fileAnnotateTool === 'eraser' ? 'rgba(0,0,0,1)' : fileAnnotateColor;
+    const strokeWidth = fileAnnotateTool === 'eraser' ? 28 : 3;
+    const ctx = canvas.getContext('2d');
+    if (fileAnnotateTool === 'eraser') {
+      ctx.globalCompositeOperation = 'destination-out';
+    } else {
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    ctx.beginPath();
+    ctx.moveTo(fileLastX, fileLastY);
+    ctx.lineTo(p.x, p.y);
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = strokeWidth;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    ctx.globalCompositeOperation = 'source-over';
+    const norm = {
+      x0: fileLastX / W, y0: fileLastY / H,
+      x1: p.x / W, y1: p.y / H,
+      c: fileAnnotateTool === 'eraser' ? 'erase' : fileAnnotateColor,
+      w: strokeWidth / (W / 1000)
+    };
+    fileAnnotateStrokes.push(norm);
+    if (socket && activeClassCode) {
+      socket.emit('file-annotate', { code: activeClassCode, stroke: norm });
+    }
+    fileLastX = p.x; fileLastY = p.y;
+  };
+  const stop = function () { fileDrawing = false; };
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', move);
+  canvas.addEventListener('mouseup', stop);
+  canvas.addEventListener('mouseleave', stop);
+  canvas.addEventListener('touchstart', start, { passive: true });
+  canvas.addEventListener('touchmove', move, { passive: false });
+  canvas.addEventListener('touchend', stop);
+  window.addEventListener('resize', function () {
+    if (fileAnnotateOn) resizeFileAnnotateCanvas();
+  });
+  // tool buttons
+  document.querySelectorAll('#fileAnnotateBar .file-tool').forEach(function (b) {
+    b.onclick = function () {
+      document.querySelectorAll('#fileAnnotateBar .file-tool').forEach(function (x) { x.classList.remove('active'); });
+      b.classList.add('active');
+      fileAnnotateTool = b.getAttribute('data-file-tool') || 'pen';
+    };
+  });
+  document.querySelectorAll('#fileAnnotateBar [data-file-color]').forEach(function (b) {
+    b.onclick = function () {
+      fileAnnotateColor = b.getAttribute('data-file-color') || '#f87171';
+      fileAnnotateTool = 'pen';
+    };
+  });
+}
+
+function applyRemoteFileStroke(s) {
+  if (!s) return;
+  fileAnnotateStrokes.push(s);
+  const canvas = document.getElementById('fileAnnotateCanvas');
+  if (!canvas) return;
+  resizeFileAnnotateCanvas();
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  if (s.c === 'erase') ctx.globalCompositeOperation = 'destination-out';
+  else ctx.globalCompositeOperation = 'source-over';
+  ctx.beginPath();
+  ctx.moveTo(s.x0 * W, s.y0 * H);
+  ctx.lineTo(s.x1 * W, s.y1 * H);
+  ctx.strokeStyle = s.c === 'erase' ? 'rgba(0,0,0,1)' : s.c;
+  ctx.lineWidth = Math.max(1, s.w * (W / 1000));
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+function initFilePinchZoom() {
+  const wrap = document.getElementById('fileViewScroll');
+  if (!wrap || wrap.dataset.pinch === '1') return;
+  wrap.dataset.pinch = '1';
+  let dist0 = 0;
+  let zoom0 = 1;
+  function distance(touches) {
+    const a = touches[0], b = touches[1];
+    const dx = a.clientX - b.clientX, dy = a.clientY - b.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+  wrap.addEventListener('touchstart', function (e) {
+    if (e.touches.length === 2) {
+      dist0 = distance(e.touches);
+      zoom0 = fileView.zoom || 1;
+      fileFitLocked = false;
+      try { updateFitButtonUI(); } catch (err) {}
+    }
+  }, { passive: true });
+  wrap.addEventListener('touchmove', function (e) {
+    if (e.touches.length === 2 && dist0 > 0) {
+      e.preventDefault();
+      const d = distance(e.touches);
+      const factor = d / dist0;
+      fileSetZoom(Math.max(0.25, Math.min(4, zoom0 * factor)));
+    }
+  }, { passive: false });
+  wrap.addEventListener('touchend', function () {
+    if (!window.event || !window.event.touches || window.event.touches.length < 2) dist0 = 0;
+  }, { passive: true });
+}
+
 // ===================== FILE VIEWER v2 (zoom / pan / PDF pages) =====================
 function initFileViewerChrome() {
   const wrap = document.getElementById('fileViewScroll');
@@ -4829,21 +5385,24 @@ function initFileViewerChrome() {
     } else lastTap = now;
   }, { passive: true });
 
-  // Show chrome on interaction; auto-hide after 3s idle
-  const panel = document.getElementById('sharedFilePanel');
-  function bumpFileChrome() {
-    if (!panel) return;
-    panel.classList.remove('file-chrome-hidden');
-    clearTimeout(window._fileChromeTimer);
-    window._fileChromeTimer = setTimeout(function () {
-      panel.classList.add('file-chrome-hidden');
-    }, 3000);
-  }
-  panel && panel.addEventListener('pointerdown', bumpFileChrome);
-  wrap.addEventListener('pointerdown', bumpFileChrome);
-  wrap.addEventListener('mousemove', bumpFileChrome);
-  bumpFileChrome();
+  try { initFileChromeToggle(); } catch (e) {}
 }
+
+/** Tap file area: show tools; tap again: hide tools */
+function initFileChromeToggle() {
+  const panel = document.getElementById('sharedFilePanel');
+  const wrap = document.getElementById('fileViewScroll');
+  if (!panel || !wrap || wrap.dataset.toggleChrome === '1') return;
+  wrap.dataset.toggleChrome = '1';
+  wrap.addEventListener('click', function (e) {
+    // Don't toggle when clicking chrome buttons or while drawing annotate
+    if (e.target.closest('.file-chrome') || e.target.closest('#fileAnnotateBar')) return;
+    if (panel.classList.contains('file-annotate-on') && e.target.id === 'fileAnnotateCanvas') return;
+    panel.classList.toggle('file-chrome-hidden');
+  });
+  // Annotate bar stays with chrome visibility via CSS; keep bar visible when annotate on
+}
+
 
 let fileFitLocked = false;
 
@@ -4996,6 +5555,7 @@ async function showSharedFileFromData(file) {
     fileView.kind = 'pdf';
     if (pageWrap) { pageWrap.classList.remove('hidden'); pageWrap.classList.add('flex'); }
     try {
+      if (typeof pdfjsLib === 'undefined') throw new Error('pdf.js not loaded');
       const raw = atob(String(file.dataUrl).split(',')[1] || '');
       const bytes = new Uint8Array(raw.length);
       for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
@@ -5017,6 +5577,13 @@ async function showSharedFileFromData(file) {
     const v = document.createElement('video');
     v.src = file.dataUrl; v.controls = true; v.className = 'w-full max-h-[70vh] rounded-lg bg-black';
     content.appendChild(v);
+  } else if (/\.(docx?|pptx?|xlsx?|odt|rtf)$/i.test(name) || /officedocument|msword|ms-excel|ms-powerpoint/i.test(type)) {
+    fileView.kind = 'other';
+    const box = document.createElement('div');
+    box.className = 'p-6 text-center text-slate-200 space-y-3';
+    box.innerHTML = '<p class="text-lg font-semibold"><i class="fas fa-file-word mr-2"></i>' + String(file.name || 'Document').replace(/</g, '') + '</p>' +
+      '<p class="text-sm text-slate-400">Office documents open with <strong>Open</strong> or <strong>Save</strong>. You can still draw annotations on this panel.</p>';
+    content.appendChild(box);
   } else {
     fileView.kind = 'other';
     const iframe = document.createElement('iframe');
@@ -5024,14 +5591,15 @@ async function showSharedFileFromData(file) {
     iframe.style.height = '70vh';
     content.appendChild(iframe);
     const p = document.createElement('p');
-    p.className = 'text-slate-500 text-xs mt-2';
-    p.innerHTML = 'Preview may be unavailable for this file type — use <strong>Open</strong> or <strong>Save</strong> above.';
+    p.className = 'text-slate-400 text-xs mt-2 px-2';
+    p.innerHTML = 'Preview may be limited for this type — use <strong>Open</strong> or <strong>Save</strong>. Annotation still works.';
     content.appendChild(p);
   }
   panel.classList.remove('hidden');
-  panel.classList.remove('file-chrome-hidden');
+  panel.classList.add('file-chrome-hidden'); // tools hidden until tap
   clearTimeout(window._fileChromeTimer);
-  window._fileChromeTimer = setTimeout(function () { panel.classList.add('file-chrome-hidden'); }, 3000);
+  try { initFilePinchZoom(); initFileAnnotateDrawing(); resizeFileAnnotateCanvas(); initFileChromeToggle(); } catch (e) {}
+  try { updateHostStageLayout(); } catch (e) {}
 }
 
 function closeSharedFile() {
@@ -5039,6 +5607,8 @@ function closeSharedFile() {
   const content = document.getElementById('fileViewContent');
   if (content) content.innerHTML = '';
   fileView = { kind: null, zoom: 1, baseW: 0, pdfDoc: null, pdfPage: 1, pageCount: 1 };
+  try { fileAnnotateStrokes = []; } catch (e) {}
+  try { updateHostStageLayout(); } catch (e) {}
 }
 
 function triggerShareFile() {
@@ -5049,14 +5619,33 @@ function triggerShareFile() {
 function onShareFileSelected(e) {
   const file = e.target.files && e.target.files[0];
   if (!file) return;
+  // Accept ANY file type (pdf, doc, ppt, images, etc.)
+  const type = file.type || 'application/octet-stream';
+  const name = file.name || 'file';
+  const MAX_BROADCAST = 8 * 1024 * 1024; // 8MB to peers via dataUrl
   const reader = new FileReader();
-  reader.onload = () => {
-    const payload = { name: file.name, type: file.type || 'application/octet-stream', dataUrl: reader.result };
-    showSharedFileFromData(payload);
-    if (socket && activeClassCode && file.size < 4 * 1024 * 1024) {
-      socket.emit('file-share', { code: activeClassCode, file: payload });
-    } else if (file.size >= 4 * 1024 * 1024) {
-      alert('Large file — visible on your screen only. Use Share Screen for class-wide viewing of big files.');
+  reader.onerror = function () {
+    alert('Could not read this file. Try another copy or Share Screen instead.');
+  };
+  reader.onload = function () {
+    const payload = { name: name, type: type, dataUrl: reader.result };
+    try {
+      showSharedFileFromData(payload);
+    } catch (err) {
+      console.error(err);
+      alert('Could not preview file, but you can still Open/Save it.');
+    }
+    if (socket && activeClassCode) {
+      if (file.size <= MAX_BROADCAST) {
+        socket.emit('file-share', { code: activeClassCode, file: payload });
+        fetch('/api/classes/' + encodeURIComponent(activeClassCode) + '/share', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+          body: JSON.stringify({ file: { name: name, type: type } })
+        }).catch(function () {});
+      } else {
+        alert('File is large (' + Math.round(file.size / 1048576) + ' MB). Shown on your screen only. For the whole class, use Screen share or a smaller file (under 8 MB).');
+      }
     }
   };
   reader.readAsDataURL(file);
