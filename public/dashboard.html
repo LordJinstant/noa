@@ -1236,6 +1236,20 @@
       font-size: 10px; color: #fff; background: rgba(0,0,0,.55);
       padding: 2px 6px; border-radius: 6px; pointer-events: none;
     }
+
+    /* ===== Live audio meter (dancing voice bars) ===== */
+    .audio-meter,.peer-audio-meter,#hostAudioMeter{display:inline-flex;align-items:flex-end;justify-content:center;gap:2px;height:16px;min-width:24px}
+    .am-bar{display:block;width:3px;height:2px;border-radius:2px;background:#94a3b8;transition:height .09s ease-out,background-color .12s}
+    .am-live .am-bar{background:#34d399}
+    .am-hot .am-bar{background:#fbbf24}
+    .am-off .am-bar{background:#ef4444;opacity:.85}
+    .peer-audio-meter{position:absolute;top:6px;right:6px;z-index:4;padding:4px 6px;border-radius:9px;background:rgba(2,6,23,.65);pointer-events:none}
+    #hostAudioMeter{position:absolute;top:12px;right:12px;z-index:6;padding:5px 8px;border-radius:10px;background:rgba(2,6,23,.65);display:none;pointer-events:none}
+    #hostAudioMeter.show{display:inline-flex}
+    .peer-slot.peer-speaking{box-shadow:0 0 0 2px #34d399}
+    .peer-avatar{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:#1e293b;color:#e2e8f0;font-weight:700;font-size:1.6rem}
+    .roster-row.clickable{cursor:pointer}
+    .roster-row.clickable:hover{background:rgba(30,41,59,.95)}
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -1595,7 +1609,7 @@
                         <button type="button" id="btnFileAnnotate" onclick="toggleFileAnnotate()" class="px-2.5 h-8 rounded-lg bg-amber-600 text-white hover:bg-amber-500 font-semibold" title="Draw on file like the board"><i class="fas fa-pen mr-1"></i>Draw</button>
                         <a id="sharedFileLink" href="#" target="_blank" rel="noopener" class="px-2.5 h-8 inline-flex items-center rounded-lg bg-slate-800 text-emerald-300 hover:bg-slate-700 font-semibold">Open</a>
                         <a id="sharedFileDownload" href="#" download class="px-2.5 h-8 hidden sm:inline-flex items-center rounded-lg bg-slate-800 text-white hover:bg-slate-700 font-semibold">Save</a>
-                        <button type="button" onclick="closeSharedFile()" class="w-8 h-8 rounded-lg bg-slate-800 text-white hover:bg-slate-700" title="Close file"><i class="fas fa-times"></i></button>
+                        <button type="button" onclick="hostCloseSharedFile()" class="w-8 h-8 rounded-lg bg-slate-800 text-white hover:bg-slate-700" title="Close file"><i class="fas fa-times"></i></button>
                       </div>
                     </div>
                     <div id="fileViewScroll" class="bg-slate-900">
@@ -1624,10 +1638,13 @@
                   <div class="absolute bottom-3 left-3 px-3 py-1 rounded-lg bg-black/60 text-white text-xs z-10" id="mainStageLabel">You</div>
                   <button type="button" id="btnClearFocus" onclick="clearFocusPeer()" class="hidden absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-black/70 text-white text-xs hover:bg-black z-10"><i class="fas fa-user mr-1"></i>Back to my view</button>
                   <div id="focusedStudentCard" class="hidden absolute bottom-3 right-3 max-w-xs w-[min(100%,280px)] bg-slate-900/95 border border-slate-600 rounded-2xl p-3 text-white shadow-xl z-10">
+                    <button type="button" onclick="closeParticipantCard()" class="absolute top-2 right-2 w-6 h-6 rounded-full bg-slate-700 hover:bg-slate-600 text-xs" title="Close"><i class="fas fa-times"></i></button>
                     <p class="text-[10px] uppercase tracking-wide text-slate-400 mb-1">Participant</p>
                     <p id="fsName" class="font-bold text-sm truncate">—</p>
                     <p id="fsMeta" class="text-xs text-slate-300 mt-1 leading-relaxed"></p>
-                    <div id="fsHostActions" class="hidden mt-3 flex gap-2">
+                    <div id="fsHostActions" class="hidden mt-3 flex flex-wrap gap-2">
+                      <button type="button" id="btnFsCam" onclick="hostControlPeer('cam')" class="flex-1 min-w-[45%] py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-xs font-semibold"><i class="fas fa-video-slash mr-1"></i>Camera</button>
+                      <button type="button" id="btnFsMic" onclick="hostControlPeer('mic')" class="flex-1 min-w-[45%] py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-xs font-semibold"><i class="fas fa-microphone-slash mr-1"></i>Mic</button>
                       <button type="button" id="btnKickStudent" onclick="kickFocusedStudent()" class="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-xs font-semibold"><i class="fas fa-user-slash mr-1"></i>Remove from class</button>
                     </div>
                   </div>
@@ -1661,7 +1678,7 @@
                   <div id="boardResizeGrip" title="Drag to resize board"><i class="fas fa-caret-up" style="transform:rotate(45deg)"></i></div>
                 </div>
 
-                <div id="hostPeerRow" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 max-h-[240px] overflow-y-auto pr-1">
+                <div id="hostPeerRow" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 max-h-[360px] overflow-y-auto pr-1">
                   <div id="hostSelfSlot" role="button" tabindex="0" onclick="clearFocusPeer()" class="hidden peer-slot aspect-video bg-slate-800 rounded-xl overflow-hidden relative border border-emerald-500/40 order-first cursor-pointer hover:ring-2 hover:ring-emerald-400" title="Back to my view">
                     <video id="hostSelfVideo" autoplay muted playsinline class="w-full h-full object-cover bg-black cam-mirror"></video>
                     <div class="absolute bottom-1 left-1 px-2 py-0.5 rounded bg-black/60 text-white text-[10px] pointer-events-none">You · tap to return</div>
@@ -1674,7 +1691,7 @@
               <div id="participantsWrap" class="px-3 sm:px-4 pb-4 pt-1 space-y-1.5">
                 <div class="flex items-center justify-between">
                   <p class="text-slate-400 text-[11px] font-semibold uppercase tracking-wide">In class — <span id="rosterCountInline">1</span></p>
-                  <span id="livePeerHint" class="text-[10px] text-slate-500">Double-tap a camera for options</span>
+                  <span id="livePeerHint" class="text-[10px] text-slate-500">Tap a participant for options</span>
                 </div>
                 <div id="classRosterList" class="space-y-1 max-h-[min(50vh,28rem)] overflow-y-auto overscroll-contain pr-1" style="webkit-overflow-scrolling:touch"></div>
               </div>
@@ -3643,7 +3660,7 @@ function ensureSocket() {
     let hostId = null;
     for (const p of existing || []) {
       if (!p || !p.id || isSelfPeerId(p.id) || isSelfMeta(p)) continue;
-      peerMeta[p.id] = { name: p.name, isHost: p.isHost, email: p.email, username: p.username, userId: p.userId, micOn: true, camOn: true };
+      peerMeta[p.id] = { name: p.name, isHost: p.isHost, email: p.email, username: p.username, userId: p.userId, micOn: p.mic !== false, camOn: p.cam !== false };
       if (p.isHost) hostId = p.id;
       if (shouldWebRTCWith(p)) await createPeerConnection(p.id, p.name, true);
     }
@@ -3655,10 +3672,10 @@ function ensureSocket() {
     }
   });
 
-  socket.on('user-joined', async ({ id, name, isHost, email, username, userId, count }) => {
+  socket.on('user-joined', async ({ id, name, isHost, email, username, userId, count, mic, cam }) => {
     if (count != null) window._roomParticipantCount = Number(count) || 0;
     if (isSelfPeerId(id) || isSelfMeta({ name, isHost, email, username, userId })) return;
-    peerMeta[id] = { name, isHost, email, username, userId, micOn: true, camOn: true };
+    peerMeta[id] = { name, isHost, email, username, userId, micOn: mic !== false, camOn: cam !== false };
     if (shouldWebRTCWith({ id, isHost, name, email, username, userId })) await createPeerConnection(id, name, false);
     updateParticipantUI();
     renderRosterList();
@@ -3682,7 +3699,7 @@ function ensureSocket() {
         }
         peerMeta[m.id] = Object.assign({ micOn: true, camOn: true }, peerMeta[m.id] || {}, {
           name: m.name, isHost: m.isHost, email: m.email, username: m.username, userId: m.userId
-        });
+        }, (m.mic !== undefined ? { micOn: m.mic !== false, camOn: m.cam !== false } : {}));
       });
     }
     updateParticipantUI();
@@ -3692,6 +3709,7 @@ function ensureSocket() {
   socket.on('user-left', ({ id, name, count }) => {
     if (count != null) window._roomParticipantCount = Number(count) || 0;
     if (focusedPeerId === id) clearFocusPeer();
+    if (menuPeerId === id) closeParticipantCard();
     removePeer(id);
     delete peerMeta[id];
     updateParticipantUI();
@@ -3708,6 +3726,7 @@ function ensureSocket() {
 
   socket.on('participant-kicked', ({ id, name }) => {
     if (focusedPeerId === id) clearFocusPeer();
+    if (menuPeerId === id) closeParticipantCard();
     removePeer(id);
     delete peerMeta[id];
     updateParticipantUI();
@@ -3778,12 +3797,27 @@ function ensureSocket() {
 
   socket.on('media-state', ({ from, mic, cam }) => {
     if (peerMeta[from]) { peerMeta[from].micOn = !!mic; peerMeta[from].camOn = !!cam; }
-    renderRosterList();
-    const slot = peerSlotMap[from];
-    if (slot) slot.style.display = cam ? '' : 'none';
+    applyPeerTileState(from);
+    if (focusedPeerId === from && !cam) { clearFocusPeer(); menuPeerId = from; renderParticipantCard(from); }
+    else if (menuPeerId === from) renderParticipantCard(from);
+    scheduleRosterRender();
+  });
+
+  // Host switched THIS participant's camera / mic
+  socket.on('host-control', ({ action, value }) => {
+    if (isClassHost) return;
+    const st = document.getElementById('classStatus');
+    if (action === 'cam') {
+      if (!value) { setCamEnabled(false); if (st) st.textContent = 'The host turned off your camera'; }
+      else if (confirm('The host is asking you to turn your camera on. Turn it on now?')) setCamEnabled(true);
+    } else if (action === 'mic') {
+      if (!value) { setMicEnabled(false); if (st) st.textContent = 'The host muted your microphone'; }
+      else if (confirm('The host is asking you to unmute your microphone. Unmute now?')) setMicEnabled(true);
+    }
   });
 
   socket.on('file-share', ({ file }) => { if (file) showSharedFileFromData(file); });
+  socket.on('file-close', () => { if (!isClassHost) closeSharedFile(); });
   socket.on('file-annotate', ({ stroke }) => { if (stroke) applyRemoteFileStroke(stroke); });
   socket.on('file-annotate-clear', () => { fileAnnotateStrokes = []; redrawFileAnnotations(); });
 
@@ -3799,19 +3833,10 @@ function isSelfPeerId(id) {
 }
 
 function isSelfMeta(m) {
+  // Self is identified ONLY by socket id (names / emails can be shared by many people).
   if (!m) return false;
   if (m.me) return true;
-  const uid = user && (user.id != null ? String(user.id) : '');
-  const email = user && user.email ? String(user.email).toLowerCase().trim() : '';
-  const uname = user && user.username ? String(user.username).toLowerCase().trim() : '';
-  const name = user && user.name ? String(user.name).toLowerCase().trim() : '';
-  if (uid && m.userId != null && String(m.userId) === uid) return true;
-  if (email && m.email && String(m.email).toLowerCase().trim() === email) return true;
-  if (uname && m.username && String(m.username).toLowerCase().trim() === uname) return true;
-  if (name && m.name && String(m.name).toLowerCase().trim() === name) return true;
-  // username often stored as name on join
-  if (uname && m.name && String(m.name).toLowerCase().trim() === uname) return true;
-  if (name && m.username && String(m.username).toLowerCase().trim() === name) return true;
+  if (m.id && isSelfPeerId(m.id)) return true;
   return false;
 }
 
@@ -3880,6 +3905,40 @@ function bindMeterElement(key, el) {
   el._meterKey = key;
 }
 
+let meterLoopRaf = 0, meterLastTs = 0;
+function meterLoop(ts) {
+  meterLoopRaf = requestAnimationFrame(meterLoop);
+  if (ts - meterLastTs < 70) return;
+  meterLastTs = ts;
+  Object.keys(audioMeterMap).forEach(function (key) {
+    const m = audioMeterMap[key];
+    if (!m) return;
+    const micOn = !!(m.micOnGetter && m.micOnGetter());
+    var level = 0;
+    if (micOn) {
+      m.analyser.getByteFrequencyData(m.data);
+      var sum = 0, count = 0;
+      var len = m.data.length;
+      var start = Math.floor(len * 0.05);
+      var end = Math.floor(len * 0.55);
+      for (var i = start; i < end; i++) { sum += m.data[i]; count++; }
+      level = count ? Math.min(1, (sum / count) / 110) : 0;
+      level = Math.pow(level, 0.8);
+    }
+    m.els.forEach(function (el) {
+      if (el && el.isConnected) applyMeterLevel(el, level, micOn);
+      else m.els.delete(el);
+    });
+    document.querySelectorAll('[data-audio-meter="' + key + '"]').forEach(function (el) {
+      applyMeterLevel(el, level, micOn);
+    });
+    if (key.indexOf('peer:') === 0) {
+      var slot = peerSlotMap[key.slice(5)];
+      if (slot) slot.classList.toggle('peer-speaking', micOn && level > 0.12);
+    }
+  });
+}
+
 function startAudioMeter(key, stream, micOnGetter) {
   if (!stream) return;
   if (!stream.getAudioTracks || !stream.getAudioTracks().length) return;
@@ -3894,35 +3953,11 @@ function startAudioMeter(key, stream, micOnGetter) {
   try { source = ctx.createMediaStreamSource(stream); } catch (e) { return; }
   const analyser = ctx.createAnalyser();
   analyser.fftSize = 256;
-  analyser.smoothingTimeConstant = 0.7;
+  analyser.smoothingTimeConstant = 0.6;
   source.connect(analyser);
   const data = new Uint8Array(analyser.frequencyBinCount);
-  const entry = { stream: stream, source: source, analyser: analyser, data: data, els: new Set(), micOnGetter: micOnGetter || function () { return true; }, raf: 0 };
-  audioMeterMap[key] = entry;
-  function tick() {
-    const m = audioMeterMap[key];
-    if (!m) return;
-    const micOn = !!(m.micOnGetter && m.micOnGetter());
-    var level = 0;
-    if (micOn) {
-      m.analyser.getByteFrequencyData(m.data);
-      var sum = 0, count = 0;
-      var len = m.data.length;
-      var start = Math.floor(len * 0.05);
-      var end = Math.floor(len * 0.55);
-      for (var i = start; i < end; i++) { sum += m.data[i]; count++; }
-      level = count ? Math.min(1, (sum / count) / 140) : 0;
-      level = Math.pow(level, 0.85);
-    }
-    m.els.forEach(function (el) {
-      if (el && el.isConnected) applyMeterLevel(el, level, micOn);
-    });
-    document.querySelectorAll('[data-audio-meter="' + key + '"]').forEach(function (el) {
-      applyMeterLevel(el, level, micOn);
-    });
-    m.raf = requestAnimationFrame(tick);
-  }
-  tick();
+  audioMeterMap[key] = { stream: stream, source: source, analyser: analyser, data: data, els: new Set(), micOnGetter: micOnGetter || function () { return true; }, raf: 0 };
+  if (!meterLoopRaf) meterLoopRaf = requestAnimationFrame(meterLoop);
 }
 
 function refreshAllMeterBindings() {
@@ -3963,10 +3998,15 @@ document.addEventListener('pointerdown', function () {
   if (c && c.state === 'suspended') c.resume().catch(function () {});
 }, { passive: true });
 
+const MESH_AUDIO_MAX = 8; // student<->student audio only in small rooms; big rooms = star (everyone <-> host)
 function shouldWebRTCWith(remote) {
   if (!remote) return false;
   if (isSelfPeerId(remote.id)) return false;
   if (isSelfMeta(remote)) return false;
+  if (!isClassHost && !remote.isHost) {
+    const n = Number(window._roomParticipantCount) || 0;
+    if (n > MESH_AUDIO_MAX) return false;
+  }
   return true;
 }
 function isAudioOnlyPeer(remote) {
@@ -3976,7 +4016,7 @@ function isAudioOnlyPeer(remote) {
 }
 
 function playRemoteAudioOnly(peerId, stream) {
-  if (!stream) return;
+  if (!stream || !stream.getAudioTracks || !stream.getAudioTracks().length) return;
   let a = document.getElementById('raudio-' + peerId);
   if (!a) {
     a = document.createElement('audio');
@@ -3989,26 +4029,14 @@ function playRemoteAudioOnly(peerId, stream) {
     a.style.display = 'none';
     document.body.appendChild(a);
   }
-  try {
-    // Prefer audio-only tracks on the element to avoid double-play with video
-    const audioTracks = stream.getAudioTracks();
-    if (audioTracks.length) {
-      a.srcObject = new MediaStream(audioTracks);
-    } else {
-      a.srcObject = stream;
-    }
-  } catch (e) {
-    a.srcObject = stream;
+  const ids = stream.getAudioTracks().map(function (t) { return t.id; }).join(',');
+  if (a._trackIds !== ids) {
+    a._trackIds = ids;
+    try { a.srcObject = new MediaStream(stream.getAudioTracks()); } catch (e) { a.srcObject = stream; }
   }
-  const tryPlay = function () {
-    a.muted = false;
-    a.play().catch(function () {});
-  };
+  const tryPlay = function () { a.muted = false; a.play().catch(function () {}); };
   tryPlay();
-  // Retry after gesture / short delays (autoplay policies)
-  [200, 800, 2000].forEach(function (ms) {
-    setTimeout(tryPlay, ms);
-  });
+  [300, 1200, 3000].forEach(function (ms) { setTimeout(tryPlay, ms); });
 }
 
 function resumeAllRemoteAudio() {
@@ -4026,6 +4054,7 @@ document.addEventListener('pointerdown', function noaUnlockAudioOnce() {
 
 function updateParticipantUI() {
   try { prunePeerMetaDuplicates(); } catch (e) {}
+  try { reapplyAllSenderLimits(); } catch (e) {}
   const unique = collectRosterUnique();
   const n = unique.total;
   window._roomParticipantCount = n;
@@ -4044,19 +4073,14 @@ function personKey(m) {
   if (m.userId) return 'uid:' + String(m.userId).toLowerCase();
   if (m.email) return 'em:' + String(m.email).toLowerCase();
   if (m.username) return 'un:' + String(m.username).toLowerCase();
-  return 'nm:' + String(m.name || 'participant').trim().toLowerCase();
+  return ''; // unknown identity -> caller falls back to socket id (never merge by name)
 }
 
 /** Deduplicate peers: same person must appear once even if socket reconnects. */
 function collectRosterUnique() {
   const mySockId = (socket && socket.id) || null;
   const meName = (user && (user.name || user.username)) || 'You';
-  const meKey = personKey({
-    userId: user && user.id,
-    email: user && user.email,
-    username: user && user.username,
-    name: meName
-  }) || 'me';
+  const meKey = 'me';
 
   // identityKey -> best row (prefer live + with stream)
   const byPerson = new Map();
@@ -4089,7 +4113,6 @@ function collectRosterUnique() {
     const m = peerMeta[id] || {};
     if (isSelfMeta(m)) return;
     const pk = personKey(m) || ('sid:' + id);
-    if (pk === meKey) return;
     // Never list a second host row for the local host
     if (isClassHost && m.isHost) return;
     consider({
@@ -4147,8 +4170,8 @@ function prunePeerMetaDuplicates() {
     } else if (!live && prev.live) {
       delete peerMeta[id];
       try { removePeer(id); } catch (e) {}
-    } else if (id !== prev.id) {
-      // same liveness — keep first, drop this
+    } else if (!live && !prev.live && id !== prev.id) {
+      // both stale — keep first, drop this
       delete peerMeta[id];
       try { removePeer(id); } catch (e) {}
     }
@@ -4173,12 +4196,14 @@ function renderRosterList() {
     const meter = '<span class="' + meterClass + '" data-audio-meter="' + meterKey + '" title="Audio level">' +
       '<span class="am-bar"></span><span class="am-bar"></span><span class="am-bar"></span><span class="am-bar"></span><span class="am-bar"></span></span>';
     return (
-      '<div class="roster-row">' +
+      '<div class="roster-row' + ((isClassHost && !r.me && !r.isHost) ? ' clickable' : '') + '"' +
+      ((isClassHost && !r.me && !r.isHost) ? ' onclick="focusPeer(\'' + String(r.id).replace(/[^A-Za-z0-9_\-]/g, '') + '\')" title="Tap for options"' : '') + '>' +
       '<span class="roster-dot ' + (r.isHost ? 'bg-amber-400' : (r.live ? 'bg-emerald-400' : 'bg-slate-600')) + '"></span>' +
       '<span class="text-[10px] font-bold uppercase tracking-wide ' + (r.isHost ? 'text-amber-300' : 'text-slate-500') + ' w-16 shrink-0">' + roleLabel + '</span>' +
       '<span class="text-[11px] text-slate-200 truncate flex-1">' + display + '</span>' +
       meter +
-      (r.camOn ? '<span class="text-[9px] font-bold text-emerald-400">CAM</span>' : '') +
+      (!r.micOn ? '<span class="text-[9px] font-bold text-red-400">MIC OFF</span>' : '') +
+      (r.camOn ? '<span class="text-[9px] font-bold text-emerald-400">CAM</span>' : '<span class="text-[9px] font-bold text-slate-500">CAM OFF</span>') +
       '</div>'
     );
   }
@@ -4351,66 +4376,106 @@ async function getLocalMedia(forceRestart) {
   }
 }
 
-async function createPeerConnection(remoteId, remoteName, shouldOffer) {
-  if (isSelfPeerId(remoteId)) return null;
-  if (peers[remoteId]) return peers[remoteId];
+const pcPending = {};
+const peerReconnectTimers = {};
+let _limitsTimer = null;
+
+function senderProfile() {
+  const n = Number(window._roomParticipantCount) || 1;
+  if (isClassHost) {
+    if (n <= 20) return { br: 800000, fps: 30, scale: 1 };
+    if (n <= 50) return { br: 400000, fps: 24, scale: 1 };
+    return { br: 250000, fps: 20, scale: 1.5 };
+  }
+  if (n <= 20) return { br: 500000, fps: 24, scale: 1 };
+  if (n <= 50) return { br: 250000, fps: 20, scale: 1.5 };
+  return { br: 150000, fps: 15, scale: 2 };
+}
+
+function applySenderLimits(pc) {
+  const prof = senderProfile();
+  try {
+    pc.getSenders().forEach(function (sender) {
+      if (!sender.track || sender.track.kind !== 'video' || !sender.getParameters) return;
+      try {
+        const params = sender.getParameters();
+        if (!params.encodings || !params.encodings.length) params.encodings = [{}];
+        params.encodings.forEach(function (enc) {
+          enc.maxBitrate = prof.br;
+          enc.maxFramerate = prof.fps;
+          enc.scaleResolutionDownBy = prof.scale;
+        });
+        sender.setParameters(params).catch(function () {});
+      } catch (e) {}
+    });
+  } catch (e) {}
+}
+
+function reapplyAllSenderLimits() {
+  clearTimeout(_limitsTimer);
+  _limitsTimer = setTimeout(function () {
+    Object.keys(peers).forEach(function (id) { applySenderLimits(peers[id]); });
+  }, 1500);
+}
+
+function scheduleRosterRender() {
+  if (window._rrT) return;
+  window._rrT = setTimeout(function () { window._rrT = null; try { renderRosterList(); } catch (e) {} }, 120);
+}
+
+function createPeerConnection(remoteId, remoteName, shouldOffer) {
+  if (isSelfPeerId(remoteId)) return Promise.resolve(null);
+  if (peers[remoteId]) return Promise.resolve(peers[remoteId]);
+  if (pcPending[remoteId]) return pcPending[remoteId];
+  const p = _buildPeer(remoteId, remoteName, shouldOffer);
+  pcPending[remoteId] = p;
+  const clear = function () { if (pcPending[remoteId] === p) delete pcPending[remoteId]; };
+  p.then(clear, clear);
+  return p;
+}
+
+async function _buildPeer(remoteId, remoteName, shouldOffer) {
   const meta = peerMeta[remoteId] || { name: remoteName, isHost: false };
   const audioOnly = isAudioOnlyPeer(meta);
   await ensureIceConfig();
+  // Get camera/mic BEFORE the connection exists, so our tracks are in the very first answer/offer.
+  if (!mediaStream) await getLocalMedia();
   const pc = new RTCPeerConnection(ICE_SERVERS);
-  peers[remoteId] = pc;
   pc._name = remoteName || 'Peer';
   pc._audioOnly = audioOnly;
+  pc._pendingIce = [];
 
-  if (!mediaStream) await getLocalMedia();
   if (mediaStream) {
-    mediaStream.getTracks().forEach((track) => {
-      if (audioOnly && track.kind !== 'audio') return; // student↔student: voice only
-      try {
-        const sender = pc.addTrack(track, mediaStream);
-        if (track.kind === 'video' && sender && sender.setParameters) {
-          try {
-            const params = sender.getParameters();
-            params.encodings = params.encodings && params.encodings.length ? params.encodings : [{}];
-            params.encodings.forEach(enc => {
-              enc.maxBitrate = isClassHost ? 900000 : 300000;
-              enc.maxFramerate = isClassHost ? 30 : 20;
-            });
-            sender.setParameters(params);
-          } catch (e) {}
-        }
-      } catch (e) {}
+    mediaStream.getTracks().forEach(function (track) {
+      if (audioOnly && track.kind !== 'audio') return; // student<->student: voice only
+      try { pc.addTrack(track, mediaStream); } catch (e) {}
     });
   }
+  applySenderLimits(pc);
+  peers[remoteId] = pc;
 
-  pc.ontrack = (event) => {
-    const stream = event.streams[0] || new MediaStream([event.track]);
-    // Always ensure remote audio can be heard
-    if (event.track.kind === 'audio' || (stream.getAudioTracks && stream.getAudioTracks().length)) {
-      playRemoteAudioOnly(remoteId, stream);
-    }
-    if (audioOnly) {
-      // student↔student: voice only — no video tile
-      if (event.track.kind === 'video') return;
-      return;
-    }
+  pc.ontrack = function (event) {
+    const stream = (event.streams && event.streams[0]) || new MediaStream([event.track]);
+    if (event.track.kind === 'audio') playRemoteAudioOnly(remoteId, stream);
+    if (audioOnly) return; // no video tile for audio-only peers
     attachRemoteStream(remoteId, (peerMeta[remoteId] || {}).name || remoteName, stream);
+    event.track.onunmute = function () {
+      const slot = peerSlotMap[remoteId];
+      const v = slot && slot.querySelector('video');
+      if (v) { try { v.play().catch(function () {}); } catch (e) {} }
+    };
   };
-  pc.onicecandidate = (event) => {
+  pc.onicecandidate = function (event) {
     if (event.candidate && socket) socket.emit('signal', { to: remoteId, data: { type: 'ice', candidate: event.candidate } });
   };
-  pc.onconnectionstatechange = () => {
-    if (pc.connectionState === 'failed') { try { pc.restartIce(); } catch (e) {} }
-  };
-  pc.oniceconnectionstatechange = () => {
-    if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
-      try { pc.restartIce(); } catch (e) {}
-    }
+  pc.onconnectionstatechange = function () {
+    if (pc.connectionState === 'failed') schedulePeerReconnect(remoteId, pc, 500);
+    else if (pc.connectionState === 'disconnected') schedulePeerReconnect(remoteId, pc, 6000);
   };
 
   if (shouldOffer) {
     try {
-      const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+      const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: !audioOnly });
       await pc.setLocalDescription(offer);
       socket.emit('signal', { to: remoteId, data: { type: 'offer', sdp: pc.localDescription } });
     } catch (e) { console.error('Offer error', e); }
@@ -4418,113 +4483,204 @@ async function createPeerConnection(remoteId, remoteName, shouldOffer) {
   return pc;
 }
 
-async function handleSignal(fromId, data) {
-  let pc = peers[fromId];
-  if (!pc) {
-    const meta = peerMeta[fromId] || {};
-    pc = await createPeerConnection(fromId, meta.name || 'Peer', false);
+function schedulePeerReconnect(id, pc, delay) {
+  clearTimeout(peerReconnectTimers[id]);
+  peerReconnectTimers[id] = setTimeout(function () {
+    if (peers[id] !== pc) return;
+    const st = pc.connectionState;
+    if (st === 'connected' || st === 'connecting' || st === 'new') return;
+    const meta = peerMeta[id];
+    if (!meta) return;
+    removePeer(id);
+    const offerer = !isClassHost && (meta.isHost || (socket && socket.id < id));
+    if (offerer) {
+      createPeerConnection(id, meta.name, true);
+    } else if (isClassHost && socket) {
+      // ask the participant to dial us again
+      socket.emit('signal', { to: id, data: { type: 'reconnect' } });
+    }
+  }, delay);
+}
+
+async function flushPendingIce(pc) {
+  const list = pc._pendingIce || [];
+  pc._pendingIce = [];
+  for (const c of list) {
+    try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch (e) { console.warn('ICE', e); }
   }
+}
+
+async function handleSignal(fromId, data) {
+  if (!data) return;
+  if (data.type === 'reconnect') {
+    const meta = peerMeta[fromId];
+    if (!isClassHost && meta && meta.isHost) {
+      removePeer(fromId);
+      await createPeerConnection(fromId, meta.name, true);
+    }
+    return;
+  }
+  let pc = peers[fromId] || await createPeerConnection(fromId, (peerMeta[fromId] || {}).name || 'Peer', false);
   if (!pc) return;
   try {
     if (data.type === 'offer') {
-      await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
-      if (mediaStream) {
-        const senders = pc.getSenders();
-        mediaStream.getTracks().forEach((track) => {
-          const has = senders.some(s => s.track && s.track.kind === track.kind);
-          if (!has) try { pc.addTrack(track, mediaStream); } catch (e) {}
-        });
+      if (pc.remoteDescription) {
+        // The other side restarted from scratch — build a fresh connection for it.
+        removePeer(fromId);
+        pc = await createPeerConnection(fromId, (peerMeta[fromId] || {}).name || 'Peer', false);
+        if (!pc) return;
       }
+      await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+      await flushPendingIce(pc);
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       socket.emit('signal', { to: fromId, data: { type: 'answer', sdp: pc.localDescription } });
     } else if (data.type === 'answer') {
       await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+      await flushPendingIce(pc);
     } else if (data.type === 'ice' && data.candidate) {
-      try { await pc.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch (e) { console.warn('ICE', e); }
+      if (!pc.remoteDescription) { (pc._pendingIce = pc._pendingIce || []).push(data.candidate); }
+      else { try { await pc.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch (e) { console.warn('ICE', e); } }
     }
   } catch (e) { console.error('Signal handle', e); }
 }
 
+/** Show / update a participant tile. Camera ON = live video. Camera OFF = no video (avatar only). */
+function applyPeerTileState(peerId) {
+  const slot = peerSlotMap[peerId];
+  const meta = peerMeta[peerId];
+  if (!slot || !meta) return;
+  const camIsOn = meta.camOn !== false;
+  const video = slot.querySelector('video');
+  const av = slot.querySelector('.peer-avatar');
+  if (video) video.style.visibility = camIsOn ? 'visible' : 'hidden';
+  if (av) av.style.display = camIsOn ? 'none' : 'flex';
+  slot.classList.toggle('peer-cam-off', !camIsOn);
+}
+
 function attachRemoteStream(peerId, name, stream) {
-  if (isSelfPeerId(peerId) || isSelfMeta({ name: name })) return;
-  peerMeta[peerId] = peerMeta[peerId] || { name: name || 'Peer', micOn: true, camOn: true };
-  if (isSelfMeta(peerMeta[peerId])) return;
-  peerMeta[peerId].stream = stream;
+  if (isSelfPeerId(peerId)) return;
+  const meta = peerMeta[peerId] = peerMeta[peerId] || { name: name || 'Peer', micOn: true, camOn: true };
+  meta.stream = stream;
+  const grid = document.getElementById('remoteVideos');
+  if (!grid) return;
 
   let slot = peerSlotMap[peerId];
+  let video;
   if (!slot) {
-    const grid = document.getElementById('remoteVideos');
-    if (!grid) return;
     slot = document.createElement('div');
     slot.className = 'peer-slot aspect-video bg-slate-800 rounded-xl overflow-hidden relative cursor-pointer hover:ring-2 hover:ring-emerald-400 transition';
-    slot.title = 'Click to enlarge';
-    slot.onclick = () => focusPeer(peerId);
-    slot.ondblclick = () => focusPeer(peerId);
+    slot.title = 'Tap for options';
+    slot.onclick = function () { focusPeer(peerId); };
+    video = document.createElement('video');
+    video.autoplay = true; video.playsInline = true;
+    video.setAttribute('playsinline', '');
+    video.muted = true; // sound is played by the hidden <audio> element — a muted <video> is never blocked by autoplay rules
+    video.className = 'w-full h-full object-contain bg-black';
+    slot.appendChild(video);
+    const av = document.createElement('div');
+    av.className = 'peer-avatar';
+    av.textContent = String(name || meta.name || '?').trim().charAt(0).toUpperCase() || '?';
+    slot.appendChild(av);
+    const label = document.createElement('div');
+    label.className = 'absolute bottom-1 left-1 px-2 py-0.5 rounded bg-black/60 text-white text-[10px] pointer-events-none';
+    label.textContent = name || meta.name || 'Participant';
+    slot.appendChild(label);
+    const meterEl = document.createElement('div');
+    meterEl.className = 'peer-audio-meter';
+    meterEl.innerHTML = meterBarsHtml(5);
+    slot.appendChild(meterEl);
     grid.appendChild(slot);
     peerSlotMap[peerId] = slot;
+  } else {
+    video = slot.querySelector('video');
   }
-  slot.innerHTML = '';
-  const video = document.createElement('video');
-  video.autoplay = true; video.playsInline = true; video.muted = false;
-  video.srcObject = stream;
-  video.className = 'w-full h-full object-contain bg-black';
-  video.play().catch(function () {});
+  if (video && video.srcObject !== stream) video.srcObject = stream;
+  if (video) { video.muted = true; video.play().catch(function () {}); }
   playRemoteAudioOnly(peerId, stream);
-  setTimeout(function () { try { video.muted = false; video.play(); } catch (e) {} }, 300);
-  slot.appendChild(video);
-  const label = document.createElement('div');
-  label.className = 'absolute bottom-1 left-1 px-2 py-0.5 rounded bg-black/60 text-white text-[10px] pointer-events-none';
-  label.textContent = name || 'Participant';
-  slot.appendChild(label);
-  var meterEl = document.createElement('div');
-  meterEl.className = 'peer-audio-meter';
-  meterEl.innerHTML = meterBarsHtml(5);
-  slot.appendChild(meterEl);
+
   try {
-    var key = 'peer:' + peerId;
-    startAudioMeter(key, stream, function () {
-      return peerMeta[peerId] && peerMeta[peerId].micOn !== false;
-    });
-    bindMeterElement(key, meterEl);
+    const key = 'peer:' + peerId;
+    startAudioMeter(key, stream, function () { return peerMeta[peerId] && peerMeta[peerId].micOn !== false; });
+    const meterEl2 = slot.querySelector('.peer-audio-meter');
+    if (meterEl2) bindMeterElement(key, meterEl2);
   } catch (e) {}
-  const camAllowed = peerMeta[peerId].camOn !== false;
-  slot.style.display = camAllowed ? '' : 'none';
+  applyPeerTileState(peerId);
   updateParticipantUI();
+  scheduleRosterRender();
 
   if (focusedPeerId === peerId) {
     const fv = document.getElementById('focusVideo');
-    if (fv) { fv.srcObject = stream; fv.play().catch(() => {}); }
+    if (fv) { fv.srcObject = stream; fv.muted = true; fv.play().catch(function () {}); }
   }
+}
+
+let menuPeerId = null;
+
+function peerHasLiveVideo(meta) {
+  return !!(meta && meta.camOn !== false && meta.stream && meta.stream.getVideoTracks && meta.stream.getVideoTracks().length);
+}
+
+function renderParticipantCard(peerId) {
+  const meta = peerMeta[peerId];
+  const card = document.getElementById('focusedStudentCard');
+  if (!card || !meta) return;
+  card.classList.remove('hidden');
+  card.style.opacity = '1';
+  document.getElementById('fsName').textContent = meta.name || 'Participant';
+  const peerCam = meta.camOn !== false;
+  const peerMic = meta.micOn !== false;
+  const bits = [];
+  bits.push(meta.isHost ? 'Role: Host' : 'Role: Student / participant');
+  if (meta.email) bits.push('Email: ' + meta.email);
+  if (meta.username) bits.push('Username: ' + meta.username);
+  bits.push('Mic: ' + (peerMic ? 'on' : 'off'));
+  bits.push('Cam: ' + (peerCam ? 'on' : 'off'));
+  document.getElementById('fsMeta').textContent = bits.join(' · ');
+  const canAct = isClassHost && !meta.isHost;
+  document.getElementById('fsHostActions')?.classList.toggle('hidden', !canAct);
+  const bc = document.getElementById('btnFsCam');
+  const bm = document.getElementById('btnFsMic');
+  if (bc) bc.innerHTML = peerCam ? '<i class="fas fa-video-slash mr-1"></i>Turn camera off' : '<i class="fas fa-video mr-1"></i>Turn camera on';
+  if (bm) bm.innerHTML = peerMic ? '<i class="fas fa-microphone-slash mr-1"></i>Mute mic' : '<i class="fas fa-microphone mr-1"></i>Unmute mic';
+  clearTimeout(window._focusCardTimer);
+  if (!canAct) {
+    // viewers without host controls: brief info card only
+    window._focusCardTimer = setTimeout(function () {
+      card.style.opacity = '0';
+      setTimeout(function () { if (card.style.opacity === '0') card.classList.add('hidden'); }, 400);
+    }, 2500);
+  }
+}
+
+function closeParticipantCard() {
+  clearTimeout(window._focusCardTimer);
+  menuPeerId = null;
+  document.getElementById('focusedStudentCard')?.classList.add('hidden');
+}
+
+/** Host: turn a participant's camera / mic off or on. */
+function hostControlPeer(action) {
+  if (!isClassHost || !menuPeerId || !socket || !activeClassCode) return;
+  const meta = peerMeta[menuPeerId];
+  if (!meta || meta.isHost) return;
+  const current = action === 'cam' ? meta.camOn !== false : meta.micOn !== false;
+  socket.emit('host-control', { code: activeClassCode, targetId: menuPeerId, action: action, value: !current });
+  const st = document.getElementById('classStatus');
+  if (st) st.textContent = (current ? 'Turning off ' : 'Asking to turn on ') + (action === 'cam' ? 'camera: ' : 'mic: ') + (meta.name || 'participant');
 }
 
 /** Local-only monitor: host sees a participant full-screen on main stage. Others are unaffected. */
 function focusPeer(peerId) {
   const meta = peerMeta[peerId];
   if (!meta) return;
-  // Only when their camera is on / we have video
-  const camOn = meta.camOn !== false && !!meta.stream;
-  if (!camOn) {
-    // Still show info card briefly, but no full-screen swap
-    focusedPeerId = peerId;
-    const card = document.getElementById('focusedStudentCard');
-    if (card) {
-      card.classList.remove('hidden');
-      card.style.opacity = '1';
-      card.style.transition = 'opacity 0.45s ease';
-      document.getElementById('fsName').textContent = meta.name || 'Participant';
-      document.getElementById('fsMeta').textContent = 'Camera is off — cannot full-screen monitor';
-      document.getElementById('fsHostActions')?.classList.toggle('hidden', !isClassHost || !!meta.isHost);
-      clearTimeout(window._focusCardTimer);
-      window._focusCardTimer = setTimeout(function () {
-        card.style.opacity = '0';
-        setTimeout(function () { if (card.style.opacity === '0') card.classList.add('hidden'); }, 400);
-      }, 2500);
-    }
+  menuPeerId = peerId;
+  if (!peerHasLiveVideo(meta)) {
+    // Camera off: no video to enlarge, but the options (camera / mic / remove) are still available.
+    renderParticipantCard(peerId);
     return;
   }
 
-  // Remember what was on the big display so "Back" restores it (file / host cam / blank)
   window._focusPrev = {
     fileOpen: isSharedFileOpen(),
     stageFile: !!(document.getElementById('mainStage') && document.getElementById('mainStage').classList.contains('stage-file')),
@@ -4537,7 +4693,6 @@ function focusPeer(peerId) {
   const panel = document.getElementById('sharedFilePanel');
   const pip = document.getElementById('fileCamPip');
 
-  // Hide host cam + file on THIS device only; do not touch shared file for others
   if (lv) lv.classList.add('hidden');
   if (panel) {
     panel.classList.add('opacity-0', 'pointer-events-none');
@@ -4548,7 +4703,7 @@ function focusPeer(peerId) {
   if (fv) {
     fv.classList.remove('hidden');
     fv.srcObject = meta.stream;
-    fv.muted = false;
+    fv.muted = true; // audio already plays through the hidden <audio> element
     fv.play().catch(function () {});
   }
   const label = document.getElementById('mainStageLabel');
@@ -4558,47 +4713,24 @@ function focusPeer(peerId) {
     btn.classList.remove('hidden');
     btn.innerHTML = '<i class="fas fa-user mr-1"></i>Back to my view';
   }
-
-  const card = document.getElementById('focusedStudentCard');
-  if (card) {
-    card.classList.remove('hidden');
-    card.style.opacity = '1';
-    card.style.transition = 'opacity 0.45s ease';
-    document.getElementById('fsName').textContent = meta.name || 'Participant';
-    const bits = [];
-    bits.push(meta.isHost ? 'Role: Host' : 'Role: Student / participant');
-    if (meta.email) bits.push('Email: ' + meta.email);
-    if (meta.username) bits.push('Username: ' + meta.username);
-    bits.push('Mic: ' + (meta.micOn !== false ? 'on' : 'off'));
-    bits.push('Cam: on · full-screen (only you)');
-    document.getElementById('fsMeta').textContent = bits.join(' · ');
-    document.getElementById('fsHostActions')?.classList.toggle('hidden', !isClassHost || !!meta.isHost);
-    clearTimeout(window._focusCardTimer);
-    window._focusCardTimer = setTimeout(function () {
-      card.style.opacity = '0';
-      setTimeout(function () {
-        if (card.style.opacity === '0') card.classList.add('hidden');
-      }, 400);
-    }, 2500);
-  }
+  renderParticipantCard(peerId);
   Object.keys(peerSlotMap).forEach(function (id) {
     if (peerSlotMap[id]) {
       peerSlotMap[id].classList.toggle('ring-2', id === peerId);
       peerSlotMap[id].classList.toggle('ring-emerald-400', id === peerId);
     }
   });
-  // Host self-tile stays available as a click target if needed
   try { updateHostStageLayout(); } catch (e) {}
 }
 
 function clearFocusPeer() {
   focusedPeerId = null;
+  menuPeerId = null;
   const lv = document.getElementById('localVideo');
   const fv = document.getElementById('focusVideo');
   const panel = document.getElementById('sharedFilePanel');
   if (fv) { fv.classList.add('hidden'); fv.srcObject = null; }
 
-  // Restore previous big display (file or host camera) — local only
   const prev = window._focusPrev || {};
   window._focusPrev = null;
   if (panel && prev.fileOpen) {
@@ -4607,15 +4739,14 @@ function clearFocusPeer() {
     if (lv) lv.classList.add('hidden');
   } else {
     if (panel) {
-      // leave shared file state as-is if it was closed; just undo monitor hide
       panel.classList.remove('opacity-0', 'pointer-events-none');
       panel.style.visibility = '';
     }
   }
   document.getElementById('btnClearFocus')?.classList.add('hidden');
   document.getElementById('focusedStudentCard')?.classList.add('hidden');
-  Object.values(peerSlotMap).forEach(function (s) {
-    if (s) s.classList.remove('ring-2', 'ring-emerald-400');
+  Object.values(peerSlotMap).forEach(function (sl) {
+    if (sl) sl.classList.remove('ring-2', 'ring-emerald-400');
   });
   try { updateHostStageLayout(); } catch (e) {}
   const label = document.getElementById('mainStageLabel');
@@ -4623,31 +4754,33 @@ function clearFocusPeer() {
 }
 
 function kickFocusedStudent() {
-  if (!isClassHost || !focusedPeerId || !activeClassCode) return;
-  const meta = peerMeta[focusedPeerId] || {};
+  const id = menuPeerId || focusedPeerId;
+  if (!isClassHost || !id || !activeClassCode) return;
+  const meta = peerMeta[id] || {};
   if (meta.isHost) return;
-  const id = focusedPeerId;
   if (!confirm('Remove ' + (meta.name || 'this student') + ' from this class? They will not be able to rejoin this code.')) return;
   if (socket) socket.emit('kick-participant', { code: activeClassCode, targetId: id, name: meta.name || '' });
-  // Remove immediately on host side
   removePeer(id);
   delete peerMeta[id];
-  clearFocusPeer();
+  if (focusedPeerId === id) clearFocusPeer();
+  closeParticipantCard();
   updateParticipantUI();
   renderRosterList();
 }
 
 function removePeer(peerId) {
   const pc = peers[peerId];
-  if (pc) { try { pc.close(); } catch (e) {} delete peers[peerId]; }
+  if (pc) {
+    try { pc.ontrack = null; pc.onicecandidate = null; pc.onconnectionstatechange = null; pc.close(); } catch (e) {}
+    delete peers[peerId];
+  }
+  clearTimeout(peerReconnectTimers[peerId]);
   const slot = peerSlotMap[peerId];
   if (slot) { slot.remove(); delete peerSlotMap[peerId]; }
+  stopAudioMeter('peer:' + peerId);
   const a = document.getElementById('raudio-' + peerId);
   if (a) { try { a.srcObject = null; a.remove(); } catch (e) {} }
-  if (peerMeta[peerId]) {
-    delete peerMeta[peerId].stream;
-    // keep meta until full delete by callers that want roster gone
-  }
+  if (peerMeta[peerId]) delete peerMeta[peerId].stream;
 }
 
 function closeAllPeers() {
@@ -5122,31 +5255,35 @@ function dismissWaiting() {
   if (st) st.textContent = 'Class in progress';
 }
 
-function toggleCamera() {
+function setCamEnabled(on) {
   if (!mediaStream) return;
   const track = mediaStream.getVideoTracks()[0];
   if (!track) return;
-  camOn = !camOn; track.enabled = camOn;
-  document.getElementById('btnToggleCam').innerHTML = camOn
+  camOn = !!on; track.enabled = camOn;
+  const btn = document.getElementById('btnToggleCam');
+  if (btn) btn.innerHTML = camOn
     ? '<i class="fas fa-video mr-1"></i><span class="hidden sm:inline">Cam</span>'
     : '<i class="fas fa-video-slash mr-1"></i><span class="hidden sm:inline">Cam Off</span>';
   broadcastMediaState();
   renderRosterList();
   try { updateHostStageLayout(); } catch (e) {}
 }
+function toggleCamera() { setCamEnabled(!camOn); }
 
-function toggleMic() {
+function setMicEnabled(on) {
   if (!mediaStream) return;
   const track = mediaStream.getAudioTracks()[0];
   if (!track) return;
-  micOn = !micOn; track.enabled = micOn;
-  document.getElementById('btnToggleMic').innerHTML = micOn
+  micOn = !!on; track.enabled = micOn;
+  const btn = document.getElementById('btnToggleMic');
+  if (btn) btn.innerHTML = micOn
     ? '<i class="fas fa-microphone mr-1"></i><span class="hidden sm:inline">Mic</span>'
     : '<i class="fas fa-microphone-slash mr-1"></i><span class="hidden sm:inline">Mic Off</span>';
   broadcastMediaState();
   renderRosterList();
   try { refreshAllMeterBindings(); } catch (e) {}
 }
+function toggleMic() { setMicEnabled(!micOn); }
 
 // ===================== WHITEBOARD v2 =====================
 let boardFullscreen = true; // default full when host opens board
@@ -5815,7 +5952,28 @@ function fileNextPage() {
   renderPdfPage();
 }
 
+function blobToDataUrl(blob) {
+  return new Promise(function (resolve, reject) {
+    const r = new FileReader();
+    r.onload = function () { resolve(r.result); };
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
+}
+
 async function showSharedFileFromData(file) {
+  if (file && !file.dataUrl && file.url) {
+    try {
+      const r = await fetch(file.url);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      file = Object.assign({}, file, { dataUrl: await blobToDataUrl(await r.blob()) });
+    } catch (e) {
+      console.error('shared file load', e);
+      alert('Could not load the file the host shared. Ask the host to share it again.');
+      return;
+    }
+  }
+  if (!file || !file.dataUrl) return;
   const panel = document.getElementById('sharedFilePanel');
   const content = document.getElementById('fileViewContent');
   const nameEl = document.getElementById('sharedFileName');
@@ -5825,8 +5983,8 @@ async function showSharedFileFromData(file) {
   const hint = document.getElementById('fileViewHint');
   if (!panel || !content) return;
   if (nameEl) nameEl.textContent = file.name || 'Shared file';
-  if (link) { link.href = file.dataUrl || '#'; }
-  if (dl) { dl.href = file.dataUrl || '#'; dl.download = file.name || 'file'; }
+  if (link) { link.href = file.url || file.dataUrl || '#'; }
+  if (dl) { dl.href = file.url || file.dataUrl || '#'; dl.download = file.name || 'file'; }
   initFileViewerChrome();
 
   const type = String(file.type || '').toLowerCase();
@@ -5914,40 +6072,57 @@ function triggerShareFile() {
   document.getElementById('shareFileInput').click();
 }
 
+function hostCloseSharedFile() {
+  closeSharedFile();
+  if (isClassHost && socket && activeClassCode) {
+    try { socket.emit('file-close', { code: activeClassCode }); } catch (e) {}
+  }
+}
+
 function onShareFileSelected(e) {
   const file = e.target.files && e.target.files[0];
+  e.target.value = '';
   if (!file) return;
-  // Accept ANY file type (pdf, doc, ppt, images, etc.)
   const type = file.type || 'application/octet-stream';
   const name = file.name || 'file';
-  const MAX_BROADCAST = 8 * 1024 * 1024; // 8MB to peers via dataUrl
+  const MAX_UPLOAD = 50 * 1024 * 1024;
+  if (file.size > MAX_UPLOAD) {
+    alert('File is too large (' + Math.round(file.size / 1048576) + ' MB). Maximum is 50 MB.');
+    return;
+  }
+  const st = document.getElementById('classStatus');
   const reader = new FileReader();
-  reader.onerror = function () {
-    alert('Could not read this file. Try another copy or Share Screen instead.');
-  };
+  reader.onerror = function () { alert('Could not read this file. Try another copy.'); };
   reader.onload = function () {
-    const payload = { name: name, type: type, dataUrl: reader.result };
-    try {
-      showSharedFileFromData(payload);
-    } catch (err) {
-      console.error(err);
-      alert('Could not preview file, but you can still Open/Save it.');
-    }
-    if (socket && activeClassCode) {
-      if (file.size <= MAX_BROADCAST) {
-        socket.emit('file-share', { code: activeClassCode, file: payload });
-        fetch('/api/classes/' + encodeURIComponent(activeClassCode) + '/share', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
-          body: JSON.stringify({ file: { name: name, type: type } })
-        }).catch(function () {});
+    // 1) host sees it immediately
+    try { showSharedFileFromData({ name: name, type: type, dataUrl: reader.result }); }
+    catch (err) { console.error(err); alert('Could not preview file, but it will still be shared.'); }
+    if (!activeClassCode) return;
+    // 2) upload once; the server gives every participant (also late joiners) a download link
+    if (st) st.textContent = 'Sharing "' + name + '"…';
+    const fd = new FormData();
+    fd.append('socketId', (socket && socket.id) || '');
+    fd.append('file', file, name);
+    fetch('/api/classes/' + encodeURIComponent(activeClassCode) + '/share-file', {
+      method: 'POST',
+      headers: token ? { Authorization: 'Bearer ' + token } : {},
+      body: fd
+    }).then(async function (res) {
+      const data = await res.json().catch(function () { return {}; });
+      if (!res.ok) throw new Error(data.msg || 'Upload failed');
+      if (st) st.textContent = 'Shared with class: ' + name;
+    }).catch(function (err) {
+      console.error('share-file', err);
+      // Fallback for small files: relay straight through the socket
+      if (socket && file.size <= 700 * 1024) {
+        socket.emit('file-share', { code: activeClassCode, file: { name: name, type: type, dataUrl: reader.result } });
+        if (st) st.textContent = 'Shared with class: ' + name;
       } else {
-        alert('File is large (' + Math.round(file.size / 1048576) + ' MB). Shown on your screen only. For the whole class, use Screen share or a smaller file (under 8 MB).');
+        alert('Participants could not receive the file: ' + (err.message || 'upload failed'));
       }
-    }
+    });
   };
   reader.readAsDataURL(file);
-  e.target.value = '';
 }
 
 function toggleClassFullscreen() {

@@ -19,7 +19,10 @@ dotenv.config(); // also allow default lookup
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: '*', methods: ['GET', 'POST'] }
+  cors: { origin: '*', methods: ['GET', 'POST'] },
+  maxHttpBufferSize: 25 * 1024 * 1024, // default 1 MB silently killed shared-file messages
+  pingInterval: 20000,
+  pingTimeout: 30000
 });
 
 const PORT = process.env.PORT || 3000;
@@ -2973,6 +2976,40 @@ app.post('/api/classes/:code/force-end', (req, res) => {
   }
 });
 
+const uploadShare = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
+
+/** Host uploads a file once; every participant (including late joiners) receives a link. */
+app.post('/api/classes/:code/share-file', (req, res) => {
+  const decoded = requireHostAuth(req, res);
+  if (!decoded) return;
+  uploadShare.single('file')(req, res, (err) => {
+    if (err) return res.status(400).json({ msg: err.code === 'LIMIT_FILE_SIZE' ? 'File too large (max 50 MB)' : (err.message || 'Upload failed') });
+    const code = String(req.params.code || '').toUpperCase();
+    const room = liveClasses.get(code);
+    if (!room) return res.status(404).json({ msg: 'Class not found' });
+    if (!isAdminLikeRole(decoded) && String(room.hostId) !== String(decoded.id)) {
+      return res.status(403).json({ msg: 'Only the host of this class can share files' });
+    }
+    if (!req.file) return res.status(400).json({ msg: 'No file received' });
+    const file = {
+      name: req.file.originalname || req.file.filename,
+      type: req.file.mimetype || 'application/octet-stream',
+      url: '/uploads/' + encodeURIComponent(req.file.filename),
+      size: req.file.size
+    };
+    room.sharedFile = file;
+    saveLiveClassToDb(code, room);
+    const skipId = String((req.body && req.body.socketId) || '');
+    const members = socketRooms.get(code);
+    if (members) {
+      members.forEach((_, id) => {
+        if (id !== skipId) io.to(id).emit('file-share', { from: skipId, file });
+      });
+    }
+    return res.json({ msg: 'File shared', file });
+  });
+});
+
 app.post('/api/classes/:code/share', (req, res) => {
   const code = req.params.code.toUpperCase();
   const room = liveClasses.get(code);
@@ -5443,9 +5480,15 @@ io.on('connection', (socket) => {
   socket.on('join-room', ({ code, name, isHost, userId, email, username }) => {
     if (!code) return;
     const roomCode = String(code).toUpperCase();
+    // Only the account that started the class may act as host
+    let hostFlag = !!isHost;
+    if (hostFlag && liveClasses.has(roomCode)) {
+      const lcHost = liveClasses.get(roomCode);
+      if (lcHost.hostId && String(userId) !== String(lcHost.hostId)) hostFlag = false;
+    }
     socket.data.roomCode = roomCode;
     socket.data.name = name || 'Participant';
-    socket.data.isHost = !!isHost;
+    socket.data.isHost = hostFlag;
     socket.data.userId = userId != null ? String(userId) : '';
     socket.data.email = (email || '').toLowerCase();
     socket.data.username = username || '';
@@ -5486,7 +5529,9 @@ io.on('connection', (socket) => {
         isHost: info.isHost,
         email: info.email,
         username: info.username,
-        userId: info.userId
+        userId: info.userId,
+        mic: info.mic !== false,
+        cam: info.cam !== false
       });
     });
 
@@ -5495,7 +5540,9 @@ io.on('connection', (socket) => {
       isHost: socket.data.isHost,
       email: socket.data.email,
       username: socket.data.username,
-      userId: socket.data.userId
+      userId: socket.data.userId,
+      mic: true,
+      cam: true
     });
 
     const members = [];
@@ -5506,7 +5553,9 @@ io.on('connection', (socket) => {
         isHost: info.isHost,
         email: info.email,
         username: info.username,
-        userId: info.userId
+        userId: info.userId,
+        mic: info.mic !== false,
+        cam: info.cam !== false
       });
     });
     const count = room.size;
@@ -5520,10 +5569,18 @@ io.on('connection', (socket) => {
       email: socket.data.email,
       username: socket.data.username,
       userId: socket.data.userId,
+      mic: true,
+      cam: true,
       count
     });
-    // Everyone gets full roster count (not limited by WebRTC mesh)
-    io.to(roomCode).emit('room-roster', { count, members, code: roomCode });
+    // Host gets the full roster; everybody else only the count (keeps 100+ person rooms light)
+    emitRoster(roomCode);
+
+    // Late joiner: hand over the file the host is currently sharing
+    if (typeof liveClasses !== 'undefined' && liveClasses.has(roomCode)) {
+      const lcf = liveClasses.get(roomCode);
+      if (lcf.sharedFile && lcf.sharedFile.url) socket.emit('file-share', { from: 'server', file: lcf.sharedFile });
+    }
 
     if (typeof liveClasses !== 'undefined' && liveClasses.has(roomCode)) {
       const lc = liveClasses.get(roomCode);
@@ -5611,12 +5668,39 @@ io.on('connection', (socket) => {
   });
   socket.on('media-state', ({ code, mic, cam }) => {
     if (!code) return;
-    socket.to(String(code).toUpperCase()).emit('media-state', { from: socket.id, mic: !!mic, cam: !!cam });
+    const rc = String(code).toUpperCase();
+    const roomM = socketRooms.get(rc);
+    const me = roomM && roomM.get(socket.id);
+    if (me) { me.mic = !!mic; me.cam = !!cam; }
+    socket.to(rc).emit('media-state', { from: socket.id, mic: !!mic, cam: !!cam });
+  });
+
+  // Host switches a participant's camera / mic off (or asks to turn it on)
+  socket.on('host-control', ({ code, targetId, action, value }) => {
+    if (!code || !targetId) return;
+    const rc = String(code).toUpperCase();
+    if (!socket.data.isHost || socket.data.roomCode !== rc) return;
+    if (action !== 'cam' && action !== 'mic') return;
+    const roomC = socketRooms.get(rc);
+    if (!roomC || !roomC.has(targetId)) return;
+    io.to(targetId).emit('host-control', { action, value: !!value, from: socket.id });
+  });
+
+  socket.on('file-close', ({ code }) => {
+    if (!code) return;
+    const rc = String(code).toUpperCase();
+    if (!socket.data.isHost || socket.data.roomCode !== rc) return;
+    if (liveClasses.has(rc)) {
+      const lcc = liveClasses.get(rc);
+      lcc.sharedFile = null;
+      try { saveLiveClassToDb(rc, lcc); } catch (e) {}
+    }
+    socket.to(rc).emit('file-close', { from: socket.id });
   });
 
   // File share announce
   socket.on('file-share', ({ code, file }) => {
-    if (!code) return;
+    if (!code || !socket.data.isHost) return;
     socket.to(String(code).toUpperCase()).emit('file-share', { from: socket.id, file });
   });
 
@@ -5709,6 +5793,28 @@ io.on('connection', (socket) => {
   });
 });
 
+function emitRoster(roomCode) {
+  const room = socketRooms.get(roomCode);
+  if (!room) return;
+  const members = [];
+  room.forEach((info, id) => {
+    members.push({
+      id,
+      name: info.name,
+      isHost: info.isHost,
+      email: info.email,
+      username: info.username,
+      userId: info.userId,
+      mic: info.mic !== false,
+      cam: info.cam !== false
+    });
+  });
+  const count = room.size;
+  room.forEach((info, id) => {
+    io.to(id).emit('room-roster', info.isHost ? { count, members, code: roomCode } : { count, code: roomCode });
+  });
+}
+
 function leaveCurrentRoom(socket) {
   const roomCode = socket.data.roomCode;
   if (!roomCode) return;
@@ -5731,7 +5837,7 @@ function leaveCurrentRoom(socket) {
     if (room.size === 0) socketRooms.delete(roomCode);
   }
   socket.to(roomCode).emit('user-left', { id: socket.id, name: socket.data.name, count });
-  socket.to(roomCode).emit('room-roster', { count, members, code: roomCode });
+  emitRoster(roomCode);
   socket.leave(roomCode);
   socket.data.roomCode = null;
 }
