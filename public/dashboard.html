@@ -1537,6 +1537,7 @@
               <div class="flex items-center gap-1.5 flex-wrap">
                 <button id="btnToggleCam" type="button" onclick="toggleCamera()" class="px-2.5 py-2 rounded-xl bg-slate-700 text-white text-xs hover:bg-slate-600" title="Camera"><i class="fas fa-video mr-1"></i><span class="hidden sm:inline">Cam</span></button>
                 <button id="btnToggleMic" type="button" onclick="toggleMic()" class="px-2.5 py-2 rounded-xl bg-slate-700 text-white text-xs hover:bg-slate-600" title="Microphone"><i class="fas fa-microphone mr-1"></i><span class="hidden sm:inline">Mic</span></button>
+                <button id="btnRaiseHand" type="button" onclick="toggleRaiseHand()" class="px-2.5 py-2 rounded-xl bg-slate-700 text-white text-xs hover:bg-slate-600" title="Raise hand to ask a question"><span class="text-base leading-none">✋</span><span class="hidden sm:inline ml-1">Hand</span></button>
                 <button id="btnScreenShare" type="button" onclick="toggleScreenShare()" class="px-2.5 py-2 rounded-xl bg-indigo-500 text-white text-xs font-semibold hover:bg-indigo-400 shadow-lg shadow-indigo-900/40 ring-2 ring-indigo-300/40" title="Share your screen with the class"><i class="fas fa-desktop mr-1"></i><span>Screen</span></button>
                 <button id="btnRecordClass" type="button" onclick="toggleClassRecording()" class="hidden px-2.5 py-2 rounded-xl bg-rose-600 text-white text-xs font-semibold hover:bg-rose-500" title="Record this classroom session"><i class="fas fa-circle mr-1 text-[10px]"></i><span>Record</span></button>
                 <button type="button" onclick="triggerShareFile()" class="px-2.5 py-2 rounded-xl bg-slate-700 text-white text-xs hover:bg-slate-600" title="Share a file"><i class="fas fa-file-upload mr-1"></i><span class="hidden sm:inline">File</span></button>
@@ -1627,6 +1628,8 @@
                       <button type="button" class="w-5 h-5 rounded-full bg-yellow-300" data-file-color="#fde047" title="Yellow"></button>
                       <button type="button" class="w-5 h-5 rounded-full bg-emerald-400" data-file-color="#34d399" title="Green"></button>
                       <button type="button" class="w-5 h-5 rounded-full bg-sky-400" data-file-color="#38bdf8" title="Blue"></button>
+                      <button type="button" onclick="undoFileAnnotation()" class="w-8 h-8 rounded-full bg-slate-700 text-white text-xs" title="Undo last drawing"><i class="fas fa-undo"></i></button>
+                      <button type="button" onclick="redoFileAnnotation()" class="w-8 h-8 rounded-full bg-slate-700 text-white text-xs" title="Redo drawing"><i class="fas fa-redo"></i></button>
                       <button type="button" onclick="clearFileAnnotations()" class="w-8 h-8 rounded-full bg-slate-700 text-white text-xs" title="Clear drawings"><i class="fas fa-trash"></i></button>
                     </div>
                     <div id="fileCamPip" title="Your camera">
@@ -1669,6 +1672,8 @@
                     <button class="color-btn w-5 h-5 rounded-full bg-yellow-300" data-color="#fde047" title="Yellow"></button>
                     <button class="color-btn w-5 h-5 rounded-full bg-emerald-400" data-color="#34d399" title="Green"></button>
                     <button class="color-btn w-5 h-5 rounded-full bg-sky-400" data-color="#38bdf8" title="Blue"></button>
+                    <button type="button" onclick="undoBoard()" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600" title="Undo last stroke"><i class="fas fa-undo"></i></button>
+                    <button type="button" onclick="redoBoard()" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600" title="Redo stroke"><i class="fas fa-redo"></i></button>
                     <button type="button" onclick="clearBoard()" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600" title="Clear board"><i class="fas fa-trash"></i></button>
                     <button type="button" onclick="toggleWhiteboardPanel(false)" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600" title="Hide board"><i class="fas fa-times"></i></button>
                   </div>
@@ -1699,7 +1704,7 @@
           </div>
           <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-sm text-emerald-900">
             <p class="font-semibold mb-1"><i class="fas fa-broadcast-tower mr-2 text-brand"></i>Live class</p>
-            <p>Host starts with a code + port; students join with the same pair. The board opens automatically on every joiner's screen and mirrors the host in real time — late joiners receive the full board. Shared files zoom and pan inside the viewer; PDFs turn by button or swipe. Supports 20–500 participants with host-only video routing for stability.</p>
+            <p>Host starts with a code + port; students join with the same pair. Full-mesh audio so everyone hears everyone (like a real classroom). Raise hand ✋ to ask a question — host can Allow. The board opens automatically and mirrors in real time with undo/redo. Shared files project to every participant: host zoom, pan, and page turns stay in sync on every screen.</p>
           </div>
         </section>
 
@@ -3580,6 +3585,8 @@ let canDrawBoard = false;
 let whiteboardOpen = false;
 let boardLocked = false;
 let boardStrokes = [];          // normalized strokes (0..1 coords) — full board history
+let boardRedoStack = [];        // strokes removed by undo (for redo)
+let handRaised = false;         // local raise-hand state
 let boardCanvasH = 480;         // logical canvas height; wrap scrolls when taller than panel
 let drawing = false, tool = 'pen', color = '#ffffff', lastX = 0, lastY = 0;
 let focusedPeerId = null;
@@ -3756,9 +3763,24 @@ function ensureSocket() {
 
   // ---- Whiteboard sync ----
   socket.on('wb-draw', ({ stroke }) => { if (stroke) { pushStroke(stroke); applyRemoteStroke(stroke); } });
-  socket.on('wb-clear', () => { boardStrokes = []; redrawBoard(); });
+  socket.on('wb-clear', () => { boardStrokes = []; boardRedoStack = []; redrawBoard(); });
+  socket.on('wb-undo', () => {
+    if (!boardStrokes.length) return;
+    boardRedoStack.push(boardStrokes.pop());
+    redrawBoard();
+  });
+  socket.on('wb-redo', ({ stroke }) => {
+    if (stroke) {
+      boardStrokes.push(stroke);
+      redrawBoard();
+    } else if (boardRedoStack.length) {
+      boardStrokes.push(boardRedoStack.pop());
+      redrawBoard();
+    }
+  });
   socket.on('wb-history', ({ strokes, open }) => {
     boardStrokes = Array.isArray(strokes) ? strokes.slice(-4000) : [];
+    boardRedoStack = [];
     if (open && !whiteboardOpen) toggleWhiteboardPanel(true);
     resizeBoardCanvas();
     redrawBoard();
@@ -3819,7 +3841,53 @@ function ensureSocket() {
   socket.on('file-share', ({ file }) => { if (file) showSharedFileFromData(file); });
   socket.on('file-close', () => { if (!isClassHost) closeSharedFile(); });
   socket.on('file-annotate', ({ stroke }) => { if (stroke) applyRemoteFileStroke(stroke); });
-  socket.on('file-annotate-clear', () => { fileAnnotateStrokes = []; redrawFileAnnotations(); });
+  socket.on('file-annotate-clear', () => { fileAnnotateStrokes = []; fileAnnotateRedoStack = []; redrawFileAnnotations(); });
+  socket.on('file-annotate-undo', () => {
+    if (!fileAnnotateStrokes.length) return;
+    fileAnnotateRedoStack.push(fileAnnotateStrokes.pop());
+    redrawFileAnnotations();
+  });
+  socket.on('file-annotate-redo', ({ stroke }) => {
+    if (stroke) {
+      fileAnnotateStrokes.push(stroke);
+      redrawFileAnnotations();
+    } else if (fileAnnotateRedoStack.length) {
+      fileAnnotateStrokes.push(fileAnnotateRedoStack.pop());
+      redrawFileAnnotations();
+    }
+  });
+  socket.on('file-view-state', ({ zoom, page, fitLocked }) => {
+    if (isClassHost) return; // only participants follow the host's projection
+    applyHostFileViewState({ zoom, page, fitLocked });
+  });
+  socket.on('hand-raise', ({ from, name, raised }) => {
+    if (!from) return;
+    if (peerMeta[from]) peerMeta[from].handRaised = !!raised;
+    else peerMeta[from] = { name: name || 'Participant', handRaised: !!raised };
+    updateRaiseHandUI();
+    renderRosterList();
+    if (raised && isClassHost) {
+      const st = document.getElementById('classStatus');
+      if (st) st.textContent = (name || 'Someone') + ' raised their hand ✋';
+    }
+  });
+  socket.on('hand-allow', ({ from, to, name }) => {
+    // Host allowed this participant (or us)
+    if (to && socket && to === socket.id) {
+      handRaised = false;
+      updateRaiseHandUI();
+      const st = document.getElementById('classStatus');
+      if (st) st.textContent = 'Host acknowledged your raised hand — you may speak';
+      // Soft prompt to unmute if muted
+      if (!micOn && confirm('The host allowed your question. Unmute your microphone?')) {
+        setMicEnabled(true);
+      }
+    }
+    if (to && peerMeta[to]) {
+      peerMeta[to].handRaised = false;
+      renderRosterList();
+    }
+  });
 
   return socket;
 }
@@ -3998,15 +4066,14 @@ document.addEventListener('pointerdown', function () {
   if (c && c.state === 'suspended') c.resume().catch(function () {});
 }, { passive: true });
 
-const MESH_AUDIO_MAX = 8; // student<->student audio only in small rooms; big rooms = star (everyone <-> host)
+// Full-mesh audio: every participant connects to every other so the class sounds like a real room
+// (host still gets video from all; student↔student is audio-only to keep bandwidth reasonable).
+const MESH_AUDIO_MAX = 64;
 function shouldWebRTCWith(remote) {
   if (!remote) return false;
   if (isSelfPeerId(remote.id)) return false;
   if (isSelfMeta(remote)) return false;
-  if (!isClassHost && !remote.isHost) {
-    const n = Number(window._roomParticipantCount) || 0;
-    if (n > MESH_AUDIO_MAX) return false;
-  }
+  // Always mesh for true classroom experience (everyone hears everyone)
   return true;
 }
 function isAudioOnlyPeer(remote) {
@@ -4103,7 +4170,8 @@ function collectRosterUnique() {
     micOn: !!micOn,
     camOn: camOn !== false,
     me: true,
-    personKey: meKey
+    personKey: meKey,
+    handRaised: !!handRaised
   });
 
   Object.keys(peerMeta).forEach(function (id) {
@@ -4127,7 +4195,8 @@ function collectRosterUnique() {
       personKey: pk,
       userId: m.userId,
       email: m.email,
-      username: m.username
+      username: m.username,
+      handRaised: !!m.handRaised
     });
   });
 
@@ -4195,12 +4264,18 @@ function renderRosterList() {
     const meterClass = 'audio-meter' + (r.micOn ? '' : ' am-off');
     const meter = '<span class="' + meterClass + '" data-audio-meter="' + meterKey + '" title="Audio level">' +
       '<span class="am-bar"></span><span class="am-bar"></span><span class="am-bar"></span><span class="am-bar"></span><span class="am-bar"></span></span>';
+    const hand = r.handRaised ? '<span class="text-base leading-none" title="Hand raised">✋</span>' : '';
+    const allowBtn = (isClassHost && !r.me && r.handRaised)
+      ? '<button type="button" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500 text-white hover:bg-amber-400" onclick="event.stopPropagation();allowRaisedHand(\'' + String(r.id).replace(/[^A-Za-z0-9_\-]/g, '') + '\')" title="Allow this participant to speak">Allow</button>'
+      : '';
     return (
       '<div class="roster-row' + ((isClassHost && !r.me && !r.isHost) ? ' clickable' : '') + '"' +
       ((isClassHost && !r.me && !r.isHost) ? ' onclick="focusPeer(\'' + String(r.id).replace(/[^A-Za-z0-9_\-]/g, '') + '\')" title="Tap for options"' : '') + '>' +
       '<span class="roster-dot ' + (r.isHost ? 'bg-amber-400' : (r.live ? 'bg-emerald-400' : 'bg-slate-600')) + '"></span>' +
       '<span class="text-[10px] font-bold uppercase tracking-wide ' + (r.isHost ? 'text-amber-300' : 'text-slate-500') + ' w-16 shrink-0">' + roleLabel + '</span>' +
       '<span class="text-[11px] text-slate-200 truncate flex-1">' + display + '</span>' +
+      hand +
+      allowBtn +
       meter +
       (!r.micOn ? '<span class="text-[9px] font-bold text-red-400">MIC OFF</span>' : '') +
       (r.camOn ? '<span class="text-[9px] font-bold text-emerald-400">CAM</span>' : '<span class="text-[9px] font-bold text-slate-500">CAM OFF</span>') +
@@ -5211,7 +5286,10 @@ function leaveLocalClassSession(statusMsg) {
   try { closeSharedFile(); } catch (e) {}
   // Full class property reset — new class = fresh start
   boardStrokes = [];
-  try { fileAnnotateStrokes = []; } catch (e) {}
+  boardRedoStack = [];
+  try { fileAnnotateStrokes = []; fileAnnotateRedoStack = []; } catch (e) {}
+  handRaised = false;
+  try { updateRaiseHandUI(); } catch (e) {}
   boardUnlockedForStudents = false;
   canDrawBoard = false;
   whiteboardOpen = false;
@@ -5285,6 +5363,46 @@ function setMicEnabled(on) {
 }
 function toggleMic() { setMicEnabled(!micOn); }
 
+function toggleRaiseHand() {
+  if (!activeClassCode || !socket) return;
+  handRaised = !handRaised;
+  updateRaiseHandUI();
+  const name = (user && (user.name || user.username)) || 'Participant';
+  socket.emit('hand-raise', { code: activeClassCode, raised: handRaised, name });
+  if (socket.id && peerMeta[socket.id]) peerMeta[socket.id].handRaised = handRaised;
+  // Also reflect on local meta for roster
+  renderRosterList();
+  const st = document.getElementById('classStatus');
+  if (st) st.textContent = handRaised ? 'Hand raised — waiting for host' : 'Hand lowered';
+}
+
+function updateRaiseHandUI() {
+  const btn = document.getElementById('btnRaiseHand');
+  if (!btn) return;
+  if (handRaised) {
+    btn.classList.remove('bg-slate-700');
+    btn.classList.add('bg-amber-500', 'ring-2', 'ring-amber-300');
+    btn.innerHTML = '<span class="text-base leading-none">✋</span><span class="hidden sm:inline ml-1">Raised</span>';
+    btn.title = 'Lower hand';
+  } else {
+    btn.classList.add('bg-slate-700');
+    btn.classList.remove('bg-amber-500', 'ring-2', 'ring-amber-300');
+    btn.innerHTML = '<span class="text-base leading-none">✋</span><span class="hidden sm:inline ml-1">Hand</span>';
+    btn.title = 'Raise hand to ask a question';
+  }
+}
+
+/** Host allows a participant who raised their hand (acknowledge + optional unmute prompt on their side). */
+function allowRaisedHand(peerId) {
+  if (!isClassHost || !socket || !activeClassCode || !peerId) return;
+  const meta = peerMeta[peerId] || {};
+  socket.emit('hand-allow', { code: activeClassCode, to: peerId, name: meta.name || 'Participant' });
+  if (peerMeta[peerId]) peerMeta[peerId].handRaised = false;
+  renderRosterList();
+  const st = document.getElementById('classStatus');
+  if (st) st.textContent = 'Allowed ' + (meta.name || 'participant') + ' to speak';
+}
+
 // ===================== WHITEBOARD v2 =====================
 let boardFullscreen = true; // default full when host opens board
 
@@ -5352,6 +5470,27 @@ function resizeBoardCanvas(preserve) {
 function pushStroke(stroke) {
   boardStrokes.push(stroke);
   if (boardStrokes.length > 4000) boardStrokes = boardStrokes.slice(-4000);
+  boardRedoStack = []; // new stroke invalidates redo
+}
+
+function undoBoard() {
+  if (!boardStrokes.length) return;
+  const s = boardStrokes.pop();
+  boardRedoStack.push(s);
+  redrawBoard();
+  if (socket && activeClassCode) {
+    socket.emit('wb-undo', { code: activeClassCode });
+  }
+}
+
+function redoBoard() {
+  if (!boardRedoStack.length) return;
+  const s = boardRedoStack.pop();
+  boardStrokes.push(s);
+  redrawBoard();
+  if (socket && activeClassCode) {
+    socket.emit('wb-redo', { code: activeClassCode, stroke: s });
+  }
 }
 
 function redrawBoard() {
@@ -5495,6 +5634,7 @@ function initWhiteboard() {
 function clearBoard() {
   if (!canDrawBoard) { alert('Drawing is locked by the host'); return; }
   boardStrokes = [];
+  boardRedoStack = [];
   redrawBoard();
   if (socket && activeClassCode) socket.emit('wb-clear', { code: activeClassCode });
 }
@@ -5596,6 +5736,7 @@ let fileAnnotateOn = false;
 let fileAnnotateTool = 'pen';
 let fileAnnotateColor = '#f87171';
 let fileAnnotateStrokes = [];
+let fileAnnotateRedoStack = [];
 let fileDrawing = false;
 let fileLastX = 0, fileLastY = 0;
 
@@ -5648,9 +5789,29 @@ function redrawFileAnnotations() {
 
 function clearFileAnnotations() {
   fileAnnotateStrokes = [];
+  fileAnnotateRedoStack = [];
   redrawFileAnnotations();
   if (socket && activeClassCode) {
     socket.emit('file-annotate-clear', { code: activeClassCode });
+  }
+}
+
+function undoFileAnnotation() {
+  if (!fileAnnotateStrokes.length) return;
+  fileAnnotateRedoStack.push(fileAnnotateStrokes.pop());
+  redrawFileAnnotations();
+  if (socket && activeClassCode) {
+    socket.emit('file-annotate-undo', { code: activeClassCode });
+  }
+}
+
+function redoFileAnnotation() {
+  if (!fileAnnotateRedoStack.length) return;
+  const s = fileAnnotateRedoStack.pop();
+  fileAnnotateStrokes.push(s);
+  redrawFileAnnotations();
+  if (socket && activeClassCode) {
+    socket.emit('file-annotate-redo', { code: activeClassCode, stroke: s });
   }
 }
 
@@ -5699,6 +5860,7 @@ function initFileAnnotateDrawing() {
       w: strokeWidth / (W / 1000)
     };
     fileAnnotateStrokes.push(norm);
+    fileAnnotateRedoStack = [];
     if (socket && activeClassCode) {
       socket.emit('file-annotate', { code: activeClassCode, stroke: norm });
     }
@@ -5734,6 +5896,7 @@ function initFileAnnotateDrawing() {
 function applyRemoteFileStroke(s) {
   if (!s) return;
   fileAnnotateStrokes.push(s);
+  fileAnnotateRedoStack = [];
   const canvas = document.getElementById('fileAnnotateCanvas');
   if (!canvas) return;
   resizeFileAnnotateCanvas();
@@ -5857,6 +6020,35 @@ function updateFitButtonUI() {
   }
 }
 
+function broadcastFileViewState() {
+  if (!isClassHost || !socket || !activeClassCode) return;
+  if (!isSharedFileOpen()) return;
+  socket.emit('file-view-state', {
+    code: activeClassCode,
+    zoom: fileView.zoom,
+    page: fileView.pdfPage || 1,
+    fitLocked: !!fileFitLocked
+  });
+}
+
+function applyHostFileViewState(state) {
+  if (!state || isClassHost) return;
+  if (typeof state.fitLocked === 'boolean') {
+    fileFitLocked = state.fitLocked;
+    updateFitButtonUI();
+  }
+  if (typeof state.page === 'number' && fileView.kind === 'pdf' && state.page !== fileView.pdfPage) {
+    fileView.pdfPage = Math.max(1, Math.min(fileView.pageCount || 1, state.page));
+  }
+  if (typeof state.zoom === 'number') {
+    fileView.zoom = Math.max(0.25, Math.min(4, state.zoom));
+  }
+  const label = document.getElementById('fileZoomLabel');
+  if (label) label.textContent = Math.round(fileView.zoom * 100) + '%';
+  if (fileView.kind === 'img') renderImageFile(!!fileFitLocked);
+  else if (fileView.kind === 'pdf') renderPdfPage(!!fileFitLocked);
+}
+
 function fileSetZoom(z) {
   if (fileFitLocked) return; // locked until Fit pressed again
   fileView.zoom = Math.max(0.25, Math.min(4, z));
@@ -5864,6 +6056,7 @@ function fileSetZoom(z) {
   if (label) label.textContent = Math.round(fileView.zoom * 100) + '%';
   if (fileView.kind === 'img') renderImageFile();
   else if (fileView.kind === 'pdf') renderPdfPage();
+  broadcastFileViewState();
 }
 function fileZoomIn() { if (fileFitLocked) return; fileSetZoom(fileView.zoom * 1.25); }
 function fileZoomOut() { if (fileFitLocked) return; fileSetZoom(fileView.zoom / 1.25); }
@@ -5872,6 +6065,7 @@ function fileZoomFit() {
   if (fileFitLocked) {
     fileFitLocked = false;
     updateFitButtonUI();
+    broadcastFileViewState();
     return;
   }
   fileFitLocked = true;
@@ -5884,6 +6078,7 @@ function fileZoomFit() {
     fileFitLocked = true;
   }
   updateFitButtonUI();
+  broadcastFileViewState();
 }
 
 function showFileOverlayTip(which, ms) {
@@ -5945,11 +6140,13 @@ function filePrevPage() {
   if (fileView.kind !== 'pdf' || fileView.pdfPage <= 1) return;
   fileView.pdfPage--;
   renderPdfPage();
+  broadcastFileViewState();
 }
 function fileNextPage() {
   if (fileView.kind !== 'pdf' || fileView.pdfPage >= fileView.pageCount) return;
   fileView.pdfPage++;
   renderPdfPage();
+  broadcastFileViewState();
 }
 
 function blobToDataUrl(blob) {

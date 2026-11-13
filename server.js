@@ -5646,6 +5646,14 @@ io.on('connection', (socket) => {
     if (!code) return;
     socket.to(String(code).toUpperCase()).emit('wb-clear', { from: socket.id });
   });
+  socket.on('wb-undo', ({ code }) => {
+    if (!code) return;
+    socket.to(String(code).toUpperCase()).emit('wb-undo', { from: socket.id });
+  });
+  socket.on('wb-redo', ({ code, stroke }) => {
+    if (!code) return;
+    socket.to(String(code).toUpperCase()).emit('wb-redo', { from: socket.id, stroke });
+  });
 
   socket.on('file-annotate', ({ code, stroke }) => {
     if (!code || !stroke) return;
@@ -5654,6 +5662,44 @@ io.on('connection', (socket) => {
   socket.on('file-annotate-clear', ({ code }) => {
     if (!code) return;
     socket.to(String(code).toUpperCase()).emit('file-annotate-clear', { from: socket.id });
+  });
+  socket.on('file-annotate-undo', ({ code }) => {
+    if (!code) return;
+    socket.to(String(code).toUpperCase()).emit('file-annotate-undo', { from: socket.id });
+  });
+  socket.on('file-annotate-redo', ({ code, stroke }) => {
+    if (!code) return;
+    socket.to(String(code).toUpperCase()).emit('file-annotate-redo', { from: socket.id, stroke });
+  });
+  // Host projects file view (zoom / page) to all participants
+  socket.on('file-view-state', ({ code, zoom, page, fitLocked }) => {
+    if (!code || !socket.data.isHost) return;
+    socket.to(String(code).toUpperCase()).emit('file-view-state', {
+      from: socket.id,
+      zoom,
+      page,
+      fitLocked: !!fitLocked
+    });
+  });
+  // Raise hand for questions
+  socket.on('hand-raise', ({ code, raised, name }) => {
+    if (!code) return;
+    const rc = String(code).toUpperCase();
+    socket.to(rc).emit('hand-raise', {
+      from: socket.id,
+      name: name || socket.data.name || 'Participant',
+      raised: !!raised
+    });
+  });
+  socket.on('hand-allow', ({ code, to, name }) => {
+    if (!code || !to || !socket.data.isHost) return;
+    const rc = String(code).toUpperCase();
+    // Notify the whole room so roster clears the hand; target gets the allow prompt
+    io.to(rc).emit('hand-allow', {
+      from: socket.id,
+      to,
+      name: name || 'Participant'
+    });
   });
 
 
