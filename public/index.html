@@ -13,6 +13,898 @@
   <link rel="stylesheet" href="style.css">
 
 </head>
+<!--
+  SIMCC COMPETITIONS — COMPLETE PASTE-IN SNIPPET
+  Replace the previous widget with this snippet.
+  Mini-scroll design follows your reference image. [161]
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link
+  href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+  rel="stylesheet"
+>
+
+<style>
+  /* Everything is scoped to this widget. */
+  #simccClassicWidget {
+    --navy: #102a43;
+    --blue: #1c4e80;
+    --red: #9e2b25;
+    --gold: #b8892b;
+    --ivory: #f8f3e6;
+    --paper: #fffdf6;
+    --text: #26323d;
+
+    position: fixed;
+    inset: 0;
+    width: 0;
+    height: 0;
+    z-index: 2147483000;
+    pointer-events: none;
+    font-family: "EB Garamond", Georgia, serif;
+  }
+
+  #simccClassicWidget *,
+  #simccClassicWidget *::before,
+  #simccClassicWidget *::after {
+    box-sizing: border-box;
+  }
+
+  /* ===== CLOSED VERTICAL SCROLL BUTTON ===== */
+  #simccClassicWidget .simcc-mini {
+    appearance: none;
+    position: fixed;
+    top: 50%;
+    right: 20px;
+    bottom: auto;
+    left: auto;
+    z-index: 2;
+
+    display: block;
+    width: 58px;
+    height: 188px;
+    margin: 0;
+    padding: 0;
+
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+
+    cursor: pointer;
+    pointer-events: auto;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+
+    transform: translateY(-50%);
+    transform-origin: 65% 50%;
+    animation: simccClassicDance 2.2s ease-in-out infinite;
+    filter: drop-shadow(0 7px 6px rgba(0, 0, 0, .28));
+  }
+
+  #simccClassicWidget .simcc-mini.is-hidden {
+    visibility: hidden;
+    pointer-events: none;
+    animation: none;
+  }
+
+  /* One continuous vertical wooden spindle. */
+  #simccClassicWidget .simcc-spindle {
+    position: absolute;
+    top: 9px;
+    bottom: 9px;
+    left: 35px;
+    width: 9px;
+    z-index: 0;
+
+    border-radius: 5px;
+    background: linear-gradient(
+      90deg,
+      #422012,
+      #824224 30%,
+      #bd7545 52%,
+      #71361d 78%,
+      #34170e
+    );
+  }
+
+  /* Turned wooden handles at the two ends of the spindle. */
+  #simccClassicWidget .simcc-handle {
+    position: absolute;
+    left: 25px;
+    width: 29px;
+    height: 41px;
+    z-index: 2;
+
+    background:
+      radial-gradient(
+        ellipse at 58% 65%,
+        rgba(232, 150, 88, .55),
+        transparent 46%
+      ),
+      linear-gradient(
+        90deg,
+        #3c1b10,
+        #74351d 25%,
+        #a65b32 53%,
+        #71321a 78%,
+        #36170d
+      );
+
+    clip-path: polygon(
+      40% 0%, 60% 0%, 70% 5%, 72% 12%,
+      65% 18%, 61% 21%, 63% 31%, 71% 44%,
+      82% 58%, 87% 70%, 84% 80%, 72% 86%,
+      98% 89%, 100% 95%, 90% 100%, 10% 100%,
+      0% 95%, 2% 89%, 28% 86%, 16% 80%,
+      13% 70%, 18% 58%, 29% 44%, 37% 31%,
+      39% 21%, 35% 18%, 28% 12%, 30% 5%
+    );
+  }
+
+  #simccClassicWidget .simcc-handle-top {
+    top: 0;
+  }
+
+  #simccClassicWidget .simcc-handle-bottom {
+    bottom: 0;
+    transform: rotate(180deg);
+  }
+
+  /* Shaded cylindrical parchment wrapped around the spindle. */
+  #simccClassicWidget .simcc-roll-body {
+    position: absolute;
+    top: 40px;
+    bottom: 40px;
+    left: 5px;
+    width: 49px;
+    z-index: 3;
+
+    display: block;
+    overflow: hidden;
+    border: 1px solid #b8a66b;
+    border-radius: 2px 5px 5px 2px;
+
+    background: linear-gradient(
+      90deg,
+      #d7cb94,
+      #e6dda9 15%,
+      #c3b77b 39%,
+      #a99a60 45%,
+      #e9dda0 48%,
+      #fff1b3 72%,
+      #e9d991 91%,
+      #b9a867
+    );
+
+    box-shadow:
+      inset 1px 0 2px rgba(255, 255, 230, .65),
+      inset -2px 0 3px rgba(100, 76, 25, .24),
+      1px 1px 3px rgba(0, 0, 0, .18);
+  }
+
+  #simccClassicWidget .simcc-roll-body::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 20px;
+    width: 1px;
+    background: rgba(104, 87, 41, .25);
+    box-shadow: 1px 0 rgba(255, 247, 196, .45);
+  }
+
+  /* Bottom-to-top lettering, matching your reference. */
+  #simccClassicWidget .simcc-mini-label {
+    position: absolute;
+    top: 50%;
+    left: 68%;
+    display: block;
+    width: max-content;
+    margin: 0;
+    padding: 0;
+
+    transform: translate(-50%, -50%) rotate(-90deg);
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 19px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: 1px;
+    color: #17170f;
+    white-space: nowrap;
+  }
+
+  @keyframes simccClassicDance {
+    0%, 100% {
+      transform: translateY(-50%) rotate(0deg);
+    }
+    20% {
+      transform: translateY(calc(-50% - 6px)) rotate(-5deg);
+    }
+    40% {
+      transform: translateY(-50%) rotate(4deg);
+    }
+    60% {
+      transform: translateY(calc(-50% - 4px)) rotate(-3deg);
+    }
+    80% {
+      transform: translateY(-50%) rotate(2deg);
+    }
+  }
+
+  #simccClassicWidget .simcc-mini:hover {
+    animation-duration: 1.25s;
+    filter: drop-shadow(0 9px 8px rgba(0, 0, 0, .36));
+  }
+
+  #simccClassicWidget .simcc-mini:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 7px;
+    border-radius: 8px;
+  }
+
+  /* ===== LARGE RIGHT-SIDE SCROLL ===== */
+  #simccClassicWidget .simcc-dialog {
+    position: fixed;
+    inset: 0 20px 0 auto;
+
+    width: min(660px, calc(100vw - 40px));
+    height: min(700px, 84vh);
+    max-width: none;
+    max-height: 90vh;
+    margin: auto 0;
+    padding: 0;
+
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    overflow: visible;
+    pointer-events: auto;
+    color: var(--text);
+  }
+
+  #simccClassicWidget .simcc-dialog::backdrop {
+    background: rgba(8, 28, 49, .62);
+    backdrop-filter: blur(2px);
+    transition: background .7s ease, backdrop-filter .7s ease;
+  }
+
+  #simccClassicWidget .simcc-dialog.is-folding::backdrop {
+    background: transparent;
+    backdrop-filter: blur(0);
+  }
+
+  #simccClassicWidget .simcc-paper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    padding: 58px 26px 26px;
+    overflow: hidden;
+
+    border: 1px solid #c9ab63;
+    border-radius: 10px;
+    background:
+      radial-gradient(
+        circle at 12% 12%,
+        rgba(184, 137, 43, .07),
+        transparent 35%
+      ),
+      linear-gradient(180deg, #fffdf6, #f8f3e6 55%, #efe3c6);
+
+    box-shadow:
+      0 24px 55px rgba(8, 28, 49, .35),
+      inset 0 0 0 1px rgba(255, 255, 255, .8);
+
+    font-family: "EB Garamond", Georgia, serif;
+    transform-origin: center;
+  }
+
+  #simccClassicWidget .simcc-close,
+  #simccClassicWidget .simcc-motion {
+    position: absolute;
+    top: 14px;
+    z-index: 4;
+    margin: 0;
+    cursor: pointer;
+
+    border: 1px solid #c9ab63;
+    background: var(--paper);
+    color: var(--navy);
+    font: 14px Georgia, serif;
+  }
+
+  #simccClassicWidget .simcc-close {
+    right: 14px;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 21px;
+    line-height: 1;
+  }
+
+  #simccClassicWidget .simcc-motion {
+    left: 26px;
+    min-height: 30px;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+
+  #simccClassicWidget .simcc-close:hover,
+  #simccClassicWidget .simcc-motion:hover {
+    background: var(--navy);
+    color: var(--ivory);
+  }
+
+  /* Clipped viewport for automatic content movement. */
+  #simccClassicWidget .simcc-window {
+    height: 100%;
+    overflow: hidden;
+    text-align: center;
+  }
+
+  #simccClassicWidget .simcc-content {
+    will-change: transform;
+  }
+
+  #simccClassicWidget .simcc-title {
+    margin: 0 0 10px;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: clamp(23px, 3vw, 33px);
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--navy);
+  }
+
+  #simccClassicWidget .simcc-rule {
+    width: 72px;
+    height: 2px;
+    margin: 16px auto;
+    border: 0;
+    background: var(--gold);
+  }
+
+  #simccClassicWidget .simcc-subtitle {
+    margin: 0 0 26px;
+    color: var(--red);
+    font-size: 21px;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 1.3;
+  }
+
+  #simccClassicWidget .simcc-item {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin: 0 0 18px;
+    padding: 18px;
+    text-align: left;
+
+    border: 1px solid #d8c48b;
+    border-left: 4px solid var(--blue);
+    border-radius: 6px;
+    background: var(--paper);
+    box-shadow: 0 6px 16px rgba(16, 42, 67, .1);
+  }
+
+  #simccClassicWidget .simcc-logo {
+    display: block;
+    flex: 0 0 88px;
+    width: 88px;
+    height: 88px;
+    object-fit: contain;
+  }
+
+  #simccClassicWidget .simcc-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  #simccClassicWidget .simcc-info h3 {
+    margin: 0 0 8px;
+    color: var(--navy);
+    font-family: "Cinzel", Georgia, serif;
+    font-size: clamp(15px, 2vw, 19px);
+    font-weight: 600;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  #simccClassicWidget .simcc-status {
+    margin: 0;
+    color: var(--red);
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  #simccClassicWidget .simcc-closed {
+    opacity: .5;
+    filter: grayscale(.7);
+    border-left-color: #9aa5af;
+  }
+
+  #simccClassicWidget .simcc-available {
+    border-left-color: var(--gold);
+    box-shadow:
+      0 6px 16px rgba(16, 42, 67, .12),
+      inset 0 0 0 1px rgba(230, 201, 121, .4);
+  }
+
+  #simccClassicWidget .simcc-register {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 10px 16px;
+
+    border: 1px solid var(--gold);
+    border-radius: 3px;
+    background: var(--navy);
+    color: var(--ivory);
+    text-decoration: none;
+
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: .6px;
+    transition: background .2s ease;
+  }
+
+  #simccClassicWidget .simcc-register:hover {
+    background: var(--red);
+  }
+
+  #simccClassicWidget .simcc-register:focus-visible,
+  #simccClassicWidget .simcc-close:focus-visible,
+  #simccClassicWidget .simcc-motion:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 3px;
+  }
+
+  @media (max-width: 480px) {
+    #simccClassicWidget .simcc-dialog {
+      right: 12px;
+      width: calc(100vw - 24px);
+      height: 82vh;
+    }
+
+    #simccClassicWidget .simcc-paper {
+      padding: 58px 15px 20px;
+    }
+
+    #simccClassicWidget .simcc-item {
+      gap: 12px;
+      padding: 12px;
+    }
+
+    #simccClassicWidget .simcc-logo {
+      flex-basis: 62px;
+      width: 62px;
+      height: 62px;
+    }
+
+    #simccClassicWidget .simcc-motion {
+      left: 15px;
+    }
+
+    #simccClassicWidget .simcc-mini {
+      right: 12px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #simccClassicWidget .simcc-mini {
+      animation: none;
+    }
+  }
+</style>
+
+<div id="simccClassicWidget">
+  <!-- CLOSED ROLLED SCROLL: no emoji, dashes, or horizontal crossbar. -->
+  <button
+    class="simcc-mini is-hidden"
+    id="simccMiniScroll"
+    type="button"
+    title="Open SIMCC Competitions"
+    aria-label="Open SIMCC competitions"
+    aria-controls="simccScrollDialog"
+    aria-expanded="false"
+  >
+    <span class="simcc-spindle" aria-hidden="true"></span>
+    <span class="simcc-handle simcc-handle-top" aria-hidden="true"></span>
+    <span class="simcc-handle simcc-handle-bottom" aria-hidden="true"></span>
+
+    <span class="simcc-roll-body" aria-hidden="true">
+      <span class="simcc-mini-label">SIMCC</span>
+    </span>
+  </button>
+
+  <!-- LARGE SCROLL -->
+  <dialog
+    class="simcc-dialog"
+    id="simccScrollDialog"
+    aria-labelledby="simccScrollTitle"
+  >
+    <div class="simcc-paper" id="simccScrollPaper">
+      <button
+        class="simcc-motion"
+        id="simccMotionButton"
+        type="button"
+        aria-pressed="false"
+      >
+        Pause scrolling
+      </button>
+
+      <button
+        class="simcc-close"
+        id="simccScrollClose"
+        type="button"
+        aria-label="Fold competitions into the scroll button"
+      >
+        &times;
+      </button>
+
+      <div class="simcc-window" id="simccScrollWindow">
+        <div class="simcc-content" id="simccScrollContent">
+          <h2 class="simcc-title" id="simccScrollTitle">
+            Welcome to SIMCC Competitions.
+          </h2>
+
+          <hr class="simcc-rule">
+
+          <h3 class="simcc-subtitle">Available Competitions</h3>
+
+                    <article class="simcc-item simcc-closed">
+            <img
+              class="simcc-logo"
+              src="logo_folders/SMC_logo.png"
+              alt="Singapore Math Challenge"
+              width="88"
+              height="88"
+            >
+
+            <div class="simcc-info">
+              <h3>Singapore Math Challenge</h3>
+              <p class="simcc-status">Registration closed</p>
+            </div>
+          </article>
+
+          <article class="simcc-item simcc-closed">
+            <img
+              class="simcc-logo"
+              src="logo_folders/AMO_logo.png"
+              alt="American Mathematics Olympiad logo"
+              width="88"
+              height="88"
+            >
+
+            <div class="simcc-info">
+              <h3>American Mathematics Olympiad</h3>
+              <p class="simcc-status">Registration closed</p>
+            </div>
+          </article>
+
+          <article class="simcc-item simcc-available">
+            <img
+              class="simcc-logo"
+              src="logo_folders/SASMO_logo.png"
+              alt="Singapore &amp; Asian Schools Math Olympiad logo"
+              width="88"
+              height="88"
+            >
+
+            <div class="simcc-info">
+              <h3>Singapore &amp; Asian Schools Math Olympiad</h3>
+              <p class="simcc-status">Registration now open</p>
+
+              <!-- Replace # with your Google Form URL. -->
+              <a
+                class="simcc-register"
+                href="https://forms.gle/yagHaRTPGUt2fxRA9"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Click to register
+              </a>
+            </div>
+          </article>
+
+          <!-- Copy an article above to add another competition. -->
+        </div>
+      </div>
+    </div>
+  </dialog>
+</div>
+
+<script>
+(function () {
+  const widget = document.getElementById("simccClassicWidget");
+
+  if (!widget || widget.dataset.initialized === "true") return;
+  widget.dataset.initialized = "true";
+
+  /*
+    Mount directly under body so the widget does not occupy layout space
+    inside an existing sidebar or content container.
+  */
+  document.body.appendChild(widget);
+
+  const mini = widget.querySelector("#simccMiniScroll");
+  const dialog = widget.querySelector("#simccScrollDialog");
+  const paper = widget.querySelector("#simccScrollPaper");
+  const content = widget.querySelector("#simccScrollContent");
+  const viewport = widget.querySelector("#simccScrollWindow");
+  const closeButton = widget.querySelector("#simccScrollClose");
+  const motionButton = widget.querySelector("#simccMotionButton");
+
+  const AUTO_CLOSE_TIME = 5000;
+  const CONTENT_CYCLE_TIME = 20000;
+  const reducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)"
+  );
+
+  let state = "closed";
+  let autoCloseTimer = null;
+  let contentAnimation = null;
+  let panelAnimation = null;
+  let paused = false;
+
+  function clearAutoClose() {
+    window.clearTimeout(autoCloseTimer);
+    autoCloseTimer = null;
+  }
+
+  function scheduleAutoClose() {
+    clearAutoClose();
+    autoCloseTimer = window.setTimeout(foldScroll, AUTO_CLOSE_TIME);
+  }
+
+  function stopContentScroll() {
+    if (contentAnimation) {
+      contentAnimation.cancel();
+      contentAnimation = null;
+    }
+  }
+
+  function startContentScroll() {
+    stopContentScroll();
+
+    paused = false;
+    motionButton.textContent = "Pause scrolling";
+    motionButton.setAttribute("aria-pressed", "false");
+
+    if (reducedMotion.matches) {
+      viewport.style.overflowY = "auto";
+      motionButton.hidden = true;
+      return;
+    }
+
+    viewport.style.overflowY = "hidden";
+    motionButton.hidden = false;
+
+    /*
+      Automatic content movement matching the earlier scrolling list:
+      content travels upward as the visitor reads down the competitions.
+    */
+    const distance = content.scrollHeight + 24;
+
+    contentAnimation = content.animate(
+      [
+        { transform: "translateY(0)", opacity: 1, offset: 0 },
+        { transform: "translateY(0)", opacity: 1, offset: 0.08 },
+        {
+          transform: "translateY(-" + distance + "px)",
+          opacity: 1,
+          offset: 0.88
+        },
+        {
+          transform: "translateY(-" + distance + "px)",
+          opacity: 0,
+          offset: 0.96
+        },
+        {
+          transform: "translateY(-" + distance + "px)",
+          opacity: 0,
+          offset: 1
+        }
+      ],
+      {
+        duration: CONTENT_CYCLE_TIME,
+        iterations: Infinity,
+        easing: "linear"
+      }
+    );
+  }
+
+  async function openScroll() {
+    if (state !== "closed") return;
+    state = "opening";
+
+    clearAutoClose();
+    dialog.classList.remove("is-folding");
+
+    mini.classList.add("is-hidden");
+    mini.setAttribute("aria-expanded", "true");
+
+    dialog.showModal();
+    viewport.scrollTop = 0;
+    startContentScroll();
+
+    if (!reducedMotion.matches) {
+      panelAnimation = paper.animate(
+        [
+          {
+            transform: "translateY(-105vh) scale(.94)",
+            opacity: 0
+          },
+          {
+            transform: "translateY(8px) scale(1.01)",
+            opacity: 1,
+            offset: 0.78
+          },
+          {
+            transform: "translateY(0) scale(1)",
+            opacity: 1
+          }
+        ],
+        {
+          duration: 850,
+          easing: "cubic-bezier(.22,.75,.25,1)",
+          fill: "both"
+        }
+      );
+
+      try {
+        await panelAnimation.finished;
+      } catch (_) {}
+
+      if (state !== "opening") return;
+
+      panelAnimation.cancel();
+      panelAnimation = null;
+    }
+
+    state = "open";
+    scheduleAutoClose();
+  }
+
+  async function foldScroll() {
+    if (state === "closed" || state === "folding") return;
+
+    state = "folding";
+    clearAutoClose();
+
+    if (panelAnimation) {
+      panelAnimation.cancel();
+      panelAnimation = null;
+    }
+
+    if (contentAnimation) contentAnimation.pause();
+
+    /*
+      Measure the actual button location so the large scroll folds
+      directly into it, rather than moving to an estimated position.
+    */
+    const source = paper.getBoundingClientRect();
+    const target = mini.getBoundingClientRect();
+
+    const dx =
+      target.left + target.width / 2 -
+      (source.left + source.width / 2);
+
+    const dy =
+      target.top + target.height / 2 -
+      (source.top + source.height / 2);
+
+    const sx = target.width / source.width;
+    const sy = target.height / source.height;
+
+    dialog.classList.add("is-folding");
+
+    if (!reducedMotion.matches) {
+      panelAnimation = paper.animate(
+        [
+          {
+            transform: "translate(0,0) scale(1,1)",
+            opacity: 1,
+            borderRadius: "10px"
+          },
+          {
+            transform:
+              "translate(" + dx * 0.4 + "px," + dy * 0.4 +
+              "px) scale(.48,.85)",
+            opacity: 1,
+            borderRadius: "20px",
+            offset: 0.55
+          },
+          {
+            transform:
+              "translate(" + dx + "px," + dy +
+              "px) scale(" + sx + "," + sy + ")",
+            opacity: 0.2,
+            borderRadius: "28px"
+          }
+        ],
+        {
+          duration: 850,
+          easing: "cubic-bezier(.4,0,.25,1)",
+          fill: "both"
+        }
+      );
+
+      try {
+        await panelAnimation.finished;
+      } catch (_) {}
+    }
+
+    if (dialog.open) dialog.close();
+  }
+
+  function resetAfterClose() {
+    clearAutoClose();
+    stopContentScroll();
+
+    if (panelAnimation) {
+      panelAnimation.cancel();
+      panelAnimation = null;
+    }
+
+    dialog.classList.remove("is-folding");
+    mini.classList.remove("is-hidden");
+    mini.setAttribute("aria-expanded", "false");
+    state = "closed";
+
+    mini.focus({ preventScroll: true });
+  }
+
+  mini.addEventListener("click", openScroll);
+  closeButton.addEventListener("click", foldScroll);
+
+  /* Escape uses the same fold-into-button animation. */
+  dialog.addEventListener("cancel", function (event) {
+    event.preventDefault();
+    foldScroll();
+  });
+
+  dialog.addEventListener("close", resetAfterClose);
+
+  /*
+    Pause both the content and automatic closing when requested,
+    allowing visitors time to read or select a registration link.
+  */
+  motionButton.addEventListener("click", function () {
+    paused = !paused;
+
+    motionButton.setAttribute("aria-pressed", String(paused));
+    motionButton.textContent = paused
+      ? "Resume scrolling"
+      : "Pause scrolling";
+
+    if (paused) {
+      if (contentAnimation) contentAnimation.pause();
+      clearAutoClose();
+    } else {
+      if (contentAnimation) contentAnimation.play();
+      scheduleAutoClose();
+    }
+  });
+
+  function initialize() {
+    window.setTimeout(openScroll, 500);
+  }
+
+  if (document.readyState === "complete") {
+    initialize();
+  } else {
+    window.addEventListener("load", initialize, { once: true });
+  }
+})();
+</script>
+<!-- ===== END SIMCC COMPETITIONS SCROLL ===== -->
+
 <body class="bg-white overflow-x-hidden">
 
 <div class="flex min-h-screen">
