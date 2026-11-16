@@ -19,7 +19,10 @@ dotenv.config(); // also allow default lookup
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: '*', methods: ['GET', 'POST'] }
+  cors: { origin: '*', methods: ['GET', 'POST'] },
+  maxHttpBufferSize: 25 * 1024 * 1024, // default 1 MB silently killed shared-file messages
+  pingInterval: 20000,
+  pingTimeout: 30000
 });
 
 const PORT = process.env.PORT || 3000;
@@ -68,14 +71,69 @@ app.get('/platform', (req, res) => {
 
 const uploadDir = path.join(__dirname, 'public/uploads');
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+  try {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  } catch (e) {
+    console.error('Could not create uploads dir:', uploadDir, e.message);
+  }
+}
+// Ensure public root exists for static serving of /uploads
+const publicDir = path.join(__dirname, 'public');
+if (!fs.existsSync(publicDir)) {
+  try { fs.mkdirSync(publicDir, { recursive: true }); } catch (e) {}
+}
+
+function safeUploadFilename(originalName) {
+  const base = path.basename(String(originalName || 'file'));
+  const cleaned = base
+    .replace(/[^\w.\-()+ ]+/g, '_')
+    .replace(/\s+/g, '_')
+    .slice(0, 120) || 'file';
+  const ext = path.extname(cleaned).slice(0, 12);
+  const stem = path.basename(cleaned, ext).slice(0, 80) || 'file';
+  return Date.now() + '-' + stem + ext;
 }
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+  destination: (req, file, cb) => {
+    try {
+      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+    } catch (e) {}
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => cb(null, safeUploadFilename(file.originalname))
 });
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: 12 * 1024 * 1024 }, // 12 MB profile / general uploads
+  fileFilter: (req, file, cb) => {
+    // Accept images for avatar/staff registration; also allow generic for other routes that reuse `upload`
+    const name = String(file.originalname || '').toLowerCase();
+    const mime = String(file.mimetype || '').toLowerCase();
+    const isImage = mime.startsWith('image/') || /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(name);
+    // Let non-image through for share-file style routes that share this multer instance cautiously —
+    // image routes check req.file + mime themselves.
+    if (!file) return cb(null, false);
+    cb(null, true);
+  }
+});
+
+/** Multer error → JSON (prevents opaque "server error" / HTML 500 on photo upload) */
+function multerSingle(field) {
+  return function (req, res, next) {
+    upload.single(field)(req, res, function (err) {
+      if (!err) return next();
+      console.error('Multer error:', err.code || err.message, err);
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ msg: 'Image too large. Maximum size is 12 MB.' });
+      }
+      if (err instanceof multer.MulterError) {
+        return res.status(400).json({ msg: 'Upload failed: ' + (err.message || err.code) });
+      }
+      return res.status(400).json({ msg: 'Upload failed: ' + (err.message || 'invalid file') });
+    });
+  };
+}
 
 const usersDb = new Database(DATABASE_URL);
 
@@ -715,7 +773,7 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-app.post('/api/register-staff', upload.single('image'), async (req, res) => {
+app.post('/api/register-staff', multerImageAny, async (req, res) => {
   const name = (req.body.name || '').trim();
   const email = (req.body.email || '').trim();
   const phone = (req.body.phone || '').trim();
@@ -731,7 +789,7 @@ app.post('/api/register-staff', upload.single('image'), async (req, res) => {
 
     const joined = new Date().toISOString().split('T')[0];
     const defaultPassword = await bcrypt.hash('staff12345', 10);
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : '';
+    const imageUrl = req.file ? ('/uploads/' + encodeURIComponent(req.file.filename).replace(/%2F/gi, '')) : '';
 
     const info = usersDb.prepare(`
       INSERT INTO users (username, email, password, name, school, role, bio, image, joined)
@@ -747,6 +805,7 @@ app.post('/api/register-staff', upload.single('image'), async (req, res) => {
       email,
       phone,
       bio,
+      image: imageUrl || null,
       staffId: info.lastInsertRowid,
       status: 'pending',
       time: new Date().toLocaleString()
@@ -754,13 +813,45 @@ app.post('/api/register-staff', upload.single('image'), async (req, res) => {
 
     return res.status(201).json({
       msg: 'Application submitted successfully. We will contact you.',
-      staffId: info.lastInsertRowid
+      staffId: info.lastInsertRowid,
+      avatar: imageUrl || null
     });
   } catch (err) {
     console.error('Register staff error:', err);
-    return res.status(500).json({ msg: 'Server error: ' + err.message });
+    return res.status(500).json({ msg: 'Server error: ' + (err.message || 'unknown') });
   }
 });
+
+/** Accept image under field names: image | photo | avatar | file */
+function multerImageAny(req, res, next) {
+  const up = upload.fields([
+    { name: 'image', maxCount: 1 },
+    { name: 'photo', maxCount: 1 },
+    { name: 'avatar', maxCount: 1 },
+    { name: 'file', maxCount: 1 }
+  ]);
+  up(req, res, function (err) {
+    if (err) {
+      console.error('Multer error:', err.code || err.message, err);
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ msg: 'Image too large. Maximum size is 12 MB.' });
+      }
+      if (err instanceof multer.MulterError) {
+        return res.status(400).json({ msg: 'Upload failed: ' + (err.message || err.code) });
+      }
+      return res.status(400).json({ msg: 'Upload failed: ' + (err.message || 'invalid file') });
+    }
+    const bags = req.files || {};
+    const f =
+      (bags.image && bags.image[0]) ||
+      (bags.photo && bags.photo[0]) ||
+      (bags.avatar && bags.avatar[0]) ||
+      (bags.file && bags.file[0]) ||
+      null;
+    if (f) req.file = f;
+    next();
+  });
+}
 
 app.post('/api/login', async (req, res) => {
   const { username, password, type } = req.body;
@@ -1656,25 +1747,22 @@ app.delete('/api/users/:id', (req, res) => {
 });
 
 
-/** Admin/moderator: set profile picture for any listed user (staff, admin, moderator, student) */
-app.post('/api/users/:id/avatar', upload.single('image'), (req, res) => {
+/** Admin/moderator (or self): set profile picture for staff, admin, moderator, student */
+app.post('/api/users/:id/avatar', multerImageAny, (req, res) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ msg: 'No token provided' });
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     const role = String(decoded.role || '').toLowerCase();
-    const allowed =
+    const isElevated =
       role === 'super_admin' ||
       role === 'admin' ||
       role === 'moderator' ||
       decoded.type === 'admin';
-    if (!allowed) {
-      return res.status(403).json({ msg: 'Only admins and moderators can update profile pictures' });
-    }
 
     if (!req.file) {
-      return res.status(400).json({ msg: 'Please select an image file' });
+      return res.status(400).json({ msg: 'Please select an image file (field: image, photo, or avatar)' });
     }
 
     const userId = parseInt(req.params.id, 10);
@@ -1682,7 +1770,19 @@ app.post('/api/users/:id/avatar', upload.single('image'), (req, res) => {
       return res.status(400).json({ msg: 'Invalid user id' });
     }
 
-    const imageUrl = `/uploads/${req.file.filename}`;
+    // Self-upload allowed; elevated roles can set anyone
+    const selfId = Number(decoded.id || decoded.userId || 0);
+    if (!isElevated && selfId !== userId) {
+      return res.status(403).json({ msg: 'You can only update your own profile picture' });
+    }
+
+    const mime = String(req.file.mimetype || '').toLowerCase();
+    const fname = String(req.file.originalname || '').toLowerCase();
+    if (!mime.startsWith('image/') && !/\.(jpe?g|png|gif|webp|bmp)$/i.test(fname)) {
+      return res.status(400).json({ msg: 'File must be an image (JPG, PNG, GIF, or WebP)' });
+    }
+
+    const imageUrl = '/uploads/' + req.file.filename;
 
     // Prefer users table (staff / students)
     const existing = usersDb.prepare(`SELECT id, image FROM users WHERE id = ?`).get(userId);
@@ -1691,6 +1791,7 @@ app.post('/api/users/:id/avatar', upload.single('image'), (req, res) => {
       return res.json({
         msg: 'Profile picture updated',
         avatar: imageUrl,
+        image: imageUrl,
         id: userId
       });
     }
@@ -1706,6 +1807,7 @@ app.post('/api/users/:id/avatar', upload.single('image'), (req, res) => {
       return res.json({
         msg: 'Profile picture updated',
         avatar: imageUrl,
+        image: imageUrl,
         id: userId
       });
     }
@@ -1713,7 +1815,48 @@ app.post('/api/users/:id/avatar', upload.single('image'), (req, res) => {
     return res.status(404).json({ msg: 'User not found' });
   } catch (err) {
     console.error('Avatar upload error:', err);
-    return res.status(401).json({ msg: 'Invalid or expired token' });
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+      return res.status(401).json({ msg: 'Invalid or expired token' });
+    }
+    return res.status(500).json({ msg: 'Server error: ' + (err.message || 'upload failed') });
+  }
+});
+
+/** Convenience: current user updates own avatar */
+app.post('/api/me/avatar', multerImageAny, (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ msg: 'No token provided' });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const userId = parseInt(decoded.id || decoded.userId, 10);
+    if (!userId) return res.status(400).json({ msg: 'Account id missing from token' });
+    if (!req.file) return res.status(400).json({ msg: 'Please select an image file' });
+    const mime = String(req.file.mimetype || '').toLowerCase();
+    if (!mime.startsWith('image/')) {
+      return res.status(400).json({ msg: 'File must be an image' });
+    }
+    const imageUrl = '/uploads/' + req.file.filename;
+    const existing = usersDb.prepare(`SELECT id FROM users WHERE id = ?`).get(userId);
+    if (existing) {
+      usersDb.prepare(`UPDATE users SET image = ? WHERE id = ?`).run(imageUrl, userId);
+      return res.json({ msg: 'Profile picture updated', avatar: imageUrl, image: imageUrl, id: userId });
+    }
+    const data = readJson('admins.json');
+    const idx = (data.admins || []).findIndex(a => String(a.id) === String(userId));
+    if (idx >= 0) {
+      data.admins[idx].image = imageUrl;
+      data.admins[idx].avatar = imageUrl;
+      data.admins[idx].img = imageUrl;
+      writeJson('admins.json', data);
+      return res.json({ msg: 'Profile picture updated', avatar: imageUrl, image: imageUrl, id: userId });
+    }
+    return res.status(404).json({ msg: 'User not found' });
+  } catch (err) {
+    console.error('Me avatar error:', err);
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+      return res.status(401).json({ msg: 'Invalid or expired token' });
+    }
+    return res.status(500).json({ msg: 'Server error: ' + (err.message || 'upload failed') });
   }
 });
 
@@ -2971,6 +3114,40 @@ app.post('/api/classes/:code/force-end', (req, res) => {
   } catch (e) {
     return res.status(401).json({ msg: 'Invalid or expired token' });
   }
+});
+
+const uploadShare = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
+
+/** Host uploads a file once; every participant (including late joiners) receives a link. */
+app.post('/api/classes/:code/share-file', (req, res) => {
+  const decoded = requireHostAuth(req, res);
+  if (!decoded) return;
+  uploadShare.single('file')(req, res, (err) => {
+    if (err) return res.status(400).json({ msg: err.code === 'LIMIT_FILE_SIZE' ? 'File too large (max 50 MB)' : (err.message || 'Upload failed') });
+    const code = String(req.params.code || '').toUpperCase();
+    const room = liveClasses.get(code);
+    if (!room) return res.status(404).json({ msg: 'Class not found' });
+    if (!isAdminLikeRole(decoded) && String(room.hostId) !== String(decoded.id)) {
+      return res.status(403).json({ msg: 'Only the host of this class can share files' });
+    }
+    if (!req.file) return res.status(400).json({ msg: 'No file received' });
+    const file = {
+      name: req.file.originalname || req.file.filename,
+      type: req.file.mimetype || 'application/octet-stream',
+      url: '/uploads/' + encodeURIComponent(req.file.filename),
+      size: req.file.size
+    };
+    room.sharedFile = file;
+    saveLiveClassToDb(code, room);
+    const skipId = String((req.body && req.body.socketId) || '');
+    const members = socketRooms.get(code);
+    if (members) {
+      members.forEach((_, id) => {
+        if (id !== skipId) io.to(id).emit('file-share', { from: skipId, file });
+      });
+    }
+    return res.json({ msg: 'File shared', file });
+  });
 });
 
 app.post('/api/classes/:code/share', (req, res) => {
@@ -5443,9 +5620,15 @@ io.on('connection', (socket) => {
   socket.on('join-room', ({ code, name, isHost, userId, email, username }) => {
     if (!code) return;
     const roomCode = String(code).toUpperCase();
+    // Only the account that started the class may act as host
+    let hostFlag = !!isHost;
+    if (hostFlag && liveClasses.has(roomCode)) {
+      const lcHost = liveClasses.get(roomCode);
+      if (lcHost.hostId && String(userId) !== String(lcHost.hostId)) hostFlag = false;
+    }
     socket.data.roomCode = roomCode;
     socket.data.name = name || 'Participant';
-    socket.data.isHost = !!isHost;
+    socket.data.isHost = hostFlag;
     socket.data.userId = userId != null ? String(userId) : '';
     socket.data.email = (email || '').toLowerCase();
     socket.data.username = username || '';
@@ -5486,7 +5669,9 @@ io.on('connection', (socket) => {
         isHost: info.isHost,
         email: info.email,
         username: info.username,
-        userId: info.userId
+        userId: info.userId,
+        mic: info.mic !== false,
+        cam: info.cam !== false
       });
     });
 
@@ -5495,7 +5680,9 @@ io.on('connection', (socket) => {
       isHost: socket.data.isHost,
       email: socket.data.email,
       username: socket.data.username,
-      userId: socket.data.userId
+      userId: socket.data.userId,
+      mic: true,
+      cam: true
     });
 
     const members = [];
@@ -5506,7 +5693,9 @@ io.on('connection', (socket) => {
         isHost: info.isHost,
         email: info.email,
         username: info.username,
-        userId: info.userId
+        userId: info.userId,
+        mic: info.mic !== false,
+        cam: info.cam !== false
       });
     });
     const count = room.size;
@@ -5520,10 +5709,18 @@ io.on('connection', (socket) => {
       email: socket.data.email,
       username: socket.data.username,
       userId: socket.data.userId,
+      mic: true,
+      cam: true,
       count
     });
-    // Everyone gets full roster count (not limited by WebRTC mesh)
-    io.to(roomCode).emit('room-roster', { count, members, code: roomCode });
+    // Host gets the full roster; everybody else only the count (keeps 100+ person rooms light)
+    emitRoster(roomCode);
+
+    // Late joiner: hand over the file the host is currently sharing
+    if (typeof liveClasses !== 'undefined' && liveClasses.has(roomCode)) {
+      const lcf = liveClasses.get(roomCode);
+      if (lcf.sharedFile && lcf.sharedFile.url) socket.emit('file-share', { from: 'server', file: lcf.sharedFile });
+    }
 
     if (typeof liveClasses !== 'undefined' && liveClasses.has(roomCode)) {
       const lc = liveClasses.get(roomCode);
@@ -5589,6 +5786,14 @@ io.on('connection', (socket) => {
     if (!code) return;
     socket.to(String(code).toUpperCase()).emit('wb-clear', { from: socket.id });
   });
+  socket.on('wb-undo', ({ code, sid, count }) => {
+    if (!code) return;
+    socket.to(String(code).toUpperCase()).emit('wb-undo', { from: socket.id, sid: sid, count: count });
+  });
+  socket.on('wb-redo', ({ code, stroke, strokes }) => {
+    if (!code) return;
+    socket.to(String(code).toUpperCase()).emit('wb-redo', { from: socket.id, stroke, strokes });
+  });
 
   socket.on('file-annotate', ({ code, stroke }) => {
     if (!code || !stroke) return;
@@ -5598,7 +5803,77 @@ io.on('connection', (socket) => {
     if (!code) return;
     socket.to(String(code).toUpperCase()).emit('file-annotate-clear', { from: socket.id });
   });
+  socket.on('file-annotate-undo', ({ code, sid, count }) => {
+    if (!code) return;
+    socket.to(String(code).toUpperCase()).emit('file-annotate-undo', { from: socket.id, sid, count });
+  });
+  socket.on('file-annotate-redo', ({ code, stroke, strokes }) => {
+    if (!code) return;
+    socket.to(String(code).toUpperCase()).emit('file-annotate-redo', { from: socket.id, stroke, strokes });
+  });
+  // Host projects file view (zoom / page) to all participants
+  socket.on('file-view-state', ({ code, zoom, page, fitLocked }) => {
+    if (!code || !socket.data.isHost) return;
+    socket.to(String(code).toUpperCase()).emit('file-view-state', {
+      from: socket.id,
+      zoom,
+      page,
+      fitLocked: !!fitLocked
+    });
+  });
+  // Raise hand for questions
+  socket.on('hand-raise', ({ code, raised, name }) => {
+    if (!code) return;
+    const rc = String(code).toUpperCase();
+    socket.to(rc).emit('hand-raise', {
+      from: socket.id,
+      name: name || socket.data.name || 'Participant',
+      raised: !!raised
+    });
+  });
+  socket.on('hand-allow', ({ code, to, name }) => {
+    if (!code || !to || !socket.data.isHost) return;
+    const rc = String(code).toUpperCase();
+    // Notify the whole room so roster clears the hand; target gets the allow prompt
+    io.to(rc).emit('hand-allow', {
+      from: socket.id,
+      to,
+      name: name || 'Participant'
+    });
+  });
 
+  // Participant requests mic/cam — only host can approve
+  socket.on('media-request', ({ code, kind, name }) => {
+    if (!code || (kind !== 'mic' && kind !== 'cam')) return;
+    const rc = String(code).toUpperCase();
+    const room = socketRooms.get(rc);
+    if (!room) return;
+    room.forEach(function (member, id) {
+      if (member && member.isHost) {
+        io.to(id).emit('media-request', {
+          from: socket.id,
+          kind: kind,
+          name: name || socket.data.name || 'Participant'
+        });
+      }
+    });
+  });
+  socket.on('media-approve', ({ code, to, kind, allow }) => {
+    if (!code || !to || !socket.data.isHost) return;
+    if (kind !== 'mic' && kind !== 'cam') return;
+    const rc = String(code).toUpperCase();
+    if (socket.data.roomCode !== rc) return;
+    io.to(to).emit('media-approve', {
+      from: socket.id,
+      kind: kind,
+      allow: !!allow
+    });
+    io.to(to).emit('host-control', {
+      action: kind,
+      value: !!allow,
+      from: socket.id
+    });
+  });
 
   // Whiteboard state sync (late joiners) + media-state relay — LIVE CLASS v2
   socket.on('wb-request-state', ({ code, to }) => {
@@ -5611,48 +5886,40 @@ io.on('connection', (socket) => {
   });
   socket.on('media-state', ({ code, mic, cam }) => {
     if (!code) return;
-    socket.to(String(code).toUpperCase()).emit('media-state', { from: socket.id, mic: !!mic, cam: !!cam });
+    const rc = String(code).toUpperCase();
+    const roomM = socketRooms.get(rc);
+    const me = roomM && roomM.get(socket.id);
+    if (me) { me.mic = !!mic; me.cam = !!cam; }
+    socket.to(rc).emit('media-state', { from: socket.id, mic: !!mic, cam: !!cam });
   });
 
-  // Host forces a participant's mic/cam on their device
-  socket.on('host-force-media', ({ code, targetId, mic, cam }) => {
+  // Host switches a participant's camera / mic off (or asks to turn it on)
+  socket.on('host-control', ({ code, targetId, action, value }) => {
     if (!code || !targetId) return;
-    const roomCode = String(code).toUpperCase();
-    // Only the class host may force media
-    const lc = (typeof liveClasses !== 'undefined' && liveClasses.get(roomCode)) || null;
-    const isHost = lc && (lc.hostId === socket.id || (socket.data && socket.data.isHost));
-    // Soft allow if emitter is marked host on socket
-    if (lc && lc.host_id && socket.data && socket.data.userId && String(lc.host_id) === String(socket.data.userId)) {
-      // ok
-    } else if (!socket.data || !socket.data.isHost) {
-      // still relay if in room as host role from join
+    const rc = String(code).toUpperCase();
+    if (!socket.data.isHost || socket.data.roomCode !== rc) return;
+    if (action !== 'cam' && action !== 'mic') return;
+    const roomC = socketRooms.get(rc);
+    if (!roomC || !roomC.has(targetId)) return;
+    io.to(targetId).emit('host-control', { action, value: !!value, from: socket.id });
+  });
+
+  socket.on('file-close', ({ code }) => {
+    if (!code) return;
+    const rc = String(code).toUpperCase();
+    if (!socket.data.isHost || socket.data.roomCode !== rc) return;
+    if (liveClasses.has(rc)) {
+      const lcc = liveClasses.get(rc);
+      lcc.sharedFile = null;
+      try { saveLiveClassToDb(rc, lcc); } catch (e) {}
     }
-    io.to(targetId).emit('host-force-media', {
-      mic: typeof mic === 'boolean' ? mic : undefined,
-      cam: typeof cam === 'boolean' ? cam : undefined,
-      from: socket.id
-    });
+    socket.to(rc).emit('file-close', { from: socket.id });
   });
 
   // File share announce
-    socket.on('file-share', ({ code, file }) => {
-    if (!code || !file) return;
-    const roomCode = String(code).toUpperCase();
-    if (typeof liveClasses !== 'undefined' && liveClasses.has(roomCode)) {
-      const lc = liveClasses.get(roomCode);
-      lc.sharedFile = file;
-      try { if (typeof saveLiveClassToDb === 'function') saveLiveClassToDb(roomCode, lc); } catch (e) {}
-    }
-    socket.to(roomCode).emit('file-share', { from: socket.id, file });
-  });
-
-  socket.on('file-share-request', ({ code }) => {
-    if (!code) return;
-    const roomCode = String(code).toUpperCase();
-    const lc = (typeof liveClasses !== 'undefined' && liveClasses.get(roomCode)) || null;
-    if (lc && lc.sharedFile) {
-      socket.emit('file-share', { from: 'server', file: lc.sharedFile });
-    }
+  socket.on('file-share', ({ code, file }) => {
+    if (!code || !socket.data.isHost) return;
+    socket.to(String(code).toUpperCase()).emit('file-share', { from: socket.id, file });
   });
 
   socket.on('board-permission', ({ code, allowed }) => {
@@ -5744,6 +6011,28 @@ io.on('connection', (socket) => {
   });
 });
 
+function emitRoster(roomCode) {
+  const room = socketRooms.get(roomCode);
+  if (!room) return;
+  const members = [];
+  room.forEach((info, id) => {
+    members.push({
+      id,
+      name: info.name,
+      isHost: info.isHost,
+      email: info.email,
+      username: info.username,
+      userId: info.userId,
+      mic: info.mic !== false,
+      cam: info.cam !== false
+    });
+  });
+  const count = room.size;
+  room.forEach((info, id) => {
+    io.to(id).emit('room-roster', info.isHost ? { count, members, code: roomCode } : { count, code: roomCode });
+  });
+}
+
 function leaveCurrentRoom(socket) {
   const roomCode = socket.data.roomCode;
   if (!roomCode) return;
@@ -5766,7 +6055,7 @@ function leaveCurrentRoom(socket) {
     if (room.size === 0) socketRooms.delete(roomCode);
   }
   socket.to(roomCode).emit('user-left', { id: socket.id, name: socket.data.name, count });
-  socket.to(roomCode).emit('room-roster', { count, members, code: roomCode });
+  emitRoster(roomCode);
   socket.leave(roomCode);
   socket.data.roomCode = null;
 }
