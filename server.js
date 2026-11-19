@@ -5675,14 +5675,17 @@ io.on('connection', (socket) => {
       });
     });
 
+    // Host may start with mic/cam on; participants start muted / cam-off until host permits
+    const startMic = !!socket.data.isHost;
+    const startCam = !!socket.data.isHost;
     room.set(socket.id, {
       name: socket.data.name,
       isHost: socket.data.isHost,
       email: socket.data.email,
       username: socket.data.username,
       userId: socket.data.userId,
-      mic: true,
-      cam: true
+      mic: startMic,
+      cam: startCam
     });
 
     const members = [];
@@ -5694,8 +5697,8 @@ io.on('connection', (socket) => {
         email: info.email,
         username: info.username,
         userId: info.userId,
-        mic: info.mic !== false,
-        cam: info.cam !== false
+        mic: info.mic === true,
+        cam: info.cam === true
       });
     });
     const count = room.size;
@@ -5709,8 +5712,8 @@ io.on('connection', (socket) => {
       email: socket.data.email,
       username: socket.data.username,
       userId: socket.data.userId,
-      mic: true,
-      cam: true,
+      mic: startMic,
+      cam: startCam,
       count
     });
     // Host gets the full roster; everybody else only the count (keeps 100+ person rooms light)
@@ -5976,6 +5979,15 @@ io.on('connection', (socket) => {
     });
   });
 
+  socket.on('board-size', ({ code, height }) => {
+    if (!code || !socket.data.isHost) return;
+    const h = Number(height);
+    if (!Number.isFinite(h)) return;
+    socket.to(String(code).toUpperCase()).emit('board-size', {
+      from: socket.id,
+      height: Math.max(300, Math.min(8000, h))
+    });
+  });
   socket.on('board-fs', ({ code, full }) => {
     if (!code) return;
     if (!socket.data.isHost) return;

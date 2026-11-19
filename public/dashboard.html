@@ -1148,6 +1148,32 @@
       display: none;
     }
     #whiteboardPanel:not(.hidden) #btnBoardFs { display: inline-flex; }
+    /* Board scroll frame: arrows stay glued to visible top/bottom, not the canvas content */
+    #boardScrollFrame {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    #boardScrollFrame #boardScrollWrap {
+      position: absolute;
+      inset: 0;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .board-nav-arrow {
+      position: absolute; right: 10px; z-index: 45;
+      width: 36px; height: 36px; border-radius: 999px;
+      background: rgba(15,23,42,.92); border: 1px solid #475569;
+      color: #e2e8f0; display: inline-flex; align-items: center; justify-content: center;
+      box-shadow: 0 6px 16px rgba(0,0,0,.35);
+      pointer-events: auto;
+    }
+    .board-nav-arrow:hover { background: #059669; border-color: #34d399; color: #fff; }
+    .board-nav-up { top: 10px; }
+    .board-nav-down { bottom: 10px; }
+    #whiteboardPanel.hidden .board-nav-arrow { display: none; }
     /* File toolbar: overlays content so hiding frees full box */
     #sharedFilePanel { position: absolute; inset: 0; display: flex; flex-direction: column; }
     #sharedFilePanel .file-chrome {
@@ -1822,8 +1848,6 @@
                     <span id="boardDragHandle" class="hidden lg:inline-flex items-center text-slate-400 px-1.5 hover:text-white" title="Drag board to move"><i class="fas fa-grip-vertical"></i></span>
                     <h4 class="text-white font-semibold text-sm mr-auto whitespace-nowrap"><i class="fas fa-chalkboard mr-1.5"></i>Board</h4>
                     <span id="boardLockHint" class="text-[10px] text-amber-300/90 mr-1 whitespace-nowrap"></span>
-                    <button type="button" onclick="adjustBoardHeight(-140)" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600" title="Make board shorter"><i class="fas fa-compress-alt"></i></button>
-                    <button type="button" onclick="adjustBoardHeight(140)" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600" title="Make board longer (scrollable)"><i class="fas fa-expand-alt"></i></button>
                     <button type="button" id="btnBoardFs" onclick="toggleBoardFullscreen()" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600 items-center justify-center" title="Toggle full-screen board"><i class="fas fa-expand"></i></button>
                     <button type="button" id="boardLockBtn" onclick="toggleBoardLock()" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600 hidden lg:inline-flex items-center justify-center" title="Lock / unlock board position"><i class="fas fa-lock-open"></i></button>
                     <button class="tool-btn active w-7 h-7 rounded-lg bg-slate-700 text-white text-xs" data-tool="pen" title="Pen"><i class="fas fa-pen"></i></button>
@@ -1840,8 +1864,17 @@
                     <button type="button" onclick="clearBoard()" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600" title="Clear board"><i class="fas fa-trash"></i></button>
                     <button type="button" onclick="toggleWhiteboardPanel(false)" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600" title="Hide board"><i class="fas fa-times"></i></button>
                   </div>
-                  <div id="boardScrollWrap" class="flex-1 min-h-0 overflow-auto bg-slate-950 relative">
-                    <canvas id="whiteboardCanvas" style="display:block;cursor:crosshair;touch-action:none"></canvas>
+                  <div id="boardScrollFrame" class="bg-slate-950">
+                    <div id="boardScrollWrap" class="bg-slate-950">
+                      <canvas id="whiteboardCanvas" style="display:block;cursor:crosshair;touch-action:none"></canvas>
+                    </div>
+                    <!-- Sticky to the visible board frame (not the scrolling canvas) -->
+                    <button type="button" id="btnBoardScrollTop" onclick="boardScrollToTop()" class="board-nav-arrow board-nav-up" title="Scroll to top of board">
+                      <i class="fas fa-arrow-up"></i>
+                    </button>
+                    <button type="button" id="btnBoardAddSpace" onclick="boardAddSpaceDown()" class="board-nav-arrow board-nav-down" title="Add extra blank board below (does not stretch drawings)">
+                      <i class="fas fa-arrow-down"></i>
+                    </button>
                   </div>
                   <div id="boardResizeGrip" title="Drag to resize board"><i class="fas fa-caret-up" style="transform:rotate(45deg)"></i></div>
                 </div>
@@ -3830,7 +3863,7 @@ function ensureSocket() {
     let hostId = null;
     for (const p of existing || []) {
       if (!p || !p.id || isSelfPeerId(p.id) || isSelfMeta(p)) continue;
-      peerMeta[p.id] = { name: p.name, isHost: p.isHost, email: p.email, username: p.username, userId: p.userId, micOn: p.mic !== false, camOn: p.cam !== false };
+      peerMeta[p.id] = { name: p.name, isHost: p.isHost, email: p.email, username: p.username, userId: p.userId, micOn: p.mic === true, camOn: p.cam === true };
       if (p.isHost) hostId = p.id;
       if (shouldWebRTCWith(p)) await createPeerConnection(p.id, p.name, true);
     }
@@ -3845,7 +3878,7 @@ function ensureSocket() {
   socket.on('user-joined', async ({ id, name, isHost, email, username, userId, count, mic, cam }) => {
     if (count != null) window._roomParticipantCount = Number(count) || 0;
     if (isSelfPeerId(id) || isSelfMeta({ name, isHost, email, username, userId })) return;
-    peerMeta[id] = { name, isHost, email, username, userId, micOn: mic !== false, camOn: cam !== false };
+    peerMeta[id] = { name, isHost, email, username, userId, micOn: mic === true, camOn: cam === true };
     if (shouldWebRTCWith({ id, isHost, name, email, username, userId })) await createPeerConnection(id, name, false);
     updateParticipantUI();
     renderRosterList();
@@ -3867,9 +3900,9 @@ function ensureSocket() {
           try { delete peerMeta[m.id]; removePeer(m.id); } catch (e) {}
           return;
         }
-        peerMeta[m.id] = Object.assign({ micOn: true, camOn: true }, peerMeta[m.id] || {}, {
+        peerMeta[m.id] = Object.assign({ micOn: false, camOn: false }, peerMeta[m.id] || {}, {
           name: m.name, isHost: m.isHost, email: m.email, username: m.username, userId: m.userId
-        }, (m.mic !== undefined ? { micOn: m.mic !== false, camOn: m.cam !== false } : {}));
+        }, (m.mic !== undefined || m.cam !== undefined ? { micOn: m.mic === true, camOn: m.cam === true } : {}));
       });
     }
     updateParticipantUI();
@@ -3985,6 +4018,15 @@ function ensureSocket() {
       boardFullscreen = full;
       applyBoardFullscreenUI();
     }
+  });
+  socket.on('board-size', ({ height }) => {
+    if (isClassHost) return;
+    const h = Number(height);
+    if (!Number.isFinite(h) || h < 300) return;
+    // Lock existing strokes in absolute pixels against current height before growing
+    try { ensureAbsoluteStrokes(boardCanvasH); } catch (e) {}
+    boardCanvasH = Math.max(300, Math.min(8000, h));
+    try { resizeBoardCanvas(); redrawBoard(); } catch (e) {}
   });
   socket.on('board-permission', ({ allowed }) => {
     boardUnlockedForStudents = !!allowed;
@@ -4423,7 +4465,7 @@ function collectRosterUnique() {
     live: true,
     hasStream: !!mediaStream,
     micOn: !!micOn,
-    camOn: camOn !== false,
+    camOn: !!camOn,
     me: true,
     personKey: meKey,
     handRaised: !!handRaised
@@ -4444,8 +4486,8 @@ function collectRosterUnique() {
       isHost: !!m.isHost,
       live: !!peers[id] || !!m.stream,
       hasStream: !!m.stream,
-      micOn: m.micOn !== false,
-      camOn: m.camOn !== false,
+      micOn: m.micOn === true,
+      camOn: m.camOn === true,
       me: false,
       personKey: pk,
       userId: m.userId,
@@ -5024,18 +5066,29 @@ function attachRemoteStream(peerId, name, stream) {
 let menuPeerId = null;
 
 function peerHasLiveVideo(meta) {
-  return !!(meta && meta.camOn !== false && meta.stream && meta.stream.getVideoTracks && meta.stream.getVideoTracks().length);
+  if (!meta || !meta.stream) return false;
+  // Only true when cam is intentionally on AND a live enabled video track exists
+  if (meta.camOn !== true) return false;
+  try {
+    return meta.stream.getVideoTracks().some(function (t) {
+      return t && t.readyState === 'live' && t.enabled !== false;
+    });
+  } catch (e) {
+    return false;
+  }
 }
 
 function renderParticipantCard(peerId) {
   const meta = peerMeta[peerId];
   const card = document.getElementById('focusedStudentCard');
   if (!card || !meta) return;
+  // Always show control card (camera on OR off)
   card.classList.remove('hidden');
   card.style.opacity = '1';
+  card.style.pointerEvents = 'auto';
   document.getElementById('fsName').textContent = meta.name || 'Participant';
-  const peerCam = meta.camOn !== false;
-  const peerMic = meta.micOn !== false;
+  const peerCam = meta.camOn === true;
+  const peerMic = meta.micOn === true;
   const perms = getPeerPerms(peerId);
   const bits = [];
   bits.push(meta.isHost ? 'Role: Host' : 'Role: Student / participant');
@@ -5050,9 +5103,14 @@ function renderParticipantCard(peerId) {
   document.getElementById('fsHostActions')?.classList.toggle('hidden', !canAct);
   const bc = document.getElementById('btnFsCam');
   const bm = document.getElementById('btnFsMic');
-  if (bc) bc.innerHTML = peerCam ? '<i class="fas fa-video-slash mr-1"></i>Turn camera off' : '<i class="fas fa-video mr-1"></i>Turn camera on';
-  if (bm) bm.innerHTML = peerMic ? '<i class="fas fa-microphone-slash mr-1"></i>Mute mic' : '<i class="fas fa-microphone mr-1"></i>Unmute mic';
-  // Extra host permission toggles injected once
+  if (bc) {
+    bc.disabled = false;
+    bc.innerHTML = peerCam ? '<i class="fas fa-video-slash mr-1"></i>Turn camera off' : '<i class="fas fa-video mr-1"></i>Turn camera on';
+  }
+  if (bm) {
+    bm.disabled = false;
+    bm.innerHTML = peerMic ? '<i class="fas fa-microphone-slash mr-1"></i>Mute mic' : '<i class="fas fa-microphone mr-1"></i>Unmute mic';
+  }
   let extra = document.getElementById('fsExtraPerms');
   if (canAct) {
     if (!extra) {
@@ -5071,38 +5129,48 @@ function renderParticipantCard(peerId) {
   } else if (extra) {
     extra.remove();
   }
+  // Options always fade after ~1s; projector (if any) stays
   clearTimeout(window._focusCardTimer);
-  // Host keeps options open until they close; viewers get a brief info card
-  if (!canAct) {
-    window._focusCardTimer = setTimeout(function () {
-      card.style.opacity = '0';
-      setTimeout(function () { if (card.style.opacity === '0') card.classList.add('hidden'); }, 400);
-    }, 2500);
-  }
+  window._focusCardTimer = setTimeout(function () {
+    card.style.opacity = '0';
+    setTimeout(function () {
+      if (card.style.opacity === '0') {
+        card.classList.add('hidden');
+        // Keep menuPeerId so a quick re-tap still targets the same peer;
+        // do NOT clear focusedPeerId — projected camera remains
+      }
+    }, 280);
+  }, 1100);
 }
 
 function closeParticipantCard() {
   clearTimeout(window._focusCardTimer);
-  menuPeerId = null;
+  // Only hide the options card — do not clear focused projector view
   document.getElementById('focusedStudentCard')?.classList.add('hidden');
 }
 
-/** Host: force a participant's camera / mic on or off (no student consent needed). */
+/** Host: force a participant's camera / mic on or off (works even when cam is currently off). */
 function hostControlPeer(action) {
-  if (!isClassHost || !menuPeerId || !socket || !activeClassCode) return;
-  const meta = peerMeta[menuPeerId];
+  if (!isClassHost || !socket || !activeClassCode) return;
+  const targetId = menuPeerId || focusedPeerId;
+  if (!targetId) return;
+  const meta = peerMeta[targetId];
   if (!meta || meta.isHost) return;
-  const current = action === 'cam' ? meta.camOn !== false : meta.micOn !== false;
+  menuPeerId = targetId;
+  const current = action === 'cam' ? (meta.camOn === true) : (meta.micOn === true);
   const next = !current;
-  socket.emit('host-control', { code: activeClassCode, targetId: menuPeerId, action: action, value: next });
-  // Optimistic local state for host UI
+  socket.emit('host-control', { code: activeClassCode, targetId: targetId, action: action, value: next });
   if (action === 'cam') meta.camOn = next;
   else meta.micOn = next;
-  renderParticipantCard(menuPeerId);
+  // Refresh card briefly so host sees the new labels, then it fades again
+  renderParticipantCard(targetId);
   renderRosterList();
-  // If host turned cam on and we're focusing them, try projector view
-  if (action === 'cam' && next && menuPeerId) {
-    setTimeout(function () { focusPeer(menuPeerId); }, 400);
+  // If host forced camera on, project them once stream is live
+  if (action === 'cam' && next) {
+    setTimeout(function () {
+      if (peerHasLiveVideo(peerMeta[targetId])) focusPeer(targetId);
+      else renderParticipantCard(targetId);
+    }, 500);
   }
   const st = document.getElementById('classStatus');
   if (st) st.textContent = (next ? 'Enabled ' : 'Disabled ') + (action === 'cam' ? 'camera: ' : 'mic: ') + (meta.name || 'participant');
@@ -5125,18 +5193,29 @@ function hostTogglePeerPerm(kind) {
   if (st) st.textContent = (next ? 'Granted ' : 'Revoked ') + kind + ' for ' + (meta.name || 'participant');
 }
 
-/** Host taps a participant: options always show. If their cam is on, host-only projector view. */
+/** Host taps a participant: options ALWAYS show (cam on or off), fade after ~1s.
+ *  If their camera is live, also project them (stays after options fade). */
 function focusPeer(peerId) {
   const meta = peerMeta[peerId];
   if (!meta) return;
   menuPeerId = peerId;
 
-  // Always show host control card (mic / cam / remove) even when camera is off
+  // Always pop control options first — independent of camera state
   renderParticipantCard(peerId);
 
   const hasCam = peerHasLiveVideo(meta);
   if (!hasCam) {
-    // Keep current projector content (file/host cam); only the options card is needed
+    // Options only; leave existing projector content alone
+    return;
+  }
+
+  // Already projecting this peer: just re-show options (already done above)
+  if (focusedPeerId === peerId) {
+    const fv = document.getElementById('focusVideo');
+    if (fv && meta.stream) {
+      fv.srcObject = meta.stream;
+      fv.play().catch(function () {});
+    }
     return;
   }
 
@@ -5154,7 +5233,6 @@ function focusPeer(peerId) {
   const pip = document.getElementById('fileCamPip');
 
   if (lv) lv.classList.add('hidden');
-  // Hide file only on THIS host's projector — participants keep receiving the shared file view
   if (panel) {
     panel.classList.add('opacity-0', 'pointer-events-none');
     panel.style.visibility = 'hidden';
@@ -6331,20 +6409,26 @@ function toggleWhiteboardPanel(force) {
   }
   if (isClassHost && activeClassCode && socket) {
     socket.emit('board-visibility', { code: activeClassCode, open: whiteboardOpen, full: boardFullscreen });
+    if (whiteboardOpen) broadcastBoardSize();
   }
 }
 
 function boardCanvas() { return document.getElementById('whiteboardCanvas'); }
 
-/** Canvas fills wrap width; height is independent and scrollable. */
+/** Fixed logical width so phone host and laptop participants share the same scale. */
+const BOARD_LOGICAL_W = 1000;
 function resizeBoardCanvas(preserve) {
   const canvas = boardCanvas();
   const wrap = document.getElementById('boardScrollWrap');
   if (!canvas || !wrap) return;
-  const w = Math.max(240, wrap.clientWidth);
+  const w = BOARD_LOGICAL_W;
   const h = Math.max(300, boardCanvasH);
+  // CSS size follows the panel; buffer stays fixed-width so strokes do not shrink across devices
+  canvas.style.width = '100%';
+  canvas.style.height = h + 'px';
   if (canvas.width !== w || canvas.height !== h) {
-    canvas.width = w; canvas.height = h;
+    canvas.width = w;
+    canvas.height = h;
     redrawBoard();
   }
 }
@@ -6405,13 +6489,53 @@ function redrawBoard() {
   for (const s of boardStrokes) paintStroke(ctx, s);
 }
 
+/** Convert 0–1 normalized strokes to absolute canvas pixels (so height growth never stretches writing). */
+function ensureAbsoluteStrokes(heightForNorm) {
+  const W = BOARD_LOGICAL_W;
+  const H = Math.max(300, heightForNorm || boardCanvasH || 480);
+  (boardStrokes || []).forEach(function (s) {
+    if (!s || s.abs) return;
+    // Treat as legacy normalized if coords look like fractions
+    if (s.x0 <= 1.01 && s.y0 <= 1.01 && s.x1 <= 1.01 && s.y1 <= 1.01) {
+      s.x0 = s.x0 * W;
+      s.y0 = s.y0 * H;
+      s.x1 = s.x1 * W;
+      s.y1 = s.y1 * H;
+      if (typeof s.w === 'number') s.w = s.w * (W / 1000);
+    }
+    s.abs = true;
+  });
+  (boardRedoStack || []).forEach(function (group) {
+    (group || []).forEach(function (s) {
+      if (!s || s.abs) return;
+      if (s.x0 <= 1.01 && s.y0 <= 1.01 && s.x1 <= 1.01 && s.y1 <= 1.01) {
+        s.x0 = s.x0 * W;
+        s.y0 = s.y0 * H;
+        s.x1 = s.x1 * W;
+        s.y1 = s.y1 * H;
+        if (typeof s.w === 'number') s.w = s.w * (W / 1000);
+      }
+      s.abs = true;
+    });
+  });
+}
+
 function paintStroke(ctx, s) {
-  const W = ctx.canvas.width, H = ctx.canvas.height;
+  if (!s) return;
+  const W = ctx.canvas.width;
+  let x0 = s.x0, y0 = s.y0, x1 = s.x1, y1 = s.y1;
+  let lw = s.w;
+  // Legacy normalized strokes (0–1)
+  if (!s.abs && x0 <= 1.01 && y0 <= 1.01 && x1 <= 1.01 && y1 <= 1.01) {
+    const H = ctx.canvas.height;
+    x0 *= W; y0 *= H; x1 *= W; y1 *= H;
+    lw = (typeof lw === 'number' ? lw : 3) * (W / 1000);
+  }
   ctx.beginPath();
-  ctx.moveTo(s.x0 * W, s.y0 * H);
-  ctx.lineTo(s.x1 * W, s.y1 * H);
+  ctx.moveTo(x0, y0);
+  ctx.lineTo(x1, y1);
   ctx.strokeStyle = s.c;
-  ctx.lineWidth = Math.max(1, s.w * (W / 1000));
+  ctx.lineWidth = Math.max(1, typeof lw === 'number' ? lw : 3);
   ctx.lineCap = 'round';
   ctx.stroke();
 }
@@ -6424,10 +6548,17 @@ function applyRemoteStroke(s) {
 
 function getBoardPos(e) {
   const canvas = boardCanvas();
+  if (!canvas) return { x: 0, y: 0 };
   const r = canvas.getBoundingClientRect();
   const clientX = e.touches ? e.touches[0].clientX : e.clientX;
   const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-  return { x: clientX - r.left, y: clientY - r.top };
+  // Map CSS pixels → canvas buffer so phone and laptop scale the same
+  const cssW = Math.max(1, r.width);
+  const cssH = Math.max(1, r.height);
+  return {
+    x: ((clientX - r.left) / cssW) * canvas.width,
+    y: ((clientY - r.top) / cssH) * canvas.height
+  };
 }
 
 let boardBgColor = '#020617'; // black default; toggle to white
@@ -6509,19 +6640,20 @@ function initWhiteboard() {
     if (!drawing || !canDrawBoard) return;
     e.preventDefault();
     const p = getBoardPos(e);
-    const W = canvas.width, H = canvas.height;
     const strokeColor = tool === 'eraser' ? boardBgColor : color;
     const strokeWidth = tool === 'eraser' ? 26 : 3;
     const ctx = canvas.getContext('2d');
     ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y);
     ctx.strokeStyle = strokeColor; ctx.lineWidth = strokeWidth; ctx.lineCap = 'round'; ctx.stroke();
-    const norm = {
-      x0: lastX / W, y0: lastY / H, x1: p.x / W, y1: p.y / H,
-      c: strokeColor, w: strokeWidth / (W / 1000),
-      sid: currentBoardStrokeId
+    // Absolute logical pixels — growing the board only adds blank space below
+    const stroke = {
+      x0: lastX, y0: lastY, x1: p.x, y1: p.y,
+      c: strokeColor, w: strokeWidth,
+      sid: currentBoardStrokeId,
+      abs: true
     };
-    pushStroke(norm);
-    if (socket && activeClassCode) socket.emit('wb-draw', { code: activeClassCode, stroke: norm });
+    pushStroke(stroke);
+    if (socket && activeClassCode) socket.emit('wb-draw', { code: activeClassCode, stroke: stroke });
     lastX = p.x; lastY = p.y;
   };
   const stop = () => {
@@ -6559,8 +6691,46 @@ function clearBoard() {
 }
 
 function adjustBoardHeight(delta) {
-  boardCanvasH = Math.max(300, Math.min(4000, boardCanvasH + delta));
+  // Convert existing writing to absolute pixels first so height change cannot stretch it
+  ensureAbsoluteStrokes(boardCanvasH);
+  boardCanvasH = Math.max(300, Math.min(8000, boardCanvasH + delta));
   resizeBoardCanvas();
+  broadcastBoardSize();
+}
+
+/**
+ * Down arrow: unroll extra blank board at the bottom (like more paper),
+ * without stretching or moving anything already drawn.
+ */
+function boardAddSpaceDown() {
+  const wrap = document.getElementById('boardScrollWrap');
+  const page = wrap ? Math.max(280, wrap.clientHeight || 320) : 360;
+  if (isClassHost) {
+    ensureAbsoluteStrokes(boardCanvasH);
+    const prevH = boardCanvasH;
+    boardCanvasH = Math.max(300, Math.min(8000, boardCanvasH + page));
+    // Only grow canvas height — absolute strokes stay put; new area is blank
+    resizeBoardCanvas();
+    if (boardCanvasH !== prevH) broadcastBoardSize();
+  }
+  if (wrap) {
+    requestAnimationFrame(function () {
+      wrap.scrollTo({ top: wrap.scrollHeight, behavior: 'smooth' });
+    });
+  }
+}
+
+/** Up arrow: jump to the top of the board (arrow stays glued to the top of the view). */
+function boardScrollToTop() {
+  const wrap = document.getElementById('boardScrollWrap');
+  if (wrap) wrap.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function broadcastBoardSize() {
+  if (!isClassHost || !socket || !activeClassCode) return;
+  try {
+    socket.emit('board-size', { code: activeClassCode, height: boardCanvasH });
+  } catch (e) {}
 }
 
 /** Desktop: drag the board by its header; corner grip resizes; lock pins it. */
