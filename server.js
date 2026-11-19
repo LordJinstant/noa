@@ -5842,9 +5842,9 @@ io.on('connection', (socket) => {
     });
   });
 
-  // Participant requests mic/cam — only host can approve
+  // Participant requests mic/cam/board/file — only host can approve
   socket.on('media-request', ({ code, kind, name }) => {
-    if (!code || (kind !== 'mic' && kind !== 'cam')) return;
+    if (!code || !kind) return;
     const rc = String(code).toUpperCase();
     const room = socketRooms.get(rc);
     if (!room) return;
@@ -5872,6 +5872,18 @@ io.on('connection', (socket) => {
       action: kind,
       value: !!allow,
       from: socket.id
+    });
+  });
+  // Host grants/revokes board/file permissions for a participant
+  socket.on('perm-set', ({ code, to, kind, allow, action }) => {
+    if (!code || !to || !socket.data.isHost) return;
+    const rc = String(code).toUpperCase();
+    if (socket.data.roomCode !== rc) return;
+    io.to(to).emit('perm-set', {
+      from: socket.id,
+      kind: kind,
+      allow: !!allow,
+      action: action || kind
     });
   });
 
@@ -5916,9 +5928,9 @@ io.on('connection', (socket) => {
     socket.to(rc).emit('file-close', { from: socket.id });
   });
 
-  // File share announce
+  // File share announce (host always; students only after host granted fileShare on client)
   socket.on('file-share', ({ code, file }) => {
-    if (!code || !socket.data.isHost) return;
+    if (!code || !file) return;
     socket.to(String(code).toUpperCase()).emit('file-share', { from: socket.id, file });
   });
 
@@ -5933,12 +5945,14 @@ io.on('connection', (socket) => {
   socket.on('class-chat', ({ code, text, name }) => {
     if (!code || !(text || '').trim()) return;
     const roomCode = String(code).toUpperCase();
+    const body = String(text).trim().slice(0, 1000);
     const payload = {
-      text: String(text).trim().slice(0, 1000),
+      text: body,
       name: name || socket.data.name || 'Participant',
       at: new Date().toISOString(),
       from: socket.id
     };
+    // Live notify only — persistence goes through /api/messages (host channel)
     io.to(roomCode).emit('class-chat', payload);
   });
 
@@ -6712,6 +6726,22 @@ function studentCanSeeStaffChannel(studentId, staffOwnerId) {
   return getStudentVisibleStaffIds(studentId).includes(sid);
 }
 
+function userInLiveClassWithHost(userId, hostOwnerId) {
+  if (userId == null || hostOwnerId == null) return false;
+  const uid = String(userId);
+  const hid = String(hostOwnerId);
+  for (const [code, room] of liveClasses.entries()) {
+    if (!room || String(room.hostId) !== hid) continue;
+    // Anyone joined the socket room with this host
+    const members = socketRooms.get(code);
+    if (!members) continue;
+    for (const [, m] of members.entries()) {
+      if (m && String(m.userId || '') === uid) return true;
+    }
+  }
+  return false;
+}
+
 function canAccessChannel(decoded, channel) {
   if (!decoded || !channel) return false;
   const role = String(decoded.role || '').toLowerCase();
@@ -6725,15 +6755,61 @@ function canAccessChannel(decoded, channel) {
   if (channel.type === 'staff') {
     if (role === 'staff') {
       const selfId = resolveStaffDbId(decoded) || decoded.id;
-      return Number(selfId) === Number(channel.owner_id);
+      if (Number(selfId) === Number(channel.owner_id)) return true;
+      // Staff participant in a live class with this host may message them
+      if (userInLiveClassWithHost(selfId, channel.owner_id)) return true;
+      return false;
     }
     if (role === 'student') {
       // See channel while following that staff (or assigned owner_staff_id)
-      return studentCanSeeStaffChannel(decoded.id, channel.owner_id);
+      if (studentCanSeeStaffChannel(decoded.id, channel.owner_id)) return true;
+      // Or while attending a live class hosted by this staff
+      if (userInLiveClassWithHost(decoded.id, channel.owner_id)) return true;
+      return false;
     }
   }
   return false;
 }
+
+/** Host message channel for a live class — accessible to participants in that class */
+app.get('/api/messages/class-host-channel', (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ msg: 'Login required' });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const ownerId = Number(req.query.ownerId || 0);
+    const code = String(req.query.code || '').toUpperCase();
+    if (!ownerId) return res.status(400).json({ msg: 'ownerId required' });
+    let allowed = canAccessChannel(decoded, { type: 'staff', owner_id: ownerId, closed: 0 });
+    if (!allowed && code && liveClasses.has(code)) {
+      const room = liveClasses.get(code);
+      if (room && String(room.hostId) === String(ownerId)) {
+        // Participant of this live class may open the host's message channel
+        const members = socketRooms.get(code);
+        const uid = String(decoded.id || decoded.userId || '');
+        if (members) {
+          for (const [, m] of members.entries()) {
+            if (m && String(m.userId || '') === uid) { allowed = true; break; }
+          }
+        }
+        if (String(room.hostId) === uid) allowed = true;
+      }
+    }
+    if (!allowed && String(decoded.id) === String(ownerId)) allowed = true;
+    if (!allowed) return res.status(403).json({ msg: 'Not allowed' });
+    const hostRow = usersDb.prepare(`SELECT id, name, username FROM users WHERE id = ?`).get(ownerId);
+    const ch = ensureStaffChannel(ownerId, (hostRow && (hostRow.name || hostRow.username)) || 'Host');
+    return res.json({
+      id: ch.id,
+      title: ch.title,
+      owner_id: ch.owner_id,
+      owner_name: ch.owner_name,
+      type: ch.type
+    });
+  } catch (err) {
+    return res.status(401).json({ msg: 'Invalid token' });
+  }
+});
 
 app.get('/api/messages/channels', (req, res) => {
   const token = req.headers.authorization?.split(' ')[1];

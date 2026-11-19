@@ -1162,41 +1162,142 @@
       overflow: auto; -webkit-overflow-scrolling: touch;
     }
     #sharedFilePanel .file-annotate-bar {
-      position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
-      z-index: 25; display: none; gap: 6px; align-items: center;
-      background: rgba(15,23,42,.92); border: 1px solid #475569;
-      border-radius: 999px; padding: 6px 10px;
+      position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+      z-index: 25; display: none; gap: 4px; align-items: center;
+      background: rgba(15,23,42,.9); border: 1px solid #475569;
+      border-radius: 999px; padding: 4px 8px;
+      max-width: min(96%, 360px);
+      flex-wrap: wrap; justify-content: center;
+      transition: opacity .25s ease, visibility .25s ease, transform .25s ease;
     }
     #sharedFilePanel.file-annotate-on .file-annotate-bar { display: flex; }
+    /* Hidden only when chrome is hidden AND bar is not force-shown */
     #sharedFilePanel.file-chrome-hidden .file-annotate-bar:not(.force-show) {
-      opacity: 0; visibility: hidden; pointer-events: none;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+      transform: translate(-50%, 8px);
     }
-    #sharedFilePanel .file-annotate-bar.force-show {
+    /* Tap-to-show: always visible when force-show is set (laptop + phone) */
+    #sharedFilePanel .file-annotate-bar.force-show,
+    #sharedFilePanel.file-annotate-on .file-annotate-bar.force-show,
+    #sharedFilePanel.file-chrome-hidden .file-annotate-bar.force-show {
+      display: flex !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
+      transform: translate(-50%, 0) !important;
+      z-index: 40 !important;
+    }
+    /* Top chrome force-visible together with bottom tools */
+    #sharedFilePanel:not(.file-chrome-hidden) .file-chrome {
       display: flex !important;
       opacity: 1 !important;
       visibility: visible !important;
       pointer-events: auto !important;
     }
+    #sharedFilePanel .file-chrome {
+      max-height: 28%;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    #sharedFilePanel .file-chrome button,
+    #sharedFilePanel .file-chrome a {
+      height: 28px !important;
+      min-height: 28px !important;
+      padding-left: 0.4rem !important;
+      padding-right: 0.4rem !important;
+      font-size: 11px !important;
+    }
+    #sharedFilePanel .file-annotate-bar button {
+      width: 26px !important;
+      height: 26px !important;
+      min-width: 26px;
+      font-size: 10px;
+    }
+    #sharedFilePanel .file-annotate-bar [data-file-color] {
+      width: 16px !important;
+      height: 16px !important;
+    }
     /* Compact file chrome on phones so it does not cover the document */
     @media (max-width: 640px) {
       #sharedFilePanel .file-chrome {
-        padding: 6px 8px !important;
-        gap: 4px !important;
+        padding: 4px 6px !important;
+        gap: 3px !important;
         flex-wrap: wrap;
-        max-height: 42%;
+        max-height: 26%;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
       }
       #sharedFilePanel .file-chrome button,
       #sharedFilePanel .file-chrome a {
-        min-height: 36px;
+        min-height: 28px !important;
+        height: 28px !important;
       }
       #sharedFilePanel .file-annotate-bar {
-        bottom: 8px;
-        max-width: calc(100% - 16px);
-        flex-wrap: wrap;
-        justify-content: center;
+        bottom: 6px;
+        max-width: calc(100% - 12px);
+        padding: 3px 6px;
       }
+    }
+    /* Host permission grant modal */
+    #hostGrantModal {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(2,6,23,.55);
+      display: none; align-items: center; justify-content: center;
+      padding: 1rem;
+    }
+    #hostGrantModal.show { display: flex; }
+    #hostGrantModal .hg-card {
+      width: min(100%, 360px);
+      background: #0f172a; border: 1px solid #334155;
+      border-radius: 1rem; padding: 1rem 1.1rem; color: #f8fafc;
+      box-shadow: 0 20px 50px rgba(0,0,0,.45);
+    }
+    /* Class toolbar message button — shine when unread */
+    #btnClassMsg.has-unread {
+      background: #059669 !important;
+      box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.55);
+      animation: classMsgPulse 1.4s ease-in-out infinite;
+    }
+    #btnClassMsg.has-unread #btnClassMsgBadge {
+      display: inline-flex !important;
+    }
+    @keyframes classMsgPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5); }
+      50% { box-shadow: 0 0 0 8px rgba(52, 211, 153, 0); }
+    }
+    /* In-class host message panel (sidebar messages pulled into live class) */
+    #classMsgOverlay {
+      position: absolute; inset: 0; z-index: 80;
+      background: rgba(2, 6, 23, 0.72);
+      display: none; align-items: stretch; justify-content: center;
+      padding: 10px;
+    }
+    #classMsgOverlay.open { display: flex; }
+    #classMsgCard {
+      width: min(100%, 420px); max-height: 100%;
+      margin: auto; display: flex; flex-direction: column;
+      background: #0f172a; border: 1px solid #334155;
+      border-radius: 16px; overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,.5);
+    }
+    #classMsgThread {
+      flex: 1; overflow-y: auto; padding: 12px; min-height: 180px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    #classMsgThread .cmm {
+      background: #1e293b; border-radius: 12px; padding: 8px 10px;
+      max-width: 92%; color: #f1f5f9; font-size: 12px;
+    }
+    #classMsgThread .cmm.me { align-self: flex-end; background: #065f46; }
+    #classMsgThread .cmm .cmm-name { font-size: 10px; color: #94a3b8; margin-bottom: 2px; }
+    #classMsgInputRow {
+      display: flex; gap: 6px; padding: 10px; border-top: 1px solid #334155;
+    }
+    #classMsgInput {
+      flex: 1; border-radius: 12px; border: 1px solid #475569;
+      background: #020617; color: #f8fafc; padding: 10px 12px; font-size: 13px;
     }
     #fileAnnotateCanvas {
       position: absolute; inset: 0; z-index: 15; width: 100%; height: 100%;
@@ -1258,8 +1359,8 @@
       position: absolute;
       right: 12px;
       bottom: 12px;
-      width: min(28%, 200px);
-      aspect-ratio: 16 / 10;
+      width: min(32%, 220px);
+      aspect-ratio: 16 / 9;
       z-index: 28;
       border-radius: 12px;
       overflow: hidden;
@@ -1270,9 +1371,24 @@
     }
     #fileCamPip.show { display: block; }
     #fileCamPip video {
-      width: 100%; height: 100%; object-fit: cover; background: #000;
+      width: 100%; height: 100%;
+      object-fit: contain !important; /* landscape letterbox — same as laptop projector */
+      background: #000;
       transform: scaleX(-1);
       filter: contrast(1.05) saturate(1.08) brightness(1.03);
+    }
+    /* Participant tiles: always landscape frame like a laptop class */
+    #remoteVideos .peer-slot,
+    #hostPeerRow .peer-slot {
+      aspect-ratio: 16 / 9;
+      background: #020617;
+    }
+    #remoteVideos .peer-slot video,
+    #hostPeerRow .peer-slot video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain !important;
+      background: #000;
     }
     #fileCamPip .pip-label {
       position: absolute; left: 6px; bottom: 6px;
@@ -1580,6 +1696,10 @@
               <div class="flex items-center gap-1.5 flex-wrap">
                 <button id="btnToggleCam" type="button" onclick="toggleCamera()" class="px-2.5 py-2 rounded-xl bg-slate-700 text-white text-xs hover:bg-slate-600" title="Camera"><i class="fas fa-video mr-1"></i><span class="hidden sm:inline">Cam</span></button>
                 <button id="btnToggleMic" type="button" onclick="toggleMic()" class="px-2.5 py-2 rounded-xl bg-slate-700 text-white text-xs hover:bg-slate-600" title="Microphone"><i class="fas fa-microphone mr-1"></i><span class="hidden sm:inline">Mic</span></button>
+                <button id="btnClassMsg" type="button" onclick="openClassHostMessages()" class="relative px-2.5 py-2 rounded-xl bg-slate-700 text-white text-xs hover:bg-slate-600" title="Messages with the host">
+                  <i class="fas fa-comments mr-1"></i><span class="hidden sm:inline">Msg</span>
+                  <span id="btnClassMsgBadge" class="hidden absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-bold items-center justify-center">0</span>
+                </button>
                 <button id="btnRaiseHand" type="button" onclick="toggleRaiseHand()" class="px-2.5 py-2 rounded-xl bg-slate-700 text-white text-xs hover:bg-slate-600" title="Raise hand to ask a question"><span class="text-base leading-none">✋</span><span class="hidden sm:inline ml-1">Hand</span></button>
                 <button id="btnScreenShare" type="button" onclick="toggleScreenShare()" class="px-2.5 py-2 rounded-xl bg-indigo-500 text-white text-xs font-semibold hover:bg-indigo-400 shadow-lg shadow-indigo-900/40 ring-2 ring-indigo-300/40" title="Share your screen with the class"><i class="fas fa-desktop mr-1"></i><span>Screen</span></button>
                 <button id="btnRecordClass" type="button" onclick="toggleClassRecording()" class="hidden px-2.5 py-2 rounded-xl bg-rose-600 text-white text-xs font-semibold hover:bg-rose-500" title="Record this classroom session"><i class="fas fa-circle mr-1 text-[10px]"></i><span>Record</span></button>
@@ -1720,7 +1840,7 @@
                     <button type="button" onclick="clearBoard()" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600" title="Clear board"><i class="fas fa-trash"></i></button>
                     <button type="button" onclick="toggleWhiteboardPanel(false)" class="w-7 h-7 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600" title="Hide board"><i class="fas fa-times"></i></button>
                   </div>
-                  <div id="boardScrollWrap" class="flex-1 min-h-0 overflow-auto bg-slate-950">
+                  <div id="boardScrollWrap" class="flex-1 min-h-0 overflow-auto bg-slate-950 relative">
                     <canvas id="whiteboardCanvas" style="display:block;cursor:crosshair;touch-action:none"></canvas>
                   </div>
                   <div id="boardResizeGrip" title="Drag to resize board"><i class="fas fa-caret-up" style="transform:rotate(45deg)"></i></div>
@@ -1728,7 +1848,7 @@
 
                 <div id="hostPeerRow" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 max-h-[360px] overflow-y-auto pr-1">
                   <div id="hostSelfSlot" role="button" tabindex="0" onclick="clearFocusPeer()" class="hidden peer-slot aspect-video bg-slate-800 rounded-xl overflow-hidden relative border border-emerald-500/40 order-first cursor-pointer hover:ring-2 hover:ring-emerald-400" title="Back to my view">
-                    <video id="hostSelfVideo" autoplay muted playsinline class="w-full h-full object-cover bg-black cam-mirror"></video>
+                    <video id="hostSelfVideo" autoplay muted playsinline class="w-full h-full object-contain bg-black cam-mirror"></video>
                     <div class="absolute bottom-1 left-1 px-2 py-0.5 rounded bg-black/60 text-white text-[10px] pointer-events-none">You · tap to return</div>
                   </div>
                   <div id="remoteVideos" class="contents"></div>
@@ -1742,6 +1862,24 @@
                   <span id="livePeerHint" class="text-[10px] text-slate-500">Tap a participant for options</span>
                 </div>
                 <div id="classRosterList" class="space-y-1 max-h-[min(50vh,28rem)] overflow-y-auto overscroll-contain pr-1" style="webkit-overflow-scrolling:touch"></div>
+              </div>
+            </div>
+
+            <!-- Host messages pulled from sidebar Message channel -->
+            <div id="classMsgOverlay" onclick="if(event.target===this)closeClassHostMessages()">
+              <div id="classMsgCard">
+                <div class="flex items-center justify-between px-3 py-2.5 border-b border-slate-600">
+                  <div class="min-w-0">
+                    <p class="text-[10px] uppercase tracking-wide text-slate-400">Host messages</p>
+                    <p id="classMsgTitle" class="text-white text-sm font-semibold truncate">Messages</p>
+                  </div>
+                  <button type="button" onclick="closeClassHostMessages()" class="w-8 h-8 rounded-lg bg-slate-700 text-white text-xs hover:bg-slate-600" title="Close"><i class="fas fa-times"></i></button>
+                </div>
+                <div id="classMsgThread"><p class="text-slate-500 text-xs text-center py-8">Loading…</p></div>
+                <form id="classMsgInputRow" onsubmit="sendClassHostMessage(event)">
+                  <input id="classMsgInput" type="text" maxlength="2000" placeholder="Write a message…" autocomplete="off" />
+                  <button type="submit" class="px-3 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-500"><i class="fas fa-paper-plane"></i></button>
+                </form>
               </div>
             </div>
           </div>
@@ -3894,12 +4032,8 @@ function ensureSocket() {
     if (peerMeta[from]) peerMeta[from].pendingMedia = kind;
     renderRosterList();
     const st = document.getElementById('classStatus');
-    if (st) st.textContent = (name || 'Someone') + ' wants to turn on their ' + (kind === 'mic' ? 'mic' : 'camera');
-    try {
-      const label = (name || 'Participant') + ' is requesting ' + (kind === 'mic' ? 'microphone' : 'camera') + '. Allow?';
-      if (window.confirm(label)) approveMediaRequest(from, kind, true);
-      else approveMediaRequest(from, kind, false);
-    } catch (e) {}
+    if (st) st.textContent = (name || 'Someone') + ' wants to ' + (PERM_LABELS[kind] || kind);
+    showHostGrantModal(from, kind, name);
   });
   socket.on('media-approve', ({ kind, allow }) => {
     if (isClassHost) return;
@@ -3918,6 +4052,34 @@ function ensureSocket() {
       const st = document.getElementById('classStatus');
       if (st) st.textContent = allow ? 'Host allowed your camera' : 'Host denied camera';
     }
+  });
+  socket.on('perm-set', ({ kind, allow, action }) => {
+    if (isClassHost) return;
+    const k = kind === 'file-annotate' || kind === 'file-control' ? 'file' : kind;
+    if (k === 'board' || k === 'file' || k === 'fileShare') {
+      myClassPerms[k] = !!allow;
+    }
+    if (k === 'board') {
+      canDrawBoard = !!allow || isClassHost;
+      try { updateBoardLockUI(); } catch (e) {}
+    }
+    const st = document.getElementById('classStatus');
+    if (st) st.textContent = allow
+      ? ('Host granted: ' + (PERM_LABELS[action || kind] || kind))
+      : ('Host revoked: ' + (PERM_LABELS[action || kind] || kind));
+    // Auto-continue the exact action the student was attempting
+    if (allow && pendingClassAction && pendingClassAction.kind === (action || kind)) {
+      const resume = pendingClassAction.resume;
+      pendingClassAction = null;
+      if (typeof resume === 'function') {
+        try { resume(); } catch (e) {}
+      }
+    } else if (!allow && pendingClassAction && pendingClassAction.kind === (action || kind)) {
+      pendingClassAction = null;
+    }
+  });
+  socket.on('class-chat', (payload) => {
+    try { onClassChatMessage(payload); } catch (e) {}
   });
 
   socket.on('file-share', ({ file }) => { if (file) showSharedFileFromData(file); });
@@ -4835,7 +4997,12 @@ function attachRemoteStream(peerId, name, stream) {
     video = slot.querySelector('video');
   }
   if (video && video.srcObject !== stream) video.srcObject = stream;
-  if (video) { video.muted = true; video.play().catch(function () {}); }
+  if (video) {
+    video.muted = true;
+    video.style.objectFit = 'contain';
+    video.style.aspectRatio = '16 / 9';
+    video.play().catch(function () {});
+  }
   playRemoteAudioOnly(peerId, stream);
 
   try {
@@ -4869,12 +5036,15 @@ function renderParticipantCard(peerId) {
   document.getElementById('fsName').textContent = meta.name || 'Participant';
   const peerCam = meta.camOn !== false;
   const peerMic = meta.micOn !== false;
+  const perms = getPeerPerms(peerId);
   const bits = [];
   bits.push(meta.isHost ? 'Role: Host' : 'Role: Student / participant');
   if (meta.email) bits.push('Email: ' + meta.email);
   if (meta.username) bits.push('Username: ' + meta.username);
   bits.push('Mic: ' + (peerMic ? 'on' : 'off'));
   bits.push('Cam: ' + (peerCam ? 'on' : 'off'));
+  bits.push('Board: ' + (perms.board ? 'allowed' : 'locked'));
+  bits.push('File: ' + (perms.file ? 'allowed' : 'locked'));
   document.getElementById('fsMeta').textContent = bits.join(' · ');
   const canAct = isClassHost && !meta.isHost;
   document.getElementById('fsHostActions')?.classList.toggle('hidden', !canAct);
@@ -4882,9 +5052,28 @@ function renderParticipantCard(peerId) {
   const bm = document.getElementById('btnFsMic');
   if (bc) bc.innerHTML = peerCam ? '<i class="fas fa-video-slash mr-1"></i>Turn camera off' : '<i class="fas fa-video mr-1"></i>Turn camera on';
   if (bm) bm.innerHTML = peerMic ? '<i class="fas fa-microphone-slash mr-1"></i>Mute mic' : '<i class="fas fa-microphone mr-1"></i>Unmute mic';
+  // Extra host permission toggles injected once
+  let extra = document.getElementById('fsExtraPerms');
+  if (canAct) {
+    if (!extra) {
+      extra = document.createElement('div');
+      extra.id = 'fsExtraPerms';
+      extra.className = 'mt-2 flex flex-wrap gap-2 w-full';
+      document.getElementById('fsHostActions')?.appendChild(extra);
+    }
+    extra.innerHTML =
+      '<button type="button" onclick="hostTogglePeerPerm(\'board\')" class="flex-1 min-w-[45%] py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-[11px] font-semibold">' +
+      (perms.board ? '<i class="fas fa-lock mr-1"></i>Revoke board' : '<i class="fas fa-chalkboard mr-1"></i>Allow board') + '</button>' +
+      '<button type="button" onclick="hostTogglePeerPerm(\'file\')" class="flex-1 min-w-[45%] py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-[11px] font-semibold">' +
+      (perms.file ? '<i class="fas fa-lock mr-1"></i>Revoke file' : '<i class="fas fa-file mr-1"></i>Allow file tools') + '</button>' +
+      '<button type="button" onclick="hostTogglePeerPerm(\'fileShare\')" class="flex-1 min-w-[45%] py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-[11px] font-semibold">' +
+      (perms.fileShare ? '<i class="fas fa-lock mr-1"></i>Revoke share' : '<i class="fas fa-file-upload mr-1"></i>Allow file share') + '</button>';
+  } else if (extra) {
+    extra.remove();
+  }
   clearTimeout(window._focusCardTimer);
+  // Host keeps options open until they close; viewers get a brief info card
   if (!canAct) {
-    // viewers without host controls: brief info card only
     window._focusCardTimer = setTimeout(function () {
       card.style.opacity = '0';
       setTimeout(function () { if (card.style.opacity === '0') card.classList.add('hidden'); }, 400);
@@ -4898,28 +5087,60 @@ function closeParticipantCard() {
   document.getElementById('focusedStudentCard')?.classList.add('hidden');
 }
 
-/** Host: turn a participant's camera / mic off or on. */
+/** Host: force a participant's camera / mic on or off (no student consent needed). */
 function hostControlPeer(action) {
   if (!isClassHost || !menuPeerId || !socket || !activeClassCode) return;
   const meta = peerMeta[menuPeerId];
   if (!meta || meta.isHost) return;
   const current = action === 'cam' ? meta.camOn !== false : meta.micOn !== false;
-  socket.emit('host-control', { code: activeClassCode, targetId: menuPeerId, action: action, value: !current });
+  const next = !current;
+  socket.emit('host-control', { code: activeClassCode, targetId: menuPeerId, action: action, value: next });
+  // Optimistic local state for host UI
+  if (action === 'cam') meta.camOn = next;
+  else meta.micOn = next;
+  renderParticipantCard(menuPeerId);
+  renderRosterList();
+  // If host turned cam on and we're focusing them, try projector view
+  if (action === 'cam' && next && menuPeerId) {
+    setTimeout(function () { focusPeer(menuPeerId); }, 400);
+  }
   const st = document.getElementById('classStatus');
-  if (st) st.textContent = (current ? 'Turning off ' : 'Asking to turn on ') + (action === 'cam' ? 'camera: ' : 'mic: ') + (meta.name || 'participant');
+  if (st) st.textContent = (next ? 'Enabled ' : 'Disabled ') + (action === 'cam' ? 'camera: ' : 'mic: ') + (meta.name || 'participant');
 }
 
-/** Local-only monitor: host sees a participant full-screen on main stage. Others are unaffected. */
+function hostTogglePeerPerm(kind) {
+  if (!isClassHost || !menuPeerId || !socket || !activeClassCode) return;
+  const meta = peerMeta[menuPeerId] || {};
+  const perms = getPeerPerms(menuPeerId);
+  const next = !perms[kind];
+  setPeerPerm(menuPeerId, kind, next);
+  socket.emit('perm-set', {
+    code: activeClassCode,
+    to: menuPeerId,
+    kind: kind,
+    allow: next
+  });
+  renderParticipantCard(menuPeerId);
+  const st = document.getElementById('classStatus');
+  if (st) st.textContent = (next ? 'Granted ' : 'Revoked ') + kind + ' for ' + (meta.name || 'participant');
+}
+
+/** Host taps a participant: options always show. If their cam is on, host-only projector view. */
 function focusPeer(peerId) {
   const meta = peerMeta[peerId];
   if (!meta) return;
   menuPeerId = peerId;
-  if (!peerHasLiveVideo(meta)) {
-    // Camera off: no video to enlarge, but the options (camera / mic / remove) are still available.
-    renderParticipantCard(peerId);
+
+  // Always show host control card (mic / cam / remove) even when camera is off
+  renderParticipantCard(peerId);
+
+  const hasCam = peerHasLiveVideo(meta);
+  if (!hasCam) {
+    // Keep current projector content (file/host cam); only the options card is needed
     return;
   }
 
+  // Host-only focus: other participants still see shared file if it was open
   window._focusPrev = {
     fileOpen: isSharedFileOpen(),
     stageFile: !!(document.getElementById('mainStage') && document.getElementById('mainStage').classList.contains('stage-file')),
@@ -4933,6 +5154,7 @@ function focusPeer(peerId) {
   const pip = document.getElementById('fileCamPip');
 
   if (lv) lv.classList.add('hidden');
+  // Hide file only on THIS host's projector — participants keep receiving the shared file view
   if (panel) {
     panel.classList.add('opacity-0', 'pointer-events-none');
     panel.style.visibility = 'hidden';
@@ -4942,7 +5164,8 @@ function focusPeer(peerId) {
   if (fv) {
     fv.classList.remove('hidden');
     fv.srcObject = meta.stream;
-    fv.muted = true; // audio already plays through the hidden <audio> element
+    fv.muted = true;
+    fv.style.objectFit = 'contain';
     fv.play().catch(function () {});
   }
   const label = document.getElementById('mainStageLabel');
@@ -4950,9 +5173,8 @@ function focusPeer(peerId) {
   const btn = document.getElementById('btnClearFocus');
   if (btn) {
     btn.classList.remove('hidden');
-    btn.innerHTML = '<i class="fas fa-user mr-1"></i>Back to my view';
+    btn.innerHTML = '<i class="fas fa-times mr-1"></i>Exit participant view';
   }
-  renderParticipantCard(peerId);
   Object.keys(peerSlotMap).forEach(function (id) {
     if (peerSlotMap[id]) {
       peerSlotMap[id].classList.toggle('ring-2', id === peerId);
@@ -5269,11 +5491,22 @@ async function startClassWithCode() {
     pendingMicRequest = false;
     pendingCamRequest = false;
     await getLocalMedia(true);
+    camOn = true;
+    micOn = true;
     attachLocalPreview();
+    try { updateHostStageLayout(); } catch (e) {}
     joinSocketRoom(data.code, true);
-    setTimeout(attachLocalPreview, 300);
+    setTimeout(function () {
+      attachLocalPreview();
+      try { updateHostStageLayout(); } catch (e2) {}
+    }, 300);
+    setTimeout(function () {
+      try { updateHostStageLayout(); } catch (e3) {}
+    }, 800);
     updateParticipantUI();
     renderRosterList();
+    // Ensure host staff message channel exists for in-class Msg button
+    try { resolveHostMessageChannel(); } catch (e) {}
   } catch (err) { alert(err.message); }
 }
 
@@ -5465,6 +5698,12 @@ function leaveLocalClassSession(statusMsg) {
   try { fileAnnotateStrokes = []; fileAnnotateRedoStack = []; } catch (e) {}
   handRaised = false;
   try { updateRaiseHandUI(); } catch (e) {}
+  myClassPerms = { board: false, file: false, fileShare: false };
+  pendingClassAction = null;
+  classMsgUnread = 0;
+  classHostChannelId = null;
+  try { updateClassMsgBadge(); } catch (e) {}
+  try { closeClassHostMessages(); } catch (e) {}
   boardUnlockedForStudents = false;
   canDrawBoard = false;
   whiteboardOpen = false;
@@ -5660,39 +5899,349 @@ function setCamEnabled(on, force) {
 }
 function toggleCamera() { setCamEnabled(!camOn); }
 
+// ===== Host-gated permissions (mic/cam/board/file) =====
+const peerPerms = {}; // peerId -> { board, file, fileShare }
+let myClassPerms = { board: false, file: false, fileShare: false };
+let pendingClassAction = null; // { kind, resume }
+let pendingHostGrant = null; // host-side modal state
+
+function getPeerPerms(peerId) {
+  if (!peerPerms[peerId]) peerPerms[peerId] = { board: false, file: false, fileShare: false };
+  return peerPerms[peerId];
+}
+function setPeerPerm(peerId, kind, allow) {
+  const p = getPeerPerms(peerId);
+  if (kind === 'board' || kind === 'file' || kind === 'fileShare') p[kind] = !!allow;
+}
+
+const PERM_LABELS = {
+  mic: 'turn on their microphone',
+  cam: 'turn on their camera',
+  board: 'draw on the whiteboard',
+  file: 'annotate / zoom / control the shared file',
+  fileShare: 'share a file with the class',
+  'file-annotate': 'draw on the shared file',
+  'file-control': 'zoom or change pages on the shared file'
+};
+
 function requestMediaPermission(kind) {
+  requestClassPermission(kind);
+}
+
+function requestClassPermission(kind, resumeFn) {
   if (!socket || !activeClassCode) return;
+  if (isClassHost) {
+    if (typeof resumeFn === 'function') resumeFn();
+    return;
+  }
+  // Already allowed for ongoing tools?
+  if (kind === 'board' && myClassPerms.board) {
+    if (typeof resumeFn === 'function') resumeFn();
+    return;
+  }
+  if ((kind === 'file' || kind === 'file-annotate' || kind === 'file-control') && myClassPerms.file) {
+    if (typeof resumeFn === 'function') resumeFn();
+    return;
+  }
+  if (kind === 'fileShare' && myClassPerms.fileShare) {
+    if (typeof resumeFn === 'function') resumeFn();
+    return;
+  }
+  if (kind === 'mic' && micHostApproved) {
+    setMicEnabled(true, true);
+    return;
+  }
+  if (kind === 'cam' && camHostApproved) {
+    setCamEnabled(true, true);
+    return;
+  }
+
   if (kind === 'mic') {
     if (pendingMicRequest) return;
     pendingMicRequest = true;
     setMicEnabled(false, true);
-  } else {
+  } else if (kind === 'cam') {
     if (pendingCamRequest) return;
     pendingCamRequest = true;
     setCamEnabled(false, true);
   }
+
+  pendingClassAction = { kind: kind, resume: resumeFn || null };
   const name = (user && (user.name || user.username)) || 'Participant';
-  socket.emit('media-request', { code: activeClassCode, kind: kind, name: name });
+  socket.emit('media-request', {
+    code: activeClassCode,
+    kind: kind,
+    name: name
+  });
   const st = document.getElementById('classStatus');
-  if (st) st.textContent = 'Asked host to allow your ' + (kind === 'mic' ? 'microphone' : 'camera') + '…';
-  // refresh button pending state
-  if (kind === 'mic') setMicEnabled(false, true);
-  else setCamEnabled(false, true);
+  if (st) st.textContent = 'Waiting for host to grant: ' + (PERM_LABELS[kind] || kind) + '…';
 }
 
 function approveMediaRequest(peerId, kind, allow) {
   if (!isClassHost || !socket || !activeClassCode || !peerId) return;
-  socket.emit('media-approve', {
-    code: activeClassCode,
-    to: peerId,
-    kind: kind,
-    allow: !!allow
-  });
+  if (kind === 'mic' || kind === 'cam') {
+    socket.emit('media-approve', {
+      code: activeClassCode,
+      to: peerId,
+      kind: kind,
+      allow: !!allow
+    });
+  } else {
+    // Map file-annotate / file-control → file permission
+    let permKind = kind;
+    if (kind === 'file-annotate' || kind === 'file-control') permKind = 'file';
+    setPeerPerm(peerId, permKind, !!allow);
+    socket.emit('perm-set', {
+      code: activeClassCode,
+      to: peerId,
+      kind: permKind,
+      allow: !!allow,
+      action: kind
+    });
+  }
   const st = document.getElementById('classStatus');
   const meta = peerMeta[peerId] || {};
   if (st) {
-    st.textContent = (allow ? 'Allowed ' : 'Denied ') + (meta.name || 'participant') +
-      (kind === 'mic' ? ' mic' : ' camera');
+    st.textContent = (allow ? 'Granted ' : 'Denied ') + (PERM_LABELS[kind] || kind) +
+      ' · ' + (meta.name || 'participant');
+  }
+}
+
+function showHostGrantModal(from, kind, name) {
+  pendingHostGrant = { from: from, kind: kind, name: name || 'Participant' };
+  const modal = document.getElementById('hostGrantModal');
+  const title = document.getElementById('hostGrantTitle');
+  const detail = document.getElementById('hostGrantDetail');
+  if (title) title.textContent = (name || 'A participant') + ' is requesting access';
+  if (detail) {
+    detail.textContent = (name || 'Participant') + ' wants to ' +
+      (PERM_LABELS[kind] || kind) +
+      '. Grant to let them continue automatically, or Deny to block it.';
+  }
+  if (modal) modal.classList.add('show');
+}
+
+function respondHostGrant(allow) {
+  const modal = document.getElementById('hostGrantModal');
+  if (modal) modal.classList.remove('show');
+  if (!pendingHostGrant) return;
+  const { from, kind } = pendingHostGrant;
+  pendingHostGrant = null;
+  approveMediaRequest(from, kind, allow);
+}
+
+// ===== In-class host messages (sidebar Message channel for this host) =====
+let classMsgUnread = 0;
+let classHostChannelId = null;
+let classHostChannelTitle = 'Host messages';
+let classMsgPollTimer = null;
+
+function getLiveClassHostUserId() {
+  if (isClassHost && user && user.id) return user.id;
+  let found = null;
+  Object.keys(peerMeta || {}).forEach(function (id) {
+    const m = peerMeta[id];
+    if (m && m.isHost && m.userId) found = m.userId;
+  });
+  return found;
+}
+
+function updateClassMsgBadge() {
+  const btn = document.getElementById('btnClassMsg');
+  const badge = document.getElementById('btnClassMsgBadge');
+  if (!btn || !badge) return;
+  if (classMsgUnread > 0) {
+    btn.classList.add('has-unread');
+    badge.textContent = classMsgUnread > 99 ? '99+' : String(classMsgUnread);
+    badge.classList.remove('hidden');
+    badge.style.display = 'inline-flex';
+  } else {
+    btn.classList.remove('has-unread');
+    badge.textContent = '0';
+    badge.classList.add('hidden');
+    badge.style.display = 'none';
+  }
+}
+
+function appendClassMsgBubble(m, isSelf) {
+  const box = document.getElementById('classMsgThread');
+  if (!box) return;
+  // Clear loading placeholder
+  if (box.querySelector('.text-center')) box.innerHTML = '';
+  const row = document.createElement('div');
+  row.className = 'cmm' + (isSelf ? ' me' : '');
+  row.setAttribute('data-msg-id', m.id || '');
+  const name = document.createElement('div');
+  name.className = 'cmm-name';
+  name.textContent = (m.sender_name || m.name || 'User') +
+    (m.created_at || m.at ? ' · ' + new Date(m.created_at || m.at).toLocaleTimeString() : '');
+  const body = document.createElement('div');
+  body.textContent = m.body || m.text || '';
+  row.appendChild(name);
+  row.appendChild(body);
+  if (m.attachment_url) {
+    const att = document.createElement('div');
+    att.innerHTML = renderAttachmentHtml(m);
+    row.appendChild(att);
+  }
+  box.appendChild(row);
+  box.scrollTop = box.scrollHeight;
+}
+
+async function resolveHostMessageChannel() {
+  const hostUserId = getLiveClassHostUserId();
+  if (!hostUserId) return null;
+  try {
+    // Preferred: class-aware host channel (works for students in the live class)
+    const q = '/api/messages/class-host-channel?ownerId=' + encodeURIComponent(hostUserId) +
+      (activeClassCode ? ('&code=' + encodeURIComponent(activeClassCode)) : '');
+    const res = await fetch(q, {
+      headers: token ? { Authorization: 'Bearer ' + token } : {}
+    });
+    if (res.ok) {
+      const ch = await res.json();
+      if (ch && ch.id) {
+        classHostChannelId = ch.id;
+        classHostChannelTitle = ch.title || ((ch.owner_name || 'Host') + "'s Message");
+        return ch;
+      }
+    }
+  } catch (e) {}
+  // Fallback: list channels
+  try {
+    const res = await fetch('/api/messages/channels', {
+      headers: token ? { Authorization: 'Bearer ' + token } : {}
+    });
+    const channels = await res.json();
+    if (!res.ok || !Array.isArray(channels)) return null;
+    let ch = channels.find(function (c) {
+      return c.type === 'staff' && String(c.owner_id) === String(hostUserId);
+    });
+    if (!ch) ch = channels.find(function (c) { return c.type === 'staff'; }) || channels[0];
+    if (ch) {
+      classHostChannelId = ch.id;
+      classHostChannelTitle = ch.title || ((ch.owner_name || 'Host') + "'s Message");
+    }
+    return ch || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function refreshClassMsgThread() {
+  if (!classHostChannelId) return;
+  const box = document.getElementById('classMsgThread');
+  try {
+    const res = await fetch('/api/messages/channels/' + classHostChannelId + '/messages', {
+      headers: token ? { Authorization: 'Bearer ' + token } : {}
+    });
+    const data = await res.json();
+    const msgs = Array.isArray(data) ? data : (data.messages || []);
+    if (!box) return;
+    box.innerHTML = '';
+    if (!msgs.length) {
+      box.innerHTML = '<p class="text-slate-500 text-xs text-center py-8">No messages yet. Say hello to the host.</p>';
+      return;
+    }
+    const myId = user && user.id;
+    msgs.forEach(function (m) {
+      const isSelf = myId && String(m.sender_id) === String(myId);
+      appendClassMsgBubble(m, isSelf);
+    });
+  } catch (e) {
+    if (box) box.innerHTML = '<p class="text-red-300 text-xs text-center py-6">Could not load messages</p>';
+  }
+}
+
+async function openClassHostMessages() {
+  const overlay = document.getElementById('classMsgOverlay');
+  if (!overlay) return;
+  overlay.classList.add('open');
+  classMsgUnread = 0;
+  updateClassMsgBadge();
+  const title = document.getElementById('classMsgTitle');
+  if (title) title.textContent = 'Loading…';
+  const ch = await resolveHostMessageChannel();
+  if (title) title.textContent = classHostChannelTitle || 'Host messages';
+  if (!ch) {
+    const box = document.getElementById('classMsgThread');
+    if (box) box.innerHTML = '<p class="text-slate-400 text-xs text-center py-8">No host message channel available yet.</p>';
+    return;
+  }
+  // Mark channel read in sidebar system
+  try {
+    await fetch('/api/messages/channels/' + classHostChannelId + '/read', {
+      method: 'POST',
+      headers: token ? { Authorization: 'Bearer ' + token } : {}
+    });
+    if (typeof refreshSidebarUnread === 'function') refreshSidebarUnread();
+  } catch (e) {}
+  await refreshClassMsgThread();
+  if (classMsgPollTimer) clearInterval(classMsgPollTimer);
+  classMsgPollTimer = setInterval(function () {
+    const ov = document.getElementById('classMsgOverlay');
+    if (ov && ov.classList.contains('open')) refreshClassMsgThread();
+  }, 5000);
+  setTimeout(function () {
+    try { document.getElementById('classMsgInput')?.focus(); } catch (e) {}
+  }, 80);
+}
+
+function closeClassHostMessages() {
+  const overlay = document.getElementById('classMsgOverlay');
+  if (overlay) overlay.classList.remove('open');
+  if (classMsgPollTimer) { clearInterval(classMsgPollTimer); classMsgPollTimer = null; }
+}
+
+async function sendClassHostMessage(ev) {
+  if (ev) ev.preventDefault();
+  const input = document.getElementById('classMsgInput');
+  const text = (input && input.value || '').trim();
+  if (!text) return;
+  if (!classHostChannelId) {
+    await resolveHostMessageChannel();
+  }
+  if (!classHostChannelId) {
+    alert('Host message channel is not available yet.');
+    return;
+  }
+  try {
+    const fd = new FormData();
+    fd.append('body', text);
+    const res = await fetch('/api/messages/channels/' + classHostChannelId + '/messages', {
+      method: 'POST',
+      headers: token ? { Authorization: 'Bearer ' + token } : {},
+      body: fd
+    });
+    const data = await res.json().catch(function () { return {}; });
+    if (!res.ok) throw new Error(data.msg || 'Send failed');
+    if (input) input.value = '';
+    // Live class relay so host/participants with panel open see it instantly
+    if (socket && activeClassCode) {
+      const name = (user && (user.name || user.username)) || 'Participant';
+      socket.emit('class-chat', { code: activeClassCode, text: text, name: name, channelId: classHostChannelId });
+    }
+    await refreshClassMsgThread();
+    // Keep sidebar thread in sync if open
+    if (typeof activeMsgChannelId !== 'undefined' && String(activeMsgChannelId) === String(classHostChannelId)) {
+      try { if (typeof refreshMessageThread === 'function') refreshMessageThread(true, false); } catch (e) {}
+    }
+  } catch (err) {
+    alert(err.message || 'Could not send message');
+  }
+}
+
+function onClassChatMessage(payload) {
+  if (!payload || !payload.text) return;
+  const isSelf = socket && payload.from && payload.from === socket.id;
+  const overlay = document.getElementById('classMsgOverlay');
+  const open = overlay && overlay.classList.contains('open');
+  if (open) {
+    // Soft refresh so saved host-channel messages appear
+    refreshClassMsgThread();
+  } else if (!isSelf) {
+    classMsgUnread += 1;
+    updateClassMsgBadge();
   }
 }
 
@@ -5914,7 +6463,7 @@ function initWhiteboard() {
     clearHold();
     panMode = false;
     panStart = null;
-    // Long-press 2.5s on board → pan/scroll mode
+    // Long-press 2s on board → pan/scroll mode
     holdTimer = setTimeout(function () {
       panMode = true;
       drawing = false;
@@ -5927,8 +6476,18 @@ function initWhiteboard() {
         };
       }
       canvas.style.cursor = 'grab';
-    }, 2500);
-    if (!canDrawBoard) return;
+    }, 2000);
+    if (!canDrawBoard) {
+      // Students request board-draw permission once, then host grants
+      if (!isClassHost && !myClassPerms.board) {
+        requestClassPermission('board', function () {
+          canDrawBoard = true;
+          myClassPerms.board = true;
+          try { updateBoardLockUI(); } catch (e2) {}
+        });
+      }
+      return;
+    }
     drawing = true;
     currentBoardStrokeId = 'b' + (boardStrokeSeq++);
     const p = getBoardPos(e);
@@ -6100,23 +6659,24 @@ let fileAnnotateRedoStack = [];
 let fileDrawing = false;
 let fileLastX = 0, fileLastY = 0;
 
-function toggleFileAnnotate() {
+function doToggleFileAnnotate() {
   fileAnnotateOn = !fileAnnotateOn;
   const panel = document.getElementById('sharedFilePanel');
   if (panel) {
     panel.classList.toggle('file-annotate-on', fileAnnotateOn);
-    // When pen is on, hide the top toolbar so it doesn't cover the file on phones.
-    // Annotate bar remains; tap empty area later to bring tools back.
     if (fileAnnotateOn) {
-      panel.classList.add('file-chrome-hidden');
-      const bar = document.getElementById('fileAnnotateBar');
-      if (bar) bar.classList.add('force-show');
+      // Show colors / undo / redo immediately, then user can tap to hide
+      if (typeof showFileToolbars === 'function') showFileToolbars();
+      else {
+        panel.classList.remove('file-chrome-hidden');
+        const bar = document.getElementById('fileAnnotateBar');
+        if (bar) bar.classList.add('force-show');
+      }
     } else {
       const bar = document.getElementById('fileAnnotateBar');
       if (bar) bar.classList.remove('force-show');
     }
   }
-  const canvas = document.getElementById('fileAnnotateCanvas');
   if (fileAnnotateOn) {
     resizeFileAnnotateCanvas();
     initFileAnnotateDrawing();
@@ -6127,6 +6687,16 @@ function toggleFileAnnotate() {
     : '<i class="fas fa-pen mr-1"></i>Draw';
   const btnTop = document.getElementById('btnFileAnnotateTop');
   if (btnTop) btnTop.classList.toggle('ring-2', fileAnnotateOn);
+}
+function toggleFileAnnotate() {
+  if (!isClassHost && !myClassPerms.file) {
+    requestClassPermission('file-annotate', function () {
+      myClassPerms.file = true;
+      doToggleFileAnnotate();
+    });
+    return;
+  }
+  doToggleFileAnnotate();
 }
 function toggleFileAnnotateMode() { toggleFileAnnotate(); }
 function setFileAnnotateTool(tool) { fileAnnotateTool = tool || 'pen'; }
@@ -6373,64 +6943,77 @@ function initFileViewerChrome() {
   try { initFileChromeToggle(); } catch (e) {}
 }
 
-/** Tap file area: show tools; tap again: hide tools. Drawing strokes do not toggle. */
+/** Tap file area: show tools; tap again: hide tools. Only real draw strokes skip toggle. */
 function initFileChromeToggle() {
   const panel = document.getElementById('sharedFilePanel');
   const wrap = document.getElementById('fileViewScroll');
   if (!panel || !wrap || wrap.dataset.toggleChrome === '1') return;
   wrap.dataset.toggleChrome = '1';
   let touchMoved = false;
-  let drawGesture = false;
-  wrap.addEventListener('touchstart', function () { touchMoved = false; drawGesture = false; }, { passive: true });
+  let strokeActive = false;
+  let pointerStart = null;
+
+  wrap.addEventListener('touchstart', function () { touchMoved = false; }, { passive: true });
   wrap.addEventListener('touchmove', function () { touchMoved = true; }, { passive: true });
+
   wrap.addEventListener('pointerdown', function (e) {
-    if (panel.classList.contains('file-annotate-on') && e.target && e.target.id === 'fileAnnotateCanvas') {
-      drawGesture = true;
-    }
+    pointerStart = { x: e.clientX, y: e.clientY, t: Date.now() };
+    strokeActive = false;
   }, { passive: true });
-  let lastTapAt = 0;
-  function toggleChrome(e) {
-    if (e.target.closest('.file-chrome') || e.target.closest('#fileAnnotateBar')) return;
-    // While drawing a stroke, ignore single toggles
-    if (drawGesture || (panel.classList.contains('file-annotate-on') && e.target && e.target.id === 'fileAnnotateCanvas' && fileDrawing)) {
-      drawGesture = false;
-      return;
+  wrap.addEventListener('pointermove', function (e) {
+    if (!pointerStart) return;
+    const dx = e.clientX - pointerStart.x;
+    const dy = e.clientY - pointerStart.y;
+    // Only treat as a draw stroke when the pen moved meaningfully while annotate is on
+    if (panel.classList.contains('file-annotate-on') && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
+      strokeActive = true;
     }
-    if (touchMoved) return;
-    const now = Date.now();
-    const isDouble = (now - lastTapAt) < 350;
-    lastTapAt = now;
-    if (isDouble || panel.classList.contains('file-chrome-hidden')) {
-      // Double-tap (or single when hidden): show FULL option icons
-      panel.classList.remove('file-chrome-hidden');
-      const bar = document.getElementById('fileAnnotateBar');
-      if (bar && fileAnnotateOn) bar.classList.add('force-show');
-      clearTimeout(window._fileChromeTimer);
-      window._fileChromeTimer = setTimeout(function () {
-        if (panel && !panel.classList.contains('hidden') && !fileDrawing) {
-          // auto-hide again, but keep annotate bar if drawing mode on
-          panel.classList.add('file-chrome-hidden');
-        }
-      }, 5000);
-    } else {
-      // Single tap when visible: hide
-      panel.classList.add('file-chrome-hidden');
-    }
-  }
-  wrap.addEventListener('click', toggleChrome);
-  wrap.addEventListener('dblclick', function (e) {
-    e.preventDefault();
+    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) touchMoved = true;
+  }, { passive: true });
+  wrap.addEventListener('pointerup', function () {
+    // keep strokeActive until click handler runs, then clear
+    setTimeout(function () { strokeActive = false; pointerStart = null; }, 0);
+  }, { passive: true });
+
+  window.showFileToolbars = function showFileToolbars() {
     panel.classList.remove('file-chrome-hidden');
     const bar = document.getElementById('fileAnnotateBar');
-    if (bar && fileAnnotateOn) bar.classList.add('force-show');
-  });
-  // Auto-hide chrome shortly after open so file is readable on phones
+    if (bar) {
+      // Always show annotate tools when user taps (pen mode or not)
+      if (fileAnnotateOn) bar.classList.add('force-show');
+      else bar.classList.remove('force-show');
+    }
+    clearTimeout(window._fileChromeTimer);
+    // Do not auto-hide while user is actively drawing
+    window._fileChromeTimer = setTimeout(function () {
+      if (panel && !panel.classList.contains('hidden') && !fileDrawing && !strokeActive) {
+        hideFileToolbars();
+      }
+    }, 6000);
+  };
+  window.hideFileToolbars = function hideFileToolbars() {
+    panel.classList.add('file-chrome-hidden');
+    const bar = document.getElementById('fileAnnotateBar');
+    if (bar) bar.classList.remove('force-show');
+  };
+  function toggleChrome(e) {
+    if (e.target.closest('.file-chrome') || e.target.closest('#fileAnnotateBar')) return;
+    // Skip only if this gesture was an actual draw stroke
+    if (strokeActive || fileDrawing) {
+      strokeActive = false;
+      return;
+    }
+    if (touchMoved) { touchMoved = false; return; }
+    const hidden = panel.classList.contains('file-chrome-hidden');
+    if (hidden) showFileToolbars();
+    else hideFileToolbars();
+  }
+  wrap.addEventListener('click', toggleChrome);
+  // Initial auto-hide so the file is readable
   clearTimeout(window._fileChromeTimer);
   window._fileChromeTimer = setTimeout(function () {
-    if (panel && !panel.classList.contains('hidden')) {
-      panel.classList.add('file-chrome-hidden');
-    }
-  }, 2800);
+    if (panel && !panel.classList.contains('hidden')) hideFileToolbars();
+  }, 2500);
 }
 
 
@@ -6482,17 +7065,39 @@ function applyHostFileViewState(state) {
 }
 
 function fileSetZoom(z) {
-  if (!isClassHost && isSharedFileOpen()) return; // only host drives projection
-  if (fileFitLocked) return; // locked until Fit pressed again
+  // Host always controls projection; permitted students can also zoom locally after grant
+  if (!isClassHost && isSharedFileOpen() && !myClassPerms.file) {
+    requestClassPermission('file-control', function () {
+      myClassPerms.file = true;
+      fileSetZoom(z);
+    });
+    return;
+  }
+  if (fileFitLocked && isClassHost) return; // host fit-lock
+  if (fileFitLocked && !isClassHost) return;
   fileView.zoom = Math.max(0.25, Math.min(4, z));
   const label = document.getElementById('fileZoomLabel');
   if (label) label.textContent = Math.round(fileView.zoom * 100) + '%';
   if (fileView.kind === 'img') renderImageFile();
   else if (fileView.kind === 'pdf') renderPdfPage();
-  broadcastFileViewState();
+  if (isClassHost) broadcastFileViewState();
 }
-function fileZoomIn() { if (!isClassHost) return; if (fileFitLocked) return; fileSetZoom(fileView.zoom * 1.25); }
-function fileZoomOut() { if (!isClassHost) return; if (fileFitLocked) return; fileSetZoom(fileView.zoom / 1.25); }
+function fileZoomIn() {
+  if (!isClassHost && !myClassPerms.file) {
+    requestClassPermission('file-control', function () { myClassPerms.file = true; fileZoomIn(); });
+    return;
+  }
+  if (fileFitLocked) return;
+  fileSetZoom(fileView.zoom * 1.25);
+}
+function fileZoomOut() {
+  if (!isClassHost && !myClassPerms.file) {
+    requestClassPermission('file-control', function () { myClassPerms.file = true; fileZoomOut(); });
+    return;
+  }
+  if (fileFitLocked) return;
+  fileSetZoom(fileView.zoom / 1.25);
+}
 function fileZoomFit() {
   if (!isClassHost) return;
   // Toggle lock: first press fits + locks; second unlocks
@@ -6702,43 +7307,27 @@ function applyFileHostOnlyControls() {
   if (!panel) return;
   const chrome = panel.querySelector('.file-chrome');
   if (!chrome) return;
-  const hostOnlySelectors = [
-    'button[onclick*="fileZoom"]',
-    'button[onclick*="filePrevPage"]',
-    'button[onclick*="fileNextPage"]',
-    '#btnFileFit',
-    'button[onclick*="hostCloseSharedFile"]'
-  ];
-  hostOnlySelectors.forEach(function (sel) {
-    chrome.querySelectorAll(sel).forEach(function (btn) {
-      if (isClassHost) {
-        btn.classList.remove('hidden');
-        btn.disabled = false;
-        btn.style.pointerEvents = '';
-      } else {
-        // Students still see Open/Save; hide projection controls
-        btn.classList.add('hidden');
-        btn.disabled = true;
-        btn.style.pointerEvents = 'none';
-      }
-    });
+  // Close file remains host-only; zoom/page/draw visible so students can request access
+  chrome.querySelectorAll('button[onclick*="hostCloseSharedFile"]').forEach(function (btn) {
+    if (isClassHost) {
+      btn.classList.remove('hidden');
+      btn.disabled = false;
+      btn.style.pointerEvents = '';
+    } else {
+      btn.classList.add('hidden');
+      btn.disabled = true;
+      btn.style.pointerEvents = 'none';
+    }
   });
-  // Annotate is host-driven for projection consistency
   ['#btnFileAnnotate', '#btnFileAnnotateTop'].forEach(function (sel) {
     const b = document.querySelector(sel);
     if (!b) return;
-    if (isClassHost) {
-      b.classList.remove('hidden');
-      b.disabled = false;
-    } else {
-      b.classList.add('hidden');
-      b.disabled = true;
-    }
+    b.classList.remove('hidden');
+    b.disabled = false;
   });
-  // Block student pinch-zoom from fighting host projection
   const wrap = document.getElementById('fileViewScroll');
   if (wrap) {
-    wrap.style.touchAction = isClassHost ? 'pan-x pan-y' : 'none';
+    wrap.style.touchAction = (isClassHost || myClassPerms.file) ? 'pan-x pan-y' : 'pan-x pan-y';
   }
 }
 
@@ -6753,6 +7342,13 @@ function closeSharedFile() {
 
 function triggerShareFile() {
   if (!activeClassCode) { alert('Start or join a class first, then share a file.'); return; }
+  if (!isClassHost && !myClassPerms.fileShare) {
+    requestClassPermission('fileShare', function () {
+      myClassPerms.fileShare = true;
+      document.getElementById('shareFileInput').click();
+    });
+    return;
+  }
   document.getElementById('shareFileInput').click();
 }
 
@@ -9298,6 +9894,19 @@ document.addEventListener('DOMContentLoaded', () => {
       </button>
     </div>
     <button type="button" onclick="document.getElementById('certSearchModal').classList.add('hidden')" class="mt-3 w-full text-slate-500 text-sm py-2">Close</button>
+  </div>
+</div>
+
+<!-- Host grant / deny permission popup -->
+<div id="hostGrantModal" aria-live="polite">
+  <div class="hg-card">
+    <p class="text-[10px] uppercase tracking-wide text-slate-400 mb-1">Permission request</p>
+    <p id="hostGrantTitle" class="font-bold text-sm text-white mb-1">Participant request</p>
+    <p id="hostGrantDetail" class="text-xs text-slate-300 leading-relaxed mb-4">—</p>
+    <div class="flex gap-2">
+      <button type="button" onclick="respondHostGrant(false)" class="flex-1 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-xs font-semibold text-white">Deny</button>
+      <button type="button" onclick="respondHostGrant(true)" class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold text-white">Grant</button>
+    </div>
   </div>
 </div>
 
