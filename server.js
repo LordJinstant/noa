@@ -5979,13 +5979,39 @@ io.on('connection', (socket) => {
     });
   });
 
-  socket.on('board-size', ({ code, height }) => {
-    if (!code || !socket.data.isHost) return;
+  socket.on('board-size', ({ code, height, scrollBottom }) => {
+    if (!code) return;
+    const roomCode = String(code).toUpperCase();
+    // Prefer live class host id; fall back to socket host flag
+    let allowed = !!socket.data.isHost;
+    try {
+      const room = liveClasses.get(roomCode);
+      if (room && room.hostId != null && socket.data.userId != null) {
+        allowed = String(room.hostId) === String(socket.data.userId) || !!socket.data.isHost;
+      }
+    } catch (e) {}
+    if (!allowed) return;
     const h = Number(height);
     if (!Number.isFinite(h)) return;
-    socket.to(String(code).toUpperCase()).emit('board-size', {
+    socket.to(roomCode).emit('board-size', {
       from: socket.id,
-      height: Math.max(300, Math.min(8000, h))
+      height: Math.max(300, Math.min(8000, h)),
+      scrollBottom: scrollBottom !== false
+    });
+  });
+  socket.on('board-scroll', ({ code, top, bottom }) => {
+    if (!code) return;
+    const roomCode = String(code).toUpperCase();
+    if (!socket.data.isHost) {
+      try {
+        const room = liveClasses.get(roomCode);
+        if (!(room && room.hostId != null && String(room.hostId) === String(socket.data.userId))) return;
+      } catch (e) { return; }
+    }
+    socket.to(roomCode).emit('board-scroll', {
+      from: socket.id,
+      top: typeof top === 'number' ? top : undefined,
+      bottom: !!bottom
     });
   });
   socket.on('board-fs', ({ code, full }) => {

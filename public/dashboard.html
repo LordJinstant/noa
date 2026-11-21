@@ -1829,7 +1829,7 @@
 
                   <div class="absolute bottom-3 left-3 px-3 py-1 rounded-lg bg-black/60 text-white text-xs z-10" id="mainStageLabel">You</div>
                   <button type="button" id="btnClearFocus" onclick="clearFocusPeer()" class="hidden absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-black/70 text-white text-xs hover:bg-black z-10"><i class="fas fa-user mr-1"></i>Back to my view</button>
-                  <div id="focusedStudentCard" class="hidden absolute bottom-3 right-3 max-w-xs w-[min(100%,280px)] bg-slate-900/95 border border-slate-600 rounded-2xl p-3 text-white shadow-xl z-10">
+                  <div id="focusedStudentCard" class="hidden absolute bottom-3 right-3 max-w-xs w-[min(100%,280px)] bg-slate-900/95 border border-slate-600 rounded-2xl p-3 text-white shadow-xl z-[60]">
                     <button type="button" onclick="closeParticipantCard()" class="absolute top-2 right-2 w-6 h-6 rounded-full bg-slate-700 hover:bg-slate-600 text-xs" title="Close"><i class="fas fa-times"></i></button>
                     <p class="text-[10px] uppercase tracking-wide text-slate-400 mb-1">Participant</p>
                     <p id="fsName" class="font-bold text-sm truncate">—</p>
@@ -4019,14 +4019,37 @@ function ensureSocket() {
       applyBoardFullscreenUI();
     }
   });
-  socket.on('board-size', ({ height }) => {
+  socket.on('board-size', ({ height, scrollBottom }) => {
     if (isClassHost) return;
     const h = Number(height);
     if (!Number.isFinite(h) || h < 300) return;
+    // Make sure board is open so the extra space is visible
+    try {
+      if (!whiteboardOpen) toggleWhiteboardPanel(true);
+    } catch (e) {}
     // Lock existing strokes in absolute pixels against current height before growing
     try { ensureAbsoluteStrokes(boardCanvasH); } catch (e) {}
     boardCanvasH = Math.max(300, Math.min(8000, h));
     try { resizeBoardCanvas(); redrawBoard(); } catch (e) {}
+    // Mirror host slide: scroll to the new bottom space
+    if (scrollBottom !== false) {
+      const wrap = document.getElementById('boardScrollWrap');
+      if (wrap) {
+        requestAnimationFrame(function () {
+          wrap.scrollTo({ top: wrap.scrollHeight, behavior: 'smooth' });
+        });
+      }
+    }
+  });
+  socket.on('board-scroll', ({ top, bottom }) => {
+    if (isClassHost) return;
+    const wrap = document.getElementById('boardScrollWrap');
+    if (!wrap) return;
+    if (bottom) {
+      wrap.scrollTo({ top: wrap.scrollHeight, behavior: 'smooth' });
+    } else if (typeof top === 'number') {
+      wrap.scrollTo({ top: top, behavior: 'smooth' });
+    }
   });
   socket.on('board-permission', ({ allowed }) => {
     boardUnlockedForStudents = !!allowed;
@@ -4565,9 +4588,15 @@ function renderRosterList() {
     const allowBtn = (isClassHost && !r.me && r.handRaised)
       ? '<button type="button" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500 text-white hover:bg-amber-400" onclick="event.stopPropagation();allowRaisedHand(\'' + String(r.id).replace(/[^A-Za-z0-9_\-]/g, '') + '\')" title="Allow this participant to speak">Allow</button>'
       : '';
+    const safeId = String(r.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    const safeName = String(r.name || 'Participant').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    const canTap = isClassHost && !r.me && !r.isHost;
     return (
-      '<div class="roster-row' + ((isClassHost && !r.me && !r.isHost) ? ' clickable' : '') + '"' +
-      ((isClassHost && !r.me && !r.isHost) ? ' onclick="focusPeer(\'' + String(r.id).replace(/[^A-Za-z0-9_\-]/g, '') + '\')" title="Tap for options"' : '') + '>' +
+      '<div class="roster-row' + (canTap ? ' clickable' : '') + '"' +
+      (canTap
+        ? ' data-peer-id="' + String(r.id).replace(/"/g, '') + '"' +
+          ' onclick="focusPeer(\'' + safeId + '\',{name:\'' + safeName + '\',isHost:false,micOn:' + (r.micOn ? 'true' : 'false') + ',camOn:' + (r.camOn ? 'true' : 'false') + ',userId:\'' + String(r.userId || '').replace(/'/g, '') + '\'})" title="Tap for options (camera on or off)"'
+        : '') + '>' +
       '<span class="roster-dot ' + (r.isHost ? 'bg-amber-400' : (r.live ? 'bg-emerald-400' : 'bg-slate-600')) + '"></span>' +
       '<span class="text-[10px] font-bold uppercase tracking-wide ' + (r.isHost ? 'text-amber-300' : 'text-slate-500') + ' w-16 shrink-0">' + roleLabel + '</span>' +
       '<span class="text-[11px] text-slate-200 truncate flex-1">' + display + '</span>' +
@@ -5078,14 +5107,33 @@ function peerHasLiveVideo(meta) {
   }
 }
 
+/** Ensure peerMeta exists for a roster id so options work even with camera off / no stream yet. */
+function ensurePeerMeta(peerId, fallback) {
+  if (!peerId) return null;
+  if (!peerMeta[peerId]) {
+    peerMeta[peerId] = {
+      name: (fallback && fallback.name) || 'Participant',
+      isHost: !!(fallback && fallback.isHost),
+      email: (fallback && fallback.email) || '',
+      username: (fallback && fallback.username) || '',
+      userId: fallback && fallback.userId,
+      micOn: !!(fallback && fallback.micOn),
+      camOn: !!(fallback && fallback.camOn),
+      handRaised: !!(fallback && fallback.handRaised)
+    };
+  }
+  return peerMeta[peerId];
+}
+
 function renderParticipantCard(peerId) {
-  const meta = peerMeta[peerId];
+  const meta = ensurePeerMeta(peerId) || peerMeta[peerId];
   const card = document.getElementById('focusedStudentCard');
   if (!card || !meta) return;
   // Always show control card (camera on OR off)
   card.classList.remove('hidden');
   card.style.opacity = '1';
   card.style.pointerEvents = 'auto';
+  card.style.zIndex = '60';
   document.getElementById('fsName').textContent = meta.name || 'Participant';
   const peerCam = meta.camOn === true;
   const peerMic = meta.micOn === true;
@@ -5195,19 +5243,30 @@ function hostTogglePeerPerm(kind) {
 
 /** Host taps a participant: options ALWAYS show (cam on or off), fade after ~1s.
  *  If their camera is live, also project them (stays after options fade). */
-function focusPeer(peerId) {
-  const meta = peerMeta[peerId];
+function focusPeer(peerId, rosterFallback) {
+  if (!peerId) return;
+  // Resolve id if roster stripped characters — try exact, then fuzzy match
+  let id = peerId;
+  if (!peerMeta[id]) {
+    const keys = Object.keys(peerMeta);
+    const hit = keys.find(function (k) {
+      return k === peerId || k.replace(/[^A-Za-z0-9_\-]/g, '') === String(peerId).replace(/[^A-Za-z0-9_\-]/g, '');
+    });
+    if (hit) id = hit;
+  }
+  const meta = ensurePeerMeta(id, rosterFallback);
   if (!meta) return;
-  menuPeerId = peerId;
+  menuPeerId = id;
 
   // Always pop control options first — independent of camera state
-  renderParticipantCard(peerId);
+  renderParticipantCard(id);
 
   const hasCam = peerHasLiveVideo(meta);
   if (!hasCam) {
     // Options only; leave existing projector content alone
     return;
   }
+  peerId = id;
 
   // Already projecting this peer: just re-show options (already done above)
   if (focusedPeerId === peerId) {
@@ -6700,7 +6759,7 @@ function adjustBoardHeight(delta) {
 
 /**
  * Down arrow: unroll extra blank board at the bottom (like more paper),
- * without stretching or moving anything already drawn.
+ * without stretching or moving anything already drawn. Host action mirrors to all.
  */
 function boardAddSpaceDown() {
   const wrap = document.getElementById('boardScrollWrap');
@@ -6711,7 +6770,10 @@ function boardAddSpaceDown() {
     boardCanvasH = Math.max(300, Math.min(8000, boardCanvasH + page));
     // Only grow canvas height — absolute strokes stay put; new area is blank
     resizeBoardCanvas();
-    if (boardCanvasH !== prevH) broadcastBoardSize();
+    // Always broadcast so participants unroll the same extra space and scroll
+    broadcastBoardSize(true);
+  } else {
+    // Students cannot grow the shared board; only host does (then mirrors)
   }
   if (wrap) {
     requestAnimationFrame(function () {
@@ -6724,12 +6786,19 @@ function boardAddSpaceDown() {
 function boardScrollToTop() {
   const wrap = document.getElementById('boardScrollWrap');
   if (wrap) wrap.scrollTo({ top: 0, behavior: 'smooth' });
+  if (isClassHost && socket && activeClassCode) {
+    try { socket.emit('board-scroll', { code: activeClassCode, top: 0 }); } catch (e) {}
+  }
 }
 
-function broadcastBoardSize() {
+function broadcastBoardSize(scrollBottom) {
   if (!isClassHost || !socket || !activeClassCode) return;
   try {
-    socket.emit('board-size', { code: activeClassCode, height: boardCanvasH });
+    socket.emit('board-size', {
+      code: activeClassCode,
+      height: boardCanvasH,
+      scrollBottom: scrollBottom !== false
+    });
   } catch (e) {}
 }
 
