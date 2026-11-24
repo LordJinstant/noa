@@ -11,6 +11,36 @@
 
   <!-- Custom CSS -->
   <link rel="stylesheet" href="style.css">
+<style>
+  /* Locked first view: only hero + Next. No scroll. No sliding latest updates. */
+  html.page-locked,
+  html.page-locked body {
+    overflow: hidden !important;
+    height: 100% !important;
+    overscroll-behavior: none;
+  }
+  /* Hide the latest-updates marquee until Next is clicked */
+  html.page-locked #noaPostMarquee {
+    display: none !important;
+    visibility: hidden !important;
+  }
+  /*
+    Hide every direct body child after the main hero shell,
+    except auth modals, AI widget, and non-visible tags.
+  */
+  html.page-locked body > *:not(.flex):not(#loginModal):not(#registerModal):not(#studentFormModal):not(#courseModal):not(#adminFormModal):not(#bioModal):not(#photoModal):not(#noaAiRoot):not(script):not(style):not(link):not(#simccClassicWidget) {
+    display: none !important;
+  }
+  #heroNextWrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 2.5rem;
+  }
+  #heroNextWrap.is-hidden {
+    display: none !important;
+  }
+</style>
 
 </head>
 <!--
@@ -1076,6 +1106,14 @@
               Login
             </button>
           </div>
+          <div id="heroNextWrap">
+            <button type="button" id="heroNextBtn" onclick="revealMoreContent()" class="group flex flex-col items-center gap-1 text-gray-600 hover:text-[#19A975] transition focus:outline-none" aria-label="Show more content">
+              <span class="text-sm font-semibold tracking-wide uppercase">Next</span>
+              <span class="w-11 h-11 rounded-full border-2 border-current flex items-center justify-center group-hover:bg-[#19A975]/10 transition animate-bounce">
+                <i class="fas fa-chevron-down text-lg"></i>
+              </span>
+            </button>
+          </div>
         </div>
 
         <div class="relative">
@@ -1847,6 +1885,167 @@ The most recent SIMCC examinations in Singapore underscored the organization’s
 </div>
 
 
+
+
+<script>
+(function () {
+  document.documentElement.classList.add('page-locked');
+
+  window.revealMoreContent = function () {
+    document.documentElement.classList.remove('page-locked');
+    var wrap = document.getElementById('heroNextWrap');
+    if (wrap) wrap.classList.add('is-hidden');
+    window.scrollTo({ top: window.innerHeight * 0.85, behavior: 'smooth' });
+  };
+
+  // Keep Login / Register working while the rest of the page is locked
+  window.showLoginModal = function () {
+    var m = document.getElementById('loginModal');
+    if (m) m.classList.remove('hidden');
+  };
+  window.hideLoginModal = function () {
+    var m = document.getElementById('loginModal');
+    if (m) m.classList.add('hidden');
+  };
+  window.showRegisterModal = function () {
+    var m = document.getElementById('registerModal');
+    if (m) m.classList.remove('hidden');
+  };
+  window.hideRegisterModal = function () {
+    var m = document.getElementById('registerModal');
+    if (m) m.classList.add('hidden');
+  };
+  window.showStudentForm = function () {
+    var r = document.getElementById('registerModal');
+    if (r) r.classList.add('hidden');
+    var m = document.getElementById('studentFormModal');
+    if (m) m.classList.remove('hidden');
+  };
+})();
+</script>
+
+
+<script>
+<script>
+(function () {
+  // Interactive latest-updates marquee:
+  // - Auto-scrolls continuously
+  // - Press/hold or hover pauses it
+  // - Drag or swipe left/right to review items that already passed
+  // - After release + short idle, auto-scroll resumes
+  function setupMarqueeInteraction() {
+    var viewport = document.querySelector('.noa-post-marquee-viewport');
+    var track = document.getElementById('noaPostMarqueeTrack');
+    var root = document.getElementById('noaPostMarquee');
+    if (!viewport || !track || track.dataset.marqueeBound === '1') return;
+    track.dataset.marqueeBound = '1';
+
+    var resumeTimer = null;
+    var dragging = false;
+    var startX = 0;
+    var baseX = 0;
+
+    function getTranslateX() {
+      var style = window.getComputedStyle(track);
+      var tr = style.transform || style.webkitTransform;
+      if (!tr || tr === 'none') return 0;
+      var m = tr.match(/matrix\(([^)]+)\)/);
+      if (m) {
+        var parts = m[1].split(',').map(function (v) { return parseFloat(v.trim()); });
+        return parts[4] || 0;
+      }
+      var m3 = tr.match(/matrix3d\(([^)]+)\)/);
+      if (m3) {
+        var p3 = m3[1].split(',').map(function (v) { return parseFloat(v.trim()); });
+        return p3[12] || 0;
+      }
+      return 0;
+    }
+
+    function pauseAndFreeze() {
+      // Freeze current animated position into an inline transform
+      var x = getTranslateX();
+      track.style.animationPlayState = 'paused';
+      track.style.transform = 'translateX(' + x + 'px)';
+      viewport.classList.add('is-paused');
+      if (root) root.classList.add('is-paused');
+      if (resumeTimer) {
+        clearTimeout(resumeTimer);
+        resumeTimer = null;
+      }
+      return x;
+    }
+
+    function scheduleResume(delay) {
+      if (resumeTimer) clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(function () {
+        // Clear manual transform and let CSS animation run again
+        track.style.transform = '';
+        track.style.animationPlayState = '';
+        viewport.classList.remove('is-paused');
+        if (root) root.classList.remove('is-paused');
+        resumeTimer = null;
+      }, delay || 2200);
+    }
+
+    viewport.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      baseX = pauseAndFreeze();
+      dragging = true;
+      startX = e.clientX;
+      viewport.classList.add('is-dragging');
+      try { viewport.setPointerCapture(e.pointerId); } catch (err) {}
+      e.preventDefault();
+    });
+
+    viewport.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      var dx = e.clientX - startX;
+      // Dragging right reveals past items (content moves right)
+      track.style.transform = 'translateX(' + (baseX + dx) + 'px)';
+    });
+
+    function endDrag(e) {
+      if (!dragging) return;
+      dragging = false;
+      viewport.classList.remove('is-dragging');
+      // Keep the last dragged position as the frozen base
+      baseX = getTranslateX();
+      track.style.transform = 'translateX(' + baseX + 'px)';
+      try {
+        if (e && e.pointerId != null) viewport.releasePointerCapture(e.pointerId);
+      } catch (err) {}
+      scheduleResume(2800);
+    }
+
+    viewport.addEventListener('pointerup', endDrag);
+    viewport.addEventListener('pointercancel', endDrag);
+
+    viewport.addEventListener('wheel', function (e) {
+      var x = pauseAndFreeze();
+      var delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      track.style.transform = 'translateX(' + (x - delta) + 'px)';
+      e.preventDefault();
+      scheduleResume(2800);
+    }, { passive: false });
+
+    viewport.addEventListener('mouseenter', function () {
+      if (!dragging) pauseAndFreeze();
+    });
+    viewport.addEventListener('mouseleave', function () {
+      if (!dragging) scheduleResume(1600);
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupMarqueeInteraction);
+  } else {
+    setupMarqueeInteraction();
+  }
+  setTimeout(setupMarqueeInteraction, 1200);
+  setTimeout(setupMarqueeInteraction, 3500);
+})();
+</script>
 
 <!-- NOA AI Assistant Widget -->
 <div id="noaAiRoot" class="fixed bottom-5 right-5 z-[300] font-sans">

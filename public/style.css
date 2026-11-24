@@ -1963,9 +1963,22 @@
   .noa-post-marquee-viewport {
     flex: 1;
     min-width: 0;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: auto;
+    cursor: grab;
     mask-image: linear-gradient(90deg, transparent, #000 2.5%, #000 97.5%, transparent);
     -webkit-mask-image: linear-gradient(90deg, transparent, #000 2.5%, #000 97.5%, transparent);
+    /* hide scrollbar but keep scroll */
+    scrollbar-width: none;
+  }
+  .noa-post-marquee-viewport::-webkit-scrollbar {
+    display: none;
+  }
+  .noa-post-marquee-viewport.is-dragging,
+  .noa-post-marquee-viewport:active {
+    cursor: grabbing;
   }
   .noa-post-marquee-track {
     display: flex;
@@ -1974,7 +1987,11 @@
     padding: 0.5rem 0.75rem;
     animation: noaPostMarqueeScroll 38s linear infinite;
   }
-  .noa-post-marquee-viewport:hover .noa-post-marquee-track {
+  /* Pause auto-scroll on hover, press, or when user is interacting */
+  .noa-post-marquee-viewport:hover .noa-post-marquee-track,
+  .noa-post-marquee-viewport:active .noa-post-marquee-track,
+  .noa-post-marquee-viewport.is-paused .noa-post-marquee-track,
+  .noa-post-marquee.is-paused .noa-post-marquee-track {
     animation-play-state: paused;
   }
   @keyframes noaPostMarqueeScroll {

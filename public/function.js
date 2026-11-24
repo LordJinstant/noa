@@ -1482,3 +1482,45 @@ video.addEventListener('loadedmetadata', () => {
         </div>`;
     });
 })();
+
+// Site-wide helpers (login modals, menus, etc.)
+// Core AI chat + progressive reveal are defined inline in index.html.
+(function () {
+  window.showLoginModal = window.showLoginModal || function () {
+    var m = document.getElementById('loginModal');
+    if (m) m.classList.remove('hidden');
+  };
+  window.hideLoginModal = window.hideLoginModal || function () {
+    var m = document.getElementById('loginModal');
+    if (m) m.classList.add('hidden');
+  };
+  window.showRegisterModal = window.showRegisterModal || function () {
+    var m = document.getElementById('registerModal');
+    if (m) m.classList.remove('hidden');
+  };
+  window.hideRegisterModal = window.hideRegisterModal || function () {
+    var m = document.getElementById('registerModal');
+    if (m) m.classList.add('hidden');
+  };
+  window.toggleMobileMenu = window.toggleMobileMenu || function () {
+    var o = document.getElementById('mobileOverlay');
+    if (o) o.classList.toggle('hidden');
+  };
+  window.closeMobileMenu = window.closeMobileMenu || function (e) {
+    if (e && e.target && e.target.id !== 'mobileOverlay') return;
+    var o = document.getElementById('mobileOverlay');
+    if (o) o.classList.add('hidden');
+  };
+  window.toggleSubmenu = window.toggleSubmenu || function (btn) {
+    if (!btn) return;
+    var sub = btn.nextElementSibling;
+    if (sub) sub.classList.toggle('hidden');
+    var icon = btn.querySelector('.fa-chevron-down');
+    if (icon) icon.classList.toggle('rotate-180');
+  };
+  window.toggleMobileSubmenu = window.toggleMobileSubmenu || window.toggleSubmenu;
+  window.toggleDesktopSidebar = window.toggleDesktopSidebar || function () {
+    var s = document.getElementById('desktopSidebar');
+    if (s) s.classList.toggle('hidden');
+  };
+})();

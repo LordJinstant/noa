@@ -5614,6 +5614,20 @@ app.delete('/api/class-summaries/:id', (req, res) => {
 // Room map: code -> Map(socketId -> { name, isHost })
 const socketRooms = new Map();
 
+// Live Class Plus: per-room chat history, poll and room switches (memory only, cleared when the class ends)
+const liveExtras = new Map();
+function getLiveExtras(code) {
+  let x = liveExtras.get(code);
+  if (!x) {
+    x = { chat: [], seq: 0, pinned: null, poll: null, chatLocked: false, reactionsOff: false, startedAt: Date.now() };
+    liveExtras.set(code, x);
+  }
+  return x;
+}
+setInterval(() => {
+  liveExtras.forEach((_, code) => { if (!socketRooms.has(code)) liveExtras.delete(code); });
+}, 10 * 60 * 1000).unref();
+
 io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id);
 
@@ -6042,6 +6056,7 @@ io.on('connection', (socket) => {
         }
       });
       socketRooms.delete(roomCode);
+      liveExtras.delete(roomCode);
     }
     try {
       if (typeof liveClasses !== 'undefined' && liveClasses.has(roomCode)) liveClasses.delete(roomCode);
@@ -6056,6 +6071,199 @@ io.on('connection', (socket) => {
     if (!roomCode || !socket.data.isHost) return;
     socket.to(roomCode).emit('board-bg', { color, code: roomCode });
   });
+
+  // ===================== LIVE CLASS PLUS · chat, reactions, polls, captions, room controls =====================
+  const lcpRoom = () => {
+    const rc = socket.data.roomCode;
+    if (!rc || !socketRooms.has(rc) || !socketRooms.get(rc).has(socket.id)) return null;
+    return rc;
+  };
+  const lcpRate = (key, max, windowMs) => {
+    const now = Date.now();
+    const b = (socket.data._rl = socket.data._rl || {});
+    const arr = (b[key] = (b[key] || []).filter((t) => now - t < windowMs));
+    if (arr.length >= max) return false;
+    arr.push(now);
+    return true;
+  };
+  const lcpHostIds = (rc) => {
+    const ids = [];
+    const room = socketRooms.get(rc);
+    if (room) room.forEach((info, id) => { if (info.isHost) ids.push(id); });
+    return ids;
+  };
+  const lcpPublicMsg = (m, viewerId) => {
+    const reacts = {};
+    const mine = [];
+    Object.keys(m.reacts || {}).forEach((e) => {
+      const n = m.reacts[e].size;
+      if (n) reacts[e] = n;
+      if (viewerId && m.reacts[e].has(viewerId)) mine.push(e);
+    });
+    return {
+      id: m.id, text: m.text, name: m.name, from: m.from, isHost: m.isHost,
+      at: m.at, replyTo: m.replyTo || null, toHost: !!m.toHost, reacts, mine
+    };
+  };
+  const lcpPublicPoll = (p, viewerId) => {
+    if (!p) return null;
+    const counts = p.opts.map(() => 0);
+    p.votes.forEach((idx) => { if (counts[idx] != null) counts[idx]++; });
+    return {
+      id: p.id, q: p.q, opts: p.opts, open: p.open, counts,
+      total: p.votes.size, mine: viewerId && p.votes.has(viewerId) ? p.votes.get(viewerId) : null
+    };
+  };
+  const lcpState = (rc, viewerId) => {
+    const x = getLiveExtras(rc);
+    return { chatLocked: !!x.chatLocked, reactionsOff: !!x.reactionsOff, pinned: x.pinned || null };
+  };
+
+  socket.on('live-sync', () => {
+    const rc = lcpRoom();
+    if (!rc) return;
+    const x = getLiveExtras(rc);
+    const isHost = !!socket.data.isHost;
+    const history = x.chat
+      .filter((m) => !m.toHost || isHost || m.from === socket.id)
+      .map((m) => lcpPublicMsg(m, socket.id));
+    socket.emit('live-sync', {
+      history, state: lcpState(rc), poll: lcpPublicPoll(x.poll, socket.id), startedAt: x.startedAt
+    });
+  });
+
+  socket.on('live-chat', ({ text, replyTo, toHost }, ack) => {
+    const rc = lcpRoom();
+    if (!rc) return;
+    const body = String(text || '').replace(/\s+\n/g, '\n').trim().slice(0, 1000);
+    if (!body) return;
+    if (!lcpRate('chat', 6, 5000)) { if (typeof ack === 'function') ack({ ok: false, reason: 'slow' }); return; }
+    const x = getLiveExtras(rc);
+    if (x.chatLocked && !socket.data.isHost && !toHost) {
+      if (typeof ack === 'function') ack({ ok: false, reason: 'locked' });
+      return;
+    }
+    let reply = null;
+    if (replyTo) {
+      const orig = x.chat.find((m) => m.id === String(replyTo));
+      if (orig && (!orig.toHost || socket.data.isHost || orig.from === socket.id)) {
+        reply = { id: orig.id, name: orig.name, text: orig.text.slice(0, 90) };
+      }
+    }
+    const msg = {
+      id: 'm' + (++x.seq) + '_' + Math.random().toString(36).slice(2, 6),
+      text: body, name: socket.data.name || 'Participant', from: socket.id,
+      isHost: !!socket.data.isHost, at: new Date().toISOString(),
+      replyTo: reply, toHost: !!toHost && !socket.data.isHost, reacts: {}
+    };
+    x.chat.push(msg);
+    if (x.chat.length > 200) x.chat.shift();
+    if (msg.toHost) {
+      const targets = new Set(lcpHostIds(rc));
+      targets.add(socket.id);
+      targets.forEach((id) => io.to(id).emit('live-chat', lcpPublicMsg(msg, id)));
+    } else {
+      const room = socketRooms.get(rc);
+      if (room) room.forEach((_, id) => io.to(id).emit('live-chat', lcpPublicMsg(msg, id)));
+    }
+    if (typeof ack === 'function') ack({ ok: true, id: msg.id });
+  });
+
+  socket.on('live-chat-react', ({ msgId, emoji }) => {
+    const rc = lcpRoom();
+    if (!rc || !lcpRate('mreact', 12, 5000)) return;
+    const e = String(emoji || '').slice(0, 8);
+    if (!e) return;
+    const x = getLiveExtras(rc);
+    const m = x.chat.find((mm) => mm.id === String(msgId));
+    if (!m) return;
+    if (m.toHost && !socket.data.isHost && m.from !== socket.id) return;
+    if (!m.reacts[e] && Object.keys(m.reacts).length >= 12) return;
+    if (!m.reacts[e]) m.reacts[e] = new Set();
+    if (m.reacts[e].has(socket.id)) m.reacts[e].delete(socket.id); else m.reacts[e].add(socket.id);
+    const ids = m.toHost ? new Set([...lcpHostIds(rc), m.from]) : null;
+    const room = socketRooms.get(rc);
+    if (!room) return;
+    Array.from(ids || room.keys()).forEach((id) => {
+      io.to(id).emit('live-chat-update', lcpPublicMsg(m, id));
+    });
+  });
+
+  socket.on('live-typing', ({ typing }) => {
+    const rc = lcpRoom();
+    if (!rc || !lcpRate('typing', 8, 4000)) return;
+    socket.to(rc).emit('live-typing', { from: socket.id, name: socket.data.name, typing: !!typing });
+  });
+
+  socket.on('live-react', ({ emoji }) => {
+    const rc = lcpRoom();
+    if (!rc || !lcpRate('react', 10, 3000)) return;
+    const x = getLiveExtras(rc);
+    if (x.reactionsOff && !socket.data.isHost) return;
+    const e = String(emoji || '').slice(0, 8);
+    if (!e) return;
+    io.to(rc).emit('live-react', { from: socket.id, name: socket.data.name, emoji: e });
+  });
+
+  socket.on('live-caption', ({ text, final }) => {
+    const rc = lcpRoom();
+    if (!rc || !socket.data.isHost || !lcpRate('cap', 12, 2000)) return;
+    const t = String(text || '').slice(0, 300);
+    if (!t) return;
+    socket.to(rc).emit('live-caption', { name: socket.data.name, text: t, final: !!final });
+  });
+
+  socket.on('live-poll-vote', ({ pollId, idx }) => {
+    const rc = lcpRoom();
+    if (!rc || !lcpRate('vote', 6, 4000)) return;
+    const x = getLiveExtras(rc);
+    const p = x.poll;
+    const i = parseInt(idx, 10);
+    if (!p || !p.open || p.id !== String(pollId) || !(i >= 0 && i < p.opts.length)) return;
+    p.votes.set(socket.id, i);
+    const room = socketRooms.get(rc);
+    if (room) room.forEach((_, id) => io.to(id).emit('live-poll', lcpPublicPoll(p, id)));
+  });
+
+  socket.on('live-room-ctl', ({ action, value, msgId, poll }) => {
+    const rc = lcpRoom();
+    if (!rc || !socket.data.isHost) return;
+    const x = getLiveExtras(rc);
+    const pushState = () => io.to(rc).emit('live-room-state', lcpState(rc));
+    if (action === 'chat-lock') { x.chatLocked = !!value; pushState(); }
+    else if (action === 'reactions-off') { x.reactionsOff = !!value; pushState(); }
+    else if (action === 'mute-all') {
+      const room = socketRooms.get(rc);
+      if (room) room.forEach((info, id) => {
+        if (!info.isHost) { info.mic = false; io.to(id).emit('host-control', { action: 'mic', value: false, from: socket.id }); }
+      });
+    }
+    else if (action === 'pin') {
+      const m = x.chat.find((mm) => mm.id === String(msgId) && !mm.toHost);
+      x.pinned = m ? { id: m.id, name: m.name, text: m.text } : null;
+      pushState();
+    }
+    else if (action === 'poll-start') {
+      const q = String((poll && poll.q) || '').trim().slice(0, 200);
+      const opts = (Array.isArray(poll && poll.opts) ? poll.opts : [])
+        .map((o) => String(o || '').trim().slice(0, 80)).filter(Boolean).slice(0, 6);
+      if (!q || opts.length < 2) return;
+      x.poll = { id: 'p' + Date.now().toString(36), q, opts, open: true, votes: new Map() };
+      const room = socketRooms.get(rc);
+      if (room) room.forEach((_, id) => io.to(id).emit('live-poll', lcpPublicPoll(x.poll, id)));
+    }
+    else if (action === 'poll-end' && x.poll) {
+      x.poll.open = false;
+      const room = socketRooms.get(rc);
+      if (room) room.forEach((_, id) => io.to(id).emit('live-poll', lcpPublicPoll(x.poll, id)));
+    }
+    else if (action === 'poll-clear') {
+      x.poll = null;
+      io.to(rc).emit('live-poll', null);
+    }
+  });
+
+  socket.on('live-ping', (_, ack) => { if (typeof ack === 'function') ack(Date.now()); });
 
   socket.on('disconnect', () => {
     leaveCurrentRoom(socket);
