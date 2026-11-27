@@ -5436,6 +5436,40 @@ app.post('/api/ai/inbox/read', (req, res) => {
 });
 
 
+// ===================== SFU (C++ / mediasoup) JOIN TOKEN =====================
+// The C++ SFU (see /SFU) verifies this short-lived token. Put the SAME SFU_JOIN_SECRET in this server's .env and in SFU/.env.
+// Host status comes from the live-class record here, never from the browser.
+app.get('/api/sfu/config', (req, res) => {
+  res.json({
+    enabled: Boolean(process.env.SFU_JOIN_SECRET),
+    wsUrl: process.env.SFU_PUBLIC_WS_URL || '',          // e.g. wss://classes.example.com/sfu  (blank = same host as the page)
+    clientBundle: process.env.SFU_CLIENT_BUNDLE_URL || '' // e.g. https://classes.example.com/static/sfu-client.bundle.js
+  });
+});
+app.post('/api/sfu/token', (req, res) => {
+  const secret = process.env.SFU_JOIN_SECRET;
+  if (!secret || secret.length < 16) return res.status(503).json({ msg: 'SFU is not configured (SFU_JOIN_SECRET)' });
+  const auth = String(req.headers.authorization || '');
+  const bearer = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  let decoded;
+  try { decoded = jwt.verify(bearer, JWT_SECRET); } catch (e) { return res.status(401).json({ msg: 'Login required' }); }
+  const code = String((req.body && req.body.code) || '').toUpperCase().trim();
+  const room = code ? liveClasses.get(code) : null;
+  if (!room) return res.status(404).json({ msg: 'That class is not live' });
+  const uid = String(decoded.id != null ? decoded.id : decoded.username || '');
+  if ((room.banned || []).some(b => String((b && (b.id != null ? b.id : b.userId)) != null ? (b.id != null ? b.id : b.userId) : b) === uid)) {
+    return res.status(403).json({ msg: 'You were removed from this class' });
+  }
+  const isHost = String(room.hostId) === uid;
+  const name = String((req.body && req.body.name) || decoded.name || decoded.username || 'Participant').slice(0, 80);
+  const token = jwt.sign(
+    { aud: 'noa-sfu', room: code, uid, name, host: isHost, produce: isHost || process.env.SFU_STUDENT_PUBLISH !== '0' },
+    secret,
+    { algorithm: 'HS256', expiresIn: '10m' }
+  );
+  res.json({ token, host: isHost, room: code });
+});
+
 // ===================== WEBRTC ICE CONFIG (STUN + TURN for cross-network) =====================
 app.get('/api/webrtc-config', (req, res) => {
   const iceServers = [
