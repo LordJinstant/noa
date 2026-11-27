@@ -26,19 +26,124 @@
   }
   /*
     Hide every direct body child after the main hero shell,
-    except auth modals, AI widget, and non-visible tags.
+    except auth modals, mobile menu, AI widget, and non-visible tags.
   */
-  html.page-locked body > *:not(.flex):not(#loginModal):not(#registerModal):not(#studentFormModal):not(#courseModal):not(#adminFormModal):not(#bioModal):not(#photoModal):not(#noaAiRoot):not(script):not(style):not(link):not(#simccClassicWidget) {
+  html.page-locked body > *:not(.flex):not(#loginModal):not(#registerModal):not(#studentFormModal):not(#courseModal):not(#adminFormModal):not(#bioModal):not(#photoModal):not(#mobileOverlay):not(#aboutPopup):not(#competitionsPopup):not(#noaAiRoot):not(script):not(style):not(link):not(#simccClassicWidget):not(#heroNextFixed) {
     display: none !important;
   }
+  /* In-flow Next (fallback). Primary control is the fixed arrow below. */
   #heroNextWrap {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-top: 2.5rem;
+    padding-top: 1.25rem;
   }
   #heroNextWrap.is-hidden {
     display: none !important;
+  }
+  /* Always-visible Next control — stays in the visual viewport at any zoom */
+  #heroNextFixed {
+    position: fixed !important;
+    left: 50% !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: 16px !important;
+    transform: translateX(-50%) !important;
+    z-index: 280 !important;
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.35rem 0.85rem 0.45rem;
+    border: none;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 999px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.16);
+    color: #374151;
+    cursor: pointer;
+    transition: color 0.2s, background 0.2s, box-shadow 0.2s;
+    max-width: 90vw;
+    pointer-events: auto !important;
+  }
+  #heroNextFixed:hover {
+    color: #19A975;
+    box-shadow: 0 10px 32px rgba(25, 169, 117, 0.22);
+  }
+  #heroNextFixed .next-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  #heroNextFixed .next-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 999px;
+    border: 2px solid currentColor;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: heroNextBounce 1.4s ease-in-out infinite;
+  }
+  #heroNextFixed.is-hidden {
+    display: none !important;
+  }
+  /* Sticky Next inside hero — survives extreme zoom while page is locked */
+  .hero-next-sticky {
+    position: sticky;
+    bottom: 12px;
+    z-index: 40;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 1rem;
+    pointer-events: none;
+  }
+  .hero-next-sticky button {
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.35rem 0.85rem 0.45rem;
+    border: none;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 999px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+    color: #374151;
+    cursor: pointer;
+  }
+  .hero-next-sticky button .next-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .hero-next-sticky button .next-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 999px;
+    border: 2px solid currentColor;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: heroNextBounce 1.4s ease-in-out infinite;
+  }
+  html:not(.page-locked) .hero-next-sticky,
+  .hero-next-sticky.is-hidden {
+    display: none !important;
+  }
+  /* Top bar: slides up out of view while scrolling down; returns when scrolling up */
+  #topNavbar.nav-hidden {
+    transform: translateY(-110%);
+    box-shadow: none;
+  }
+  @keyframes heroNextBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(4px); }
   }
 </style>
 
@@ -1058,7 +1163,7 @@
 
     <!-- Top Navbar -->
     <!-- Top Navbar -->
-<nav class="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm shadow-sm z-50 lg:left-72">
+<nav id="topNavbar" class="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm shadow-sm z-50 lg:left-72 transition-transform duration-300 ease-out will-change-transform">
   <div class="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
     <div class="flex items-center gap-3">
       <button onclick="toggleMobileMenu()" class="lg:hidden text-2xl text-gray-700 mr-3">
@@ -1141,6 +1246,12 @@
         <div class="noa-post-marquee-track" id="noaPostMarqueeTrack"></div>
       </div>
     </div>
+      <div class="hero-next-sticky" id="heroNextSticky">
+        <button type="button" onclick="revealMoreContent()" aria-label="Show more content">
+          <span class="next-label">Next</span>
+          <span class="next-icon"><i class="fas fa-chevron-down text-sm"></i></span>
+        </button>
+      </div>
     </section>
   </div>
 </div>
@@ -1895,6 +2006,10 @@ The most recent SIMCC examinations in Singapore underscored the organization’s
     document.documentElement.classList.remove('page-locked');
     var wrap = document.getElementById('heroNextWrap');
     if (wrap) wrap.classList.add('is-hidden');
+    var fixed = document.getElementById('heroNextFixed');
+    if (fixed) fixed.classList.add('is-hidden');
+    var sticky = document.getElementById('heroNextSticky');
+    if (sticky) sticky.classList.add('is-hidden');
     window.scrollTo({ top: window.innerHeight * 0.85, behavior: 'smooth' });
   };
 
@@ -1921,6 +2036,125 @@ The most recent SIMCC examinations in Singapore underscored the organization’s
     var m = document.getElementById('studentFormModal');
     if (m) m.classList.remove('hidden');
   };
+
+  // Mobile sidebar — works even while page is locked (before Next)
+  window.toggleMobileMenu = function () {
+    var o = document.getElementById('mobileOverlay');
+    if (!o) return;
+    o.classList.toggle('hidden');
+    // Prevent background interaction when menu open
+    if (!o.classList.contains('hidden')) {
+      document.documentElement.style.overflow = 'hidden';
+    } else if (document.documentElement.classList.contains('page-locked')) {
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.documentElement.style.overflow = '';
+    }
+  };
+  window.closeMobileMenu = function (e) {
+    if (e && e.target && e.target.id !== 'mobileOverlay') return;
+    var o = document.getElementById('mobileOverlay');
+    if (o) o.classList.add('hidden');
+    if (!document.documentElement.classList.contains('page-locked')) {
+      document.documentElement.style.overflow = '';
+    }
+  };
+  window.toggleMobileSubmenu = function (btn) {
+    if (!btn) return;
+    var sub = btn.nextElementSibling;
+    if (sub) sub.classList.toggle('hidden');
+    var icon = btn.querySelector('.fa-chevron-down');
+    if (icon) icon.classList.toggle('rotate-180');
+  };
+  window.toggleSubmenu = window.toggleMobileSubmenu;
+  window.toggleDesktopSidebar = function () {
+    var s = document.getElementById('desktopSidebar');
+    if (!s) return;
+    s.classList.toggle('hidden');
+    s.classList.toggle('lg:flex');
+  };
+
+  window.showAboutPopup = function () {
+    var m = document.getElementById('aboutPopup');
+    if (m) m.classList.remove('hidden');
+  };
+  window.hideAboutPopup = function () {
+    var m = document.getElementById('aboutPopup');
+    if (m) m.classList.add('hidden');
+  };
+  window.showCompetitionsPopup = function () {
+    var m = document.getElementById('competitionsPopup');
+    if (m) m.classList.remove('hidden');
+  };
+  window.hideCompetitionsPopup = function () {
+    var m = document.getElementById('competitionsPopup');
+    if (m) m.classList.add('hidden');
+  };
+
+  // Keep fixed Next arrow inside the visual viewport (handles browser zoom)
+  (function () {
+    function placeNextFixed() {
+      var btn = document.getElementById('heroNextFixed');
+      if (!btn || btn.classList.contains('is-hidden')) return;
+      var vv = window.visualViewport;
+      if (!vv) {
+        btn.style.bottom = '16px';
+        btn.style.left = '50%';
+        btn.style.transform = 'translateX(-50%)';
+        return;
+      }
+      var bottomFromLayout = (window.innerHeight - vv.height - vv.offsetTop) + 16;
+      if (bottomFromLayout < 8) bottomFromLayout = 16;
+      btn.style.bottom = bottomFromLayout + 'px';
+      btn.style.left = (vv.offsetLeft + vv.width / 2) + 'px';
+      btn.style.transform = 'translateX(-50%)';
+    }
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', placeNextFixed);
+      window.visualViewport.addEventListener('scroll', placeNextFixed);
+    }
+    window.addEventListener('resize', placeNextFixed);
+    placeNextFixed();
+    setTimeout(placeNextFixed, 300);
+  })();
+
+  // Top navbar: hide on scroll down, show on scroll up
+  (function () {
+    var lastY = 0;
+    var ticking = false;
+    var THRESHOLD = 8;
+
+    function onScroll() {
+      var nav = document.getElementById('topNavbar');
+      if (!nav) return;
+      // While first-screen lock is on, keep bar visible
+      if (document.documentElement.classList.contains('page-locked')) {
+        nav.classList.remove('nav-hidden');
+        lastY = window.scrollY || 0;
+        return;
+      }
+      var y = window.scrollY || document.documentElement.scrollTop || 0;
+      if (y < 40) {
+        nav.classList.remove('nav-hidden');
+      } else if (y > lastY + THRESHOLD) {
+        // scrolling down the page → hide bar upward
+        nav.classList.add('nav-hidden');
+      } else if (y < lastY - THRESHOLD) {
+        // scrolling back up → bring bar down into view
+        nav.classList.remove('nav-hidden');
+      }
+      lastY = y;
+    }
+
+    window.addEventListener('scroll', function () {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(function () {
+        onScroll();
+        ticking = false;
+      });
+    }, { passive: true });
+  })();
 })();
 </script>
 
@@ -2046,6 +2280,13 @@ The most recent SIMCC examinations in Singapore underscored the organization’s
   setTimeout(setupMarqueeInteraction, 3500);
 })();
 </script>
+
+
+<!-- Always-visible Next control (works at any zoom / screen size) -->
+<button type="button" id="heroNextFixed" onclick="revealMoreContent()" aria-label="Show more content">
+  <span class="next-label">Next</span>
+  <span class="next-icon"><i class="fas fa-chevron-down text-sm"></i></span>
+</button>
 
 <!-- NOA AI Assistant Widget -->
 <div id="noaAiRoot" class="fixed bottom-5 right-5 z-[300] font-sans">
