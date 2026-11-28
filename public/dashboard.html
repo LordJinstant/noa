@@ -4177,12 +4177,13 @@ function ensureSocket() {
 
   socket.on('room-peers', async ({ peers: existing, count }) => {
     if (count != null) window._roomParticipantCount = Number(count) || 0;
+    try { SfuHybrid.start(); } catch (e) {}   // optional smart video server; falls back to peer-to-peer on its own
     let hostId = null;
     for (const p of existing || []) {
       if (!p || !p.id || isSelfPeerId(p.id) || isSelfMeta(p)) continue;
       peerMeta[p.id] = { name: p.name, isHost: p.isHost, email: p.email, username: p.username, userId: p.userId, micOn: p.mic === true, camOn: p.cam === true };
       if (p.isHost) hostId = p.id;
-      if (shouldWebRTCWith(p)) await createPeerConnection(p.id, p.name, true);
+      if (shouldWebRTCWith(p)) await meshOrDefer(p.id, p.name, true);
     }
     updateParticipantUI();
     renderRosterList();
@@ -4196,7 +4197,7 @@ function ensureSocket() {
     if (count != null) window._roomParticipantCount = Number(count) || 0;
     if (isSelfPeerId(id) || isSelfMeta({ name, isHost, email, username, userId })) return;
     peerMeta[id] = { name, isHost, email, username, userId, micOn: mic === true, camOn: cam === true };
-    if (shouldWebRTCWith({ id, isHost, name, email, username, userId })) await createPeerConnection(id, name, false);
+    if (shouldWebRTCWith({ id, isHost, name, email, username, userId })) await meshOrDefer(id, name, false);
     updateParticipantUI();
     renderRosterList();
     const st = document.getElementById('classStatus');
@@ -5195,6 +5196,10 @@ function scheduleRosterRender() {
   window._rrT = setTimeout(function () { window._rrT = null; try { renderRosterList(); } catch (e) {} }, 120);
 }
 
+function meshOrDefer(id, name, offer) {
+  return (window.SfuHybrid && SfuHybrid.gate) ? SfuHybrid.gate(id, name, offer) : createPeerConnection(id, name, offer);
+}
+
 function createPeerConnection(remoteId, remoteName, shouldOffer) {
   if (isSelfPeerId(remoteId)) return Promise.resolve(null);
   if (peers[remoteId]) return Promise.resolve(peers[remoteId]);
@@ -5703,6 +5708,7 @@ function closeAllPeers() {
 }
 
 async function replaceVideoTrackForAll(newTrack) {
+  try { if (window.SfuHybrid) SfuHybrid.replaceVideoTrack(newTrack); } catch (e) {}
   await Promise.all(Object.values(peers).map(async (pc) => {
     const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
     if (sender && newTrack) await sender.replaceTrack(newTrack);
@@ -5819,6 +5825,7 @@ function joinSocketRoom(code, asHost) {
 }
 
 function leaveSocketRoom() {
+  try { if (window.SfuHybrid) SfuHybrid.stop(); } catch (e) {}
   if (socket) socket.emit('leave-room');
   closeAllPeers();
   window._roomParticipantCount = 0;
@@ -11042,6 +11049,167 @@ document.addEventListener('DOMContentLoaded', () => {
   window.LCP = { open, close, tab, send, reply, cancelReply, jump, reactMsg, copy, setTo, toggleEmoji, addEmoji, toggleReact, sendReact, toggleMenu, closeMenu, cycleLayout,
     toggleSound, openKeys, openNotes, closeModals, downloadNotes, saveChat, toggleCaptions, hostCtl, allow, mute, kick, startPoll, vote,
     addOpt: () => { if (draftOpts.length < 6) { draftOpts.push(''); renderPoll(); } }, draft: (i, v) => { draftOpts[i] = v; } };
+})();
+</script>
+
+<script id="sfuHybrid">
+/* ===================== SFU HYBRID =====================
+   OPTIONAL smoother video for bigger classes. If the SFU is not configured / not reachable / drops mid-class,
+   everything silently stays (or falls back) on the original peer-to-peer video. Nothing else in the class depends on it. */
+window.SfuHybrid = (function () {
+  'use strict';
+  let state = 'idle';                 // idle | connecting | on | off
+  let client = null, session = 0, flushTimer = null;
+  const sidOf = {}, sfuSids = new Set(), streams = {}, deferred = [];
+  const GRACE_MS = 6000;
+  const log = function () { try { console.log.apply(console, ['[sfu]'].concat([].slice.call(arguments))); } catch (e) {} };
+  const withTimeout = (p, ms, msg) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(msg)), ms))]);
+
+  function setBadge(text, kind, title) {
+    let b = document.getElementById('sfuModeBadge');
+    if (!text) { if (b) b.remove(); return; }
+    if (!b) {
+      const anchor = document.getElementById('classCodeBadge'); if (!anchor) return;
+      b = document.createElement('span'); b.id = 'sfuModeBadge'; b.className = 'lc-chip';
+      anchor.insertAdjacentElement('afterend', b);
+    }
+    b.textContent = text; b.title = title || '';
+    b.style.background = kind === 'on' ? 'rgba(52,211,153,.2)' : 'rgba(100,116,139,.35)';
+    b.style.color = kind === 'on' ? '#6ee7b7' : '#cbd5e1';
+  }
+  function loadBundle(url) {
+    return new Promise((res, rej) => {
+      if (window.NoaSFU) return res();
+      const s = document.createElement('script'); s.src = url; s.onload = res; s.onerror = () => rej(new Error('could not load ' + url));
+      document.head.appendChild(s); setTimeout(() => rej(new Error('bundle timeout')), 7000);
+    });
+  }
+  // Students only need audio from everyone, but video only from the host(s). The host receives everyone.
+  function wantStream(x) {
+    if (x.kind === 'audio') return true;
+    if (typeof isClassHost !== 'undefined' && isClassHost) return true;
+    return !!(x.peer && x.peer.host);
+  }
+
+  async function start() {
+    if (state !== 'idle') return;
+    state = 'connecting';
+    const my = ++session;
+    try {
+      const cfg = await withTimeout(fetch('/api/sfu/config').then((r) => r.json()), 4000, 'config timeout');
+      if (!cfg.enabled) throw new Error('SFU not configured on the main server');
+      const host = location.hostname, port = cfg.port || 8080;
+      const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      await loadBundle(cfg.clientBundle || (location.protocol + '//' + host + ':' + port + '/static/sfu-client.bundle.js'));
+      const r = await fetch('/api/sfu/token', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ code: activeClassCode, name: (typeof user !== 'undefined' && user && user.name) || '', socketId: socket && socket.id })
+      });
+      const tj = await r.json();
+      if (!r.ok || !tj.token) throw new Error(tj.msg || 'no token');
+      if (my !== session) return;
+      const c = new NoaSFU.Client({ url: cfg.wsUrl || (wsProto + '//' + host + ':' + port + '/sfu'), token: tj.token, shouldConsume: wantStream });
+      client = c; wire(c);
+      const info = await withTimeout(c.join(), 9000, 'SFU join timeout');
+      (info.peers || []).forEach((p) => { sidOf[p.id] = p.sid; if (p.sid) sfuSids.add(p.sid); });
+      if (typeof mediaStream === 'undefined' || !mediaStream) await getLocalMedia();
+      const a = mediaStream && mediaStream.getAudioTracks()[0], v = mediaStream && mediaStream.getVideoTracks()[0];
+      await withTimeout(c.publishTracks({ audioTrack: a, videoTrack: v }), 9000, 'SFU publish timeout');
+      if (my !== session || client !== c) { try { c.close(); } catch (e) {} return; }
+      state = 'on';
+      setBadge('⚡ SFU', 'on', 'Smart video server is carrying this class');
+      log('connected - class video is running through the SFU');
+      scheduleFlush();
+    } catch (e) {
+      if (my !== session) return;
+      log('not using the SFU (' + e.message + ') - standard peer-to-peer video');
+      fail();
+    }
+  }
+
+  function fail() {
+    try { if (client) { const c = client; client = null; c.close(); } } catch (e) {}
+    state = 'off'; setBadge('', 'off');
+    flush();
+  }
+
+  function wire(c) {
+    c.on('remoteStream', (x) => {
+      const sid = sidOf[x.peerId] || (x.peer && x.peer.sid);
+      if (!sid) return;
+      sidOf[x.peerId] = sid; sfuSids.add(sid);
+      attach(sid, x.peer, x.kind, x.track, 0);
+    });
+    c.on('consumerClosed', (x) => {
+      const sid = sidOf[x.peerId]; const ms = sid && streams[sid];
+      if (ms && x.track) { try { ms.removeTrack(x.track); } catch (e) {} }
+    });
+    c.on('peerJoined', (n) => { sidOf[n.id] = n.sid; if (n.sid) sfuSids.add(n.sid); });
+    c.on('peerLeft', (n) => { const sid = sidOf[n.id]; delete sidOf[n.id]; if (sid) { sfuSids.delete(sid); delete streams[sid]; } });
+    c.on('closed', () => { if (client === c && state === 'on') fallback(); });
+  }
+
+  function attach(sid, peer, kind, track, tries) {
+    if (!track) return;
+    if (!peerMeta[sid] && tries < 6) { setTimeout(() => attach(sid, peer, kind, track, tries + 1), 700); return; }   // roster event not here yet
+    const meta = peerMeta[sid] = peerMeta[sid] || { name: (peer && peer.name) || 'Peer', isHost: !!(peer && peer.host), micOn: true, camOn: true };
+    const ms = streams[sid] || (streams[sid] = new MediaStream());
+    ms.getTracks().filter((t) => t.kind === kind).forEach((t) => ms.removeTrack(t));
+    ms.addTrack(track);
+    meta.stream = ms;
+    if (kind === 'audio') {
+      playRemoteAudioOnly(sid, ms);
+      try { startAudioMeter('peer:' + sid, ms, function () { return peerMeta[sid] && peerMeta[sid].micOn !== false; }); refreshAllMeterBindings(); } catch (e) {}
+    } else {
+      attachRemoteStream(sid, meta.name, ms);
+    }
+  }
+
+  // The SFU dropped mid-class: rebuild the original peer-to-peer connections (same dial rules as the existing reconnect code).
+  function fallback() {
+    log('SFU connection lost - switching to peer-to-peer video');
+    try { if (client) { const c = client; client = null; c.close(); } } catch (e) {}
+    state = 'off'; setBadge('Standard video', 'off', 'The smart video server is unavailable; using direct connections');
+    deferred.length = 0;
+    Object.keys(peerMeta).forEach((id) => {
+      if (isSelfPeerId(id) || peers[id]) return;
+      const m = peerMeta[id]; if (!m) return;
+      const offerer = !isClassHost && (m.isHost || (socket && socket.id < id));
+      if (offerer) createPeerConnection(id, m.name, true);
+      else if (isClassHost && socket) socket.emit('signal', { to: id, data: { type: 'reconnect' } });
+    });
+  }
+
+  // Called instead of createPeerConnection when the page meets a peer. Peers that are on the SFU need no direct link.
+  function gate(id, name, offer) {
+    if (state === 'off') return createPeerConnection(id, name, offer);
+    deferred.push({ id, name, offer, t: Date.now() });
+    scheduleFlush();
+    return Promise.resolve(null);
+  }
+  function scheduleFlush() { if (!flushTimer) flushTimer = setTimeout(() => { flushTimer = null; flush(); }, 1000); }
+  function flush() {
+    const now = Date.now(); const keep = [];
+    deferred.splice(0).forEach((d) => {
+      if (sfuSids.has(d.id)) return;                                          // on the SFU - nothing to do
+      if (state === 'connecting' || (state === 'on' && now - d.t < GRACE_MS)) { keep.push(d); return; }
+      if (peerMeta[d.id] && !peers[d.id]) createPeerConnection(d.id, d.name, d.offer);   // not on the SFU -> standard video with them
+    });
+    keep.forEach((d) => deferred.push(d));
+    if (deferred.length) scheduleFlush();
+  }
+
+  function replaceVideoTrack(track) {
+    if (state === 'on' && client) client.replaceVideo(track).catch((e) => log('replaceVideo failed', e.message));
+  }
+  function stop() {
+    session++; state = 'idle'; deferred.length = 0;
+    const c = client; client = null;
+    try { if (c) c.close(); } catch (e) {}
+    Object.keys(sidOf).forEach((k) => delete sidOf[k]); Object.keys(streams).forEach((k) => delete streams[k]); sfuSids.clear();
+    setBadge('', 'off');
+  }
+  return { start, stop, gate, replaceVideoTrack, get state() { return state; } };
 })();
 </script>
 

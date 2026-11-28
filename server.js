@@ -5437,12 +5437,31 @@ app.post('/api/ai/inbox/read', (req, res) => {
 
 
 // ===================== SFU (C++ / mediasoup) JOIN TOKEN =====================
-// The C++ SFU (see /SFU) verifies this short-lived token. Put the SAME SFU_JOIN_SECRET in this server's .env and in SFU/.env.
-// Host status comes from the live-class record here, never from the browser.
+// OPTIONAL. The class works exactly as before without it (peer-to-peer video). When the SFU is configured and reachable the page
+// uses it for smoother video in bigger classes, and falls back to peer-to-peer automatically if it is not.
+// The secret is read from SFU_JOIN_SECRET, or automatically from SFU/.env when the SFU folder sits next to (or inside) this one.
+(function autoLoadSfuSecret() {
+  if (process.env.SFU_JOIN_SECRET) return;
+  const candidates = [path.join(__dirname, 'SFU', '.env'), path.join(__dirname, '..', 'SFU', '.env')];
+  for (const f of candidates) {
+    try {
+      if (!fs.existsSync(f)) continue;
+      const m = fs.readFileSync(f, 'utf8').match(/^\s*SFU_JOIN_SECRET\s*=\s*(\S+)\s*$/m);
+      const nm = fs.readFileSync(f, 'utf8').match(/^\s*NGINX_PORT\s*=\s*(\d+)/m);
+      if (m && m[1] && !m[1].startsWith('CHANGE_ME')) {
+        process.env.SFU_JOIN_SECRET = m[1];
+        if (nm && !process.env.SFU_NGINX_PORT) process.env.SFU_NGINX_PORT = nm[1];
+        console.log('[sfu] join secret loaded from ' + f);
+        return;
+      }
+    } catch (e) { /* ignore */ }
+  }
+})();
 app.get('/api/sfu/config', (req, res) => {
   res.json({
     enabled: Boolean(process.env.SFU_JOIN_SECRET),
-    wsUrl: process.env.SFU_PUBLIC_WS_URL || '',          // e.g. wss://classes.example.com/sfu  (blank = same host as the page)
+    port: parseInt(process.env.SFU_NGINX_PORT || '8080', 10),
+    wsUrl: process.env.SFU_PUBLIC_WS_URL || '',          // e.g. wss://classes.example.com/sfu  (blank = same host as the page, SFU port)
     clientBundle: process.env.SFU_CLIENT_BUNDLE_URL || '' // e.g. https://classes.example.com/static/sfu-client.bundle.js
   });
 });
@@ -5463,7 +5482,7 @@ app.post('/api/sfu/token', (req, res) => {
   const isHost = String(room.hostId) === uid;
   const name = String((req.body && req.body.name) || decoded.name || decoded.username || 'Participant').slice(0, 80);
   const token = jwt.sign(
-    { aud: 'noa-sfu', room: code, uid, name, host: isHost, produce: isHost || process.env.SFU_STUDENT_PUBLISH !== '0' },
+    { aud: 'noa-sfu', room: code, uid, name, host: isHost, sid: String((req.body && req.body.socketId) || '').slice(0, 64), produce: isHost || process.env.SFU_STUDENT_PUBLISH !== '0' },
     secret,
     { algorithm: 'HS256', expiresIn: '10m' }
   );
