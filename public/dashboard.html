@@ -1049,7 +1049,7 @@
     }
     #boardHeader{cursor:move}
     #whiteboardPanel.board-locked #boardHeader{cursor:default}
-    #boardScrollWrap{scrollbar-width:thin;overscroll-behavior:contain}
+    #boardScrollWrap{scrollbar-width:thin;overscroll-behavior:contain;scrollbar-gutter:stable}
     #boardScrollWrap::-webkit-scrollbar{width:8px;height:8px}
     #boardScrollWrap::-webkit-scrollbar-thumb{background:#334155;border-radius:8px}
     #boardScrollWrap::-webkit-scrollbar-track{background:transparent}
@@ -4158,6 +4158,9 @@ function roomJoinPayload() {
 
 function emitRoomJoin() {
   if (socket && activeClassCode) socket.emit('join-room', roomJoinPayload());
+  // Tell the room whether our camera/mic are on (the host's camera is switched on at class start without any toggle,
+  // so without this viewers would think it is off and the big display would stay empty).
+  [700, 2500].forEach(function (ms) { setTimeout(function () { try { broadcastMediaState(); } catch (e) {} }, ms); });
 }
 
 function ensureSocket() {
@@ -4207,6 +4210,9 @@ function ensureSocket() {
       socket.emit('wb-history', { code: activeClassCode, to: id, strokes: boardStrokes.slice(-4000), open: whiteboardOpen });
       socket.emit('board-visibility', { code: activeClassCode, open: whiteboardOpen, full: boardFullscreen });
       socket.emit('board-permission', { code: activeClassCode, allowed: boardUnlockedForStudents });
+      // new joiner: show them the host's camera state and the exact board position/size
+      try { broadcastMediaState(); } catch (e) {}
+      setTimeout(function () { try { broadcastBoardLayout(true); } catch (e) {} }, 500);
     }
   });
 
@@ -4311,6 +4317,7 @@ function ensureSocket() {
     redrawBoard();
   });
   socket.on('wb-request-state', ({ from }) => {
+    if (isClassHost) { try { broadcastBoardLayout(true); } catch (e) {} }
     if (isClassHost || boardStrokes.length) {
       socket.emit('wb-history', { code: activeClassCode, to: from, strokes: boardStrokes.slice(-4000), open: whiteboardOpen });
     }
@@ -4330,6 +4337,7 @@ function ensureSocket() {
       toggleWhiteboardPanel(false);
     }
   });
+  socket.on('board-layout', (L) => { try { applyBoardLayout(L); } catch (e) { console.warn('board-layout', e); } });
   socket.on('board-fs', ({ full }) => {
     if (isClassHost) return;
     if (typeof full === 'boolean') {
@@ -4377,6 +4385,7 @@ function ensureSocket() {
   socket.on('media-state', ({ from, mic, cam }) => {
     if (peerMeta[from]) { peerMeta[from].micOn = !!mic; peerMeta[from].camOn = !!cam; }
     applyPeerTileState(from);
+    try { updateHostStageLayout(); } catch (e) {}
     if (focusedPeerId === from && !cam) { clearFocusPeer(); menuPeerId = from; renderParticipantCard(from); }
     else if (menuPeerId === from) renderParticipantCard(from);
     scheduleRosterRender();
@@ -4959,7 +4968,55 @@ function isHostCamLive() {
 }
 
 /** Host big + small display rules */
+/** Viewer (student) big display: host camera when no file is shared; file in the big box with the host cam as a small picture. */
+function findHostPeerId() {
+  for (const id in peerMeta) {
+    const m = peerMeta[id];
+    if (m && m.isHost && !isSelfPeerId(id)) return id;
+  }
+  return null;
+}
+function updateViewerStage() {
+  const stage = document.getElementById('mainStage');
+  const lv = document.getElementById('localVideo');
+  const fv = document.getElementById('focusVideo');
+  const label = document.getElementById('mainStageLabel');
+  const pip = document.getElementById('fileCamPip');
+  const pipVid = document.getElementById('fileCamPipVideo');
+  const pipLabel = pip ? pip.querySelector('.pip-label') : null;
+  if (!stage) return;
+  const monitoring = !!(focusedPeerId && fv && !fv.classList.contains('hidden'));
+  if (monitoring) { if (pip) pip.classList.remove('show'); return; }
+  const hid = findHostPeerId();
+  const hm = hid ? peerMeta[hid] : null;
+  const hostLive = !!(hm && peerHasLiveVideo(hm));
+  const hostName = (hm && hm.name) || 'Host';
+  const fileOpen = isSharedFileOpen();
+  function bindHost(v) {
+    if (!v || !hm || !hm.stream) return;
+    try { if (v.srcObject !== hm.stream) v.srcObject = hm.stream; v.muted = true; v.setAttribute('playsinline', ''); v.play().catch(function () {}); } catch (e) {}
+  }
+  if (lv) lv.classList.add('hidden');                 // a student's own camera never takes the big display
+  stage.classList.toggle('stage-file', fileOpen);
+  stage.classList.toggle('stage-blank', !fileOpen && !hostLive);
+  if (fileOpen) {
+    if (fv) fv.classList.add('hidden');
+    if (label) label.textContent = 'Shared file';
+    if (hostLive && pip) { pip.classList.add('show'); bindHost(pipVid); if (pipLabel) pipLabel.textContent = hostName; }
+    else if (pip) pip.classList.remove('show');
+  } else if (hostLive) {
+    if (pip) pip.classList.remove('show');
+    if (fv) { fv.classList.remove('hidden', 'cam-mirror'); bindHost(fv); }
+    if (label) label.textContent = hostName;
+  } else {
+    if (pip) pip.classList.remove('show');
+    if (fv) { fv.classList.add('hidden'); }
+    if (label) label.textContent = hid ? hostName + ' (camera off)' : 'Waiting for the host';
+  }
+}
+
 function updateHostStageLayout() {
+  if (!isClassHost && activeClassCode) { try { updateViewerStage(); } catch (e) { console.warn('viewer stage', e); } return; }
   const stage = document.getElementById('mainStage');
   const lv = document.getElementById('localVideo');
   const fv = document.getElementById('focusVideo');
@@ -5007,7 +5064,7 @@ function updateHostStageLayout() {
     if (lv) lv.classList.add('hidden');
     if (label) label.textContent = 'Shared file';
     if (camLive) {
-      if (pip) { pip.classList.add('show'); bindSelf(pipVid); }
+      if (pip) { pip.classList.add('show'); bindSelf(pipVid); const pl = pip.querySelector('.pip-label'); if (pl) pl.textContent = 'You'; }
     } else {
       if (pip) pip.classList.remove('show');
     }
@@ -5026,6 +5083,8 @@ function updateHostStageLayout() {
   }
 }
 
+
+setInterval(function () { try { if (activeClassCode) updateHostStageLayout(); } catch (e) {} }, 1200);
 
 function attachLocalPreview() {
   const fv = document.getElementById('focusVideo');
@@ -5715,6 +5774,18 @@ async function replaceVideoTrackForAll(newTrack) {
   }));
 }
 
+function recordHint(text, ms) {
+  // non-blocking message (a blocking alert() can make the browser reject the screen-capture prompt that follows)
+  let b = document.getElementById('recordHint');
+  if (!b) {
+    b = document.createElement('div'); b.id = 'recordHint';
+    b.style.cssText = 'position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:99999;max-width:min(520px,92vw);padding:12px 18px;border-radius:14px;background:#0f172a;color:#fff;font:600 13px system-ui,sans-serif;box-shadow:0 14px 40px rgba(0,0,0,.5);border:1px solid #34d399;text-align:center';
+    document.body.appendChild(b);
+  }
+  b.textContent = text; b.style.display = 'block';
+  clearTimeout(b._t); b._t = setTimeout(function () { b.style.display = 'none'; }, ms || 6000);
+}
+
 async function toggleClassRecording() {
   const btn = document.getElementById('btnRecordClass');
   if (isClassRecording && classMediaRecorder) {
@@ -5726,21 +5797,53 @@ async function toggleClassRecording() {
     return;
   }
   try {
-    // Capture the entire screen / window / tab so everything on display is recorded
+    // Record ONLY the class box (stage + file/board + participant tiles) - not the whole screen.
+    // Chrome/Edge can restrict a "this tab" capture to one element (Element Capture, then Region Capture as a fallback).
+    const area = document.getElementById('classMobileCol') || document.getElementById('liveClassShell');
+    const canElement = typeof window.RestrictionTarget !== 'undefined' && window.RestrictionTarget.fromElement;
+    const canRegion = typeof window.CropTarget !== 'undefined' && window.CropTarget.fromElement;
+    if (!area || !(canElement || canRegion)) {
+      // Never fall back to recording the whole screen: the class box is what must be recorded.
+      recordHint('This browser cannot record just the class box. Please use Chrome or Edge (version 104 or newer).', 9000);
+      return;
+    }
+    recordHint('Choose "This tab" in the browser prompt - only the class box will be recorded.', 9000);
     const displayStream = await navigator.mediaDevices.getDisplayMedia({
       video: { frameRate: 30 },
       audio: true,
-      preferCurrentTab: true
+      preferCurrentTab: true,
+      selfBrowserSurface: 'include',
+      surfaceSwitching: 'exclude'
     });
+    const vTrack = displayStream.getVideoTracks()[0];
+    let limited = false;
+    if (canElement) {
+      try { await vTrack.restrictTo(await window.RestrictionTarget.fromElement(area)); limited = true; } catch (e) { console.warn('restrictTo failed', e); }
+    }
+    if (!limited && canRegion) {
+      try { await vTrack.cropTo(await window.CropTarget.fromElement(area)); limited = true; } catch (e) { console.warn('cropTo failed', e); }
+    }
+    if (!limited) {
+      displayStream.getTracks().forEach(function (tr) { tr.stop(); });
+      recordHint('Could not limit the recording to the class box. Start again and pick "This tab" (not a window or the entire screen).', 10000);
+      return;
+    }
     window._classRecordDisplayStream = displayStream;
     const stream = new MediaStream();
-    displayStream.getVideoTracks().forEach(function (tr) { stream.addTrack(tr); });
-    displayStream.getAudioTracks().forEach(function (tr) { stream.addTrack(tr); });
-    // Mix in mic if display has no audio
-    if (!stream.getAudioTracks().length && mediaStream) {
-      mediaStream.getAudioTracks().forEach(function (tr) { stream.addTrack(tr); });
+    stream.addTrack(vTrack);
+    // Audio: tab sound (everyone else) + the host's own microphone, mixed together
+    try {
+      const ac = new (window.AudioContext || window.webkitAudioContext)();
+      const dest = ac.createMediaStreamDestination();
+      if (displayStream.getAudioTracks().length) ac.createMediaStreamSource(new MediaStream(displayStream.getAudioTracks())).connect(dest);
+      if (mediaStream && mediaStream.getAudioTracks().length) ac.createMediaStreamSource(new MediaStream([mediaStream.getAudioTracks()[0]])).connect(dest);
+      dest.stream.getAudioTracks().forEach(function (tr) { stream.addTrack(tr); });
+      window._classRecordAudioCtx = ac;
+    } catch (e) {
+      displayStream.getAudioTracks().forEach(function (tr) { stream.addTrack(tr); });
+      if (!stream.getAudioTracks().length && mediaStream) mediaStream.getAudioTracks().forEach(function (tr) { stream.addTrack(tr); });
     }
-    displayStream.getVideoTracks()[0].addEventListener('ended', function () {
+    vTrack.addEventListener('ended', function () {
       if (isClassRecording && classMediaRecorder) try { classMediaRecorder.stop(); } catch (e) {}
     });
     classRecordChunks = [];
@@ -5762,6 +5865,7 @@ async function toggleClassRecording() {
       a.click();
       URL.revokeObjectURL(url);
       classMediaRecorder = null;
+      try { if (window._classRecordAudioCtx) { window._classRecordAudioCtx.close(); window._classRecordAudioCtx = null; } } catch (e) {}
       if (window._classRecordDisplayStream) {
         try { window._classRecordDisplayStream.getTracks().forEach(function (tr) { tr.stop(); }); } catch (e) {}
         window._classRecordDisplayStream = null;
@@ -5772,7 +5876,7 @@ async function toggleClassRecording() {
     if (btn) btn.innerHTML = '<i class="fas fa-stop mr-1"></i><span>Stop</span>';
   } catch (err) {
     console.error(err);
-    alert('Could not start screen recording. Allow screen share when prompted (Chrome/Edge recommended).');
+    recordHint('Could not start recording. Choose "This tab" when prompted (Chrome/Edge recommended).', 8000);
   }
 }
 
@@ -6768,6 +6872,7 @@ function toggleBoardFullscreen() {
   applyBoardFullscreenUI();
   if (isClassHost && socket && activeClassCode) {
     socket.emit('board-fs', { code: activeClassCode, full: boardFullscreen });
+    setTimeout(function () { broadcastBoardLayout(true); }, 150);
   }
 }
 
@@ -6792,8 +6897,9 @@ function toggleWhiteboardPanel(force) {
   }
   if (isClassHost && activeClassCode && socket) {
     socket.emit('board-visibility', { code: activeClassCode, open: whiteboardOpen, full: boardFullscreen });
-    if (whiteboardOpen) broadcastBoardSize();
+    if (whiteboardOpen) { broadcastBoardSize(); setTimeout(function () { broadcastBoardLayout(true); }, 250); }
   }
+  if (open && !isClassHost && lastBoardLayout) setTimeout(function () { try { applyBoardLayout(lastBoardLayout); } catch (e) {} }, 200);
 }
 
 function boardCanvas() { return document.getElementById('whiteboardCanvas'); }
@@ -6806,9 +6912,11 @@ function resizeBoardCanvas(preserve) {
   if (!canvas || !wrap) return;
   const w = BOARD_LOGICAL_W;
   const h = Math.max(300, boardCanvasH);
-  // CSS size follows the panel; buffer stays fixed-width so strokes do not shrink across devices
+  // CSS width follows the panel; CSS height keeps the SAME proportion as the 1000 x h drawing buffer, so writing has
+  // identical width/height ratio (never stretched) on a phone, a laptop or a TV. Only the overall scale changes.
   canvas.style.width = '100%';
-  canvas.style.height = h + 'px';
+  const cssW = wrap.clientWidth;
+  canvas.style.height = (cssW > 0 ? h * cssW / w : h) + 'px';
   if (canvas.width !== w || canvas.height !== h) {
     canvas.width = w;
     canvas.height = h;
@@ -7115,6 +7223,71 @@ function boardScrollToTop() {
   }
 }
 
+/* ---- Board position / size / scroll shared from the host to every participant ----
+   Position and width are fractions of the stage, height and scroll are in board units (1000 wide), so the host and
+   every viewer see the same part of the board in the same proportions whatever their screen size. */
+let lastBoardLayout = null;
+let _blTimer = null, _blLast = 0;
+function boardScale() {
+  const c = boardCanvas();
+  return c && c.clientWidth ? c.clientWidth / BOARD_LOGICAL_W : 1;
+}
+function currentBoardLayout() {
+  const panel = document.getElementById('whiteboardPanel');
+  const stage = document.getElementById('stageWrap');
+  const frame = document.getElementById('boardScrollFrame');
+  const sc = document.getElementById('boardScrollWrap');
+  if (!panel || !stage || !frame || !sc) return null;
+  const sr = stage.getBoundingClientRect();
+  if (!sr.width || !sr.height) return null;
+  const k = boardScale();
+  return {
+    l: panel.offsetLeft / sr.width, t: panel.offsetTop / sr.height, w: panel.offsetWidth / sr.width,
+    viewH: frame.clientHeight / k, top: sc.scrollTop / k, full: !!boardFullscreen
+  };
+}
+function broadcastBoardLayout(force) {
+  if (!isClassHost || !socket || !activeClassCode || !whiteboardOpen) return;
+  const now = Date.now();
+  const send = function () {
+    _blLast = Date.now(); _blTimer = null;
+    const L = currentBoardLayout();
+    if (L) { try { socket.emit('board-layout', Object.assign({ code: activeClassCode }, L)); } catch (e) {} }
+  };
+  if (force || now - _blLast > 90) { if (_blTimer) { clearTimeout(_blTimer); _blTimer = null; } send(); }
+  else if (!_blTimer) _blTimer = setTimeout(send, 90);
+}
+function applyBoardLayout(L) {
+  if (isClassHost || !L) return;
+  lastBoardLayout = L;
+  if (!whiteboardOpen) return;                       // applied as soon as the board opens
+  const panel = document.getElementById('whiteboardPanel');
+  const stage = document.getElementById('stageWrap');
+  const header = document.getElementById('boardHeader');
+  const sc = document.getElementById('boardScrollWrap');
+  if (!panel || !stage || !sc) return;
+  if (typeof L.full === 'boolean' && L.full !== boardFullscreen) { boardFullscreen = L.full; applyBoardFullscreenUI(); }
+  const num = function (v) { return typeof v === 'number' && isFinite(v); };
+  if (!boardFullscreen) {
+    const sr = stage.getBoundingClientRect();
+    if (window.innerWidth >= 1024 && sr.width && num(L.l) && num(L.t) && num(L.w)) {
+      const w = Math.max(260, Math.min(sr.width - 8, L.w * sr.width));
+      panel.style.width = w + 'px';
+      panel.style.left = Math.max(0, Math.min(sr.width - 80, L.l * sr.width)) + 'px';
+      panel.style.top = Math.max(0, Math.min(sr.height - 40, L.t * sr.height)) + 'px';
+      panel.style.right = 'auto';
+    }
+    resizeBoardCanvas();
+    if (num(L.viewH)) {                               // show the same board area (same height) as the host
+      const h = (header ? header.offsetHeight : 40) + L.viewH * boardScale();
+      panel.style.height = Math.max(220, Math.min(window.innerHeight * 0.92, h)) + 'px';
+    }
+  } else {
+    resizeBoardCanvas();
+  }
+  if (num(L.top)) sc.scrollTop = L.top * boardScale();
+}
+
 function broadcastBoardSize(scrollBottom) {
   if (!isClassHost || !socket || !activeClassCode) return;
   try {
@@ -7139,7 +7312,7 @@ function initBoardChrome() {
 
   let drag = null;
   header.addEventListener('pointerdown', (e) => {
-    if (window.innerWidth < 1024 || boardLocked) return;
+    if (!isClassHost || window.innerWidth < 1024 || boardLocked) return;
     if (e.target.closest('button') || e.target.closest('.color-btn')) return;
     drag = { dx: e.clientX - panel.offsetLeft, dy: e.clientY - panel.offsetTop };
     header.setPointerCapture(e.pointerId);
@@ -7157,13 +7330,14 @@ function initBoardChrome() {
     panel.style.left = left + 'px';
     panel.style.top = top + 'px';
     panel.style.right = 'auto';
+    broadcastBoardLayout();
   });
-  header.addEventListener('pointerup', () => { drag = null; });
+  header.addEventListener('pointerup', () => { if (drag) broadcastBoardLayout(true); drag = null; });
 
   let rs = null;
   if (grip) {
     grip.addEventListener('pointerdown', (e) => {
-      if (window.innerWidth < 1024) return;
+      if (!isClassHost || window.innerWidth < 1024) return;
       e.preventDefault();
       rs = { x: e.clientX, y: e.clientY, w: panel.offsetWidth, h: panel.offsetHeight };
       grip.setPointerCapture(e.pointerId);
@@ -7173,8 +7347,18 @@ function initBoardChrome() {
       panel.style.width = Math.max(260, Math.min(window.innerWidth - 40, rs.w + e.clientX - rs.x)) + 'px';
       panel.style.height = Math.max(220, Math.min(window.innerHeight * 0.85, rs.h + e.clientY - rs.y)) + 'px';
       resizeBoardCanvas();
+      broadcastBoardLayout();
     });
-    grip.addEventListener('pointerup', () => { rs = null; });
+    grip.addEventListener('pointerup', () => { if (rs) broadcastBoardLayout(true); rs = null; });
+  }
+  // keep the drawing proportional whenever the panel changes size, and mirror the host's scrolling
+  const scWrap = document.getElementById('boardScrollWrap');
+  if (scWrap) {
+    scWrap.addEventListener('scroll', () => { if (isClassHost) broadcastBoardLayout(); }, { passive: true });
+    if (window.ResizeObserver) {
+      let raf = 0;
+      new ResizeObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { try { resizeBoardCanvas(); } catch (e) {} if (isClassHost) broadcastBoardLayout(); }); }).observe(scWrap);
+    }
   }
 }
 

@@ -6081,6 +6081,15 @@ io.on('connection', (socket) => {
       bottom: !!bottom
     });
   });
+  // Host's board position / size / scroll -> everyone else (so all screens show the same board area)
+  socket.on('board-layout', (d) => {
+    if (!d || !d.code || !socket.data.isHost) return;
+    const f = (v, lo, hi) => (typeof v === 'number' && isFinite(v)) ? Math.max(lo, Math.min(hi, v)) : undefined;
+    socket.to(String(d.code).toUpperCase()).emit('board-layout', {
+      l: f(d.l, -1, 2), t: f(d.t, -1, 2), w: f(d.w, 0.05, 2), viewH: f(d.viewH, 50, 20000), top: f(d.top, 0, 20000),
+      full: typeof d.full === 'boolean' ? d.full : undefined, from: socket.id
+    });
+  });
   socket.on('board-fs', ({ code, full }) => {
     if (!code) return;
     if (!socket.data.isHost) return;
